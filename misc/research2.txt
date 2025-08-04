@@ -1,0 +1,198 @@
+Enhanced ADNI Graph Schema (Neo4j + AD-DPC Ontology)
+Leveraging the Alzheimer’s Disease Ontology for Diagnosis and Preclinical Classification (AD-DPC) and Neo4j’s labeled property graph model, we propose an enhanced schema for the ADNI dataset. This schema captures clinical, cognitive, imaging, biomarker, genetic, and temporal information with semantic clarity, aligning with AD-DPC concepts while remaining flexible for future ontology extensions. The design treats each ADNI data point (test result, measurement, etc.) as a “finding” linked to both the patient and the context (type of test, time, etc.)
+researchgate.net
+. Below we detail the node types, their properties, relationship types, and how ADNI tables group into these categories, followed by Cypher template examples.
+1. Node Types and Key Properties
+Patient (Participant): Represents an ADNI subject. Properties include subject identifiers (RID – research ID, PTID – patient ID code), demographic info (sex, baseline age, education years at baseline, etc.), and possibly static attributes like enrollment cohort. Example: (:Patient {RID: 123, PTID: "001_S_0001", sex: "M", ageBaseline: 75, education: 16}). 
+researchgate.net
+ PatientRecord (ParticipantFile): A record container for all data related to a patient
+researchgate.net
+. This node links the patient to their assessments and findings. It can carry summary info or duplicate the ID for convenient lookup (e.g. RID)
+researchgate.net
+. (In AD-DPC, each Patient node has one PatientFile node that “contains” all clinical observations
+researchgate.net
+. This separation distinguishes the person from the collection of their data.) Cognitive Assessment Result: Each instance of a cognitive test score (ADAS-Cog, CDR, MMSE, MoCA, etc.) is a node. Properties include the score or sub-scores, the test name or code (if not using separate test nodes), and possibly a flag for interpretation (e.g. impairment category). For example, an ADAS score node might be (:CognitiveScore:ADAS {score: 15.2, ADAS_version: 11}). Alternatively, use a generic label like PsychometricFinding with a property test="ADAS11"
+researchgate.net
+. Key properties: score/value, date or visit code, and possibly an identifier combining subject and visit. These nodes capture cognitive/behavioral assessments. Imaging Study Result: Represents results from imaging modalities – MRI (structural MRI measures), FDG-PET (glucose metabolism), AV45-PET (amyloid tracer uptake), Tau-PET (e.g. flortaucipir uptake, labeled as “TAUMETA”), etc. Each imaging session or summary result is a node, with properties for key quantitative outputs. For MRI, this could include volumes of regions or summary measures; for PET, standardized uptake values (SUVR) for specific tracers. For semantic clarity, these can be labeled by modality (e.g. :MRIScan, :FDGPETScan, :AmyloidPETScan, :TauPETScan) or use a generic ImagingFinding label with a modality property. Properties: subject ID (or link via relationships), visit/date, and measurement values (or references to separate nodes per region if highly granular). Example: (:MRIScan {hippocampus_vol: 6000.0, ventricles_vol: 50.3, units: "mm3"}). Biomarker Finding: A node for fluid biomarker measurements. This covers CSF and blood biomarkers like total tau, p-tau, Aβ42 (amyloid beta), NFL (neurofilament light), etc. If ADNI’s tables “TAU” and “AMY” refer to CSF tau and amyloid levels, each measurement (per patient per visit) becomes a node (e.g. (:CSFFinding {analyte:"Tau", value: 300, unit: "pg/mL"})). We can distinguish CSF vs blood via either separate labels (e.g. CSFFinding vs BloodFinding
+researchgate.net
+) or a property (source: CSF/blood). Properties include the biomarker type, value, units, and the assay results (with possibly a flag if abnormal vs normal based on cutoff). Genetic Profile/Marker: Captures genetic data such as APOE genotype and SNPs. We can model this as one node per subject’s genotype, or separate nodes per gene/variant. For example, an APOE result could be a node (:GeneticMarker {gene:"APOE", \epsilon2:0, \epsilon3:1, \epsilon4:1}) to denote an ε3/ε4 genotype, or simply (:APOEGenotype {alleles:"E3/E4"}). For SNP data, since ADNI genotyped many SNPs, we might not create nodes for every single variant unless focusing on specific risk SNPs. An alternative is to have a single GeneticProfile node per patient with properties for key risk variants (APOE, etc.), but a more semantic approach is nodes for important SNPs and a relationship indicating the patient carries that variant. Example: (:GeneticProfile {APOE:"E3/E4", CLU_rs11136000:"T/C", …}) or individual variant nodes like (:Variant {rsID:"rs429358", genotype:"C/T"}). Diagnosis: A node representing a clinical diagnosis event or status (e.g. Cognitively Normal, MCI, or Alzheimer’s Dementia). ADNI records diagnoses at each visit, so there may be multiple diagnosis nodes per patient over time. Properties: diagnosis category (CN/MCI/AD, etc.), possibly the diagnostic criteria or confidence, and the date/visit. Example: (:Diagnosis {category:"MCI", source:"physician eval"}). These nodes capture the clinical outcome and can be time-specific. Constitutional Data (Baseline/History): A node containing background and routine clinical data for the patient
+researchgate.net
+. This includes anamnestic details like family history of AD (FAMHXPAR for parents, FAMHXSIB for siblings), medical history notes, and baseline vitals (e.g. BMI, weight at baseline). Properties might include fatherAD:boolean, motherAD:boolean, siblingCount:int (or list of affected siblings), as well as baseline BMI, weight, etc. that are collected at baseline. If certain vitals are tracked longitudinally (e.g. BMI at each visit), those could instead be modeled as separate findings over time; but for simplicity, baseline and static history can reside here. Example: (:ConstitutionalData {fatherAD: true, motherAD: false, baselineBMI: 24.5}). Assessment/Test Definition Nodes (Metadata): To enrich semantics, we include nodes that represent test or assay definitions:
+Cognitive Test nodes for each instrument (e.g. (:Test {name:"ADAS13", domain:"cognitive"}), (:Test {name:"MMSE"})). These can store test metadata (score range, description).
+Laboratory Assay nodes for each biomarker test (e.g. (:Assay {name:"CSF Tau", specimen:"CSF", unit:"pg/mL"})).
+Imaging Modality/Procedure nodes (e.g. (:ImagingTest {name:"MRI volumetry", modality:"MRI"}), (:ImagingTest {name:"AV45-PET", target:"amyloid"})).
+Diagnostic Process nodes for any defined diagnostic procedure or criteria (for instance, clinical eval or algorithm used to determine diagnosis)
+researchgate.net
+.
+These definition nodes remain relatively static and are linked from the result nodes to clarify what produced each finding (as per AD-DPC, each finding is the output of a specific test or procedure
+researchgate.net
+). They make the graph self-descriptive and easier to extend (ontologies can link here). Time/Visit: A temporal reference node to capture when a measurement was taken. We model each unique visit or timepoint as a node, with properties for the visit code (VISCODE like "bl", "m06", "m12", etc.), months since baseline (numeric), and possibly the actual date. For example, (:Visit {viscode:"m12", months:12}). Rather than one visit node per patient, we can reuse a common timepoint node for all patients at “Month 12” etc., since ADNI uses standardized visit schedules
+researchgate.net
+. This simplifies querying across patients (e.g. finding all measurements at 24 months). If needed, a combination of patient and time could be encoded, but a global time reference is sufficient for relative timeline analyses. Temporal nodes ensure that the longitudinal aspect of the data is explicit in the graph.
+2. Relationship Types and Directionality
+We define relationships that are easy to read and indicate the role of connected nodes. Arrows (→) indicate direction (Neo4j relationships are directed, though queries can be undirected if needed). The design leverages AD-DPC ontology relationships (like isOutputOf, hasMemberPart, etc.)
+researchgate.net
+researchgate.net
+, but we will use more descriptive names for clarity:
+Patient → hasRecord → PatientRecord: Links a Patient to their record container node. (Inverse could be recordOf or similar from PatientRecord to Patient.) This is a 1-to-1 link for each subject
+researchgate.net
+.
+PatientRecord → hasAssessment → Cognitive Assessment Result: Connects a patient’s record to each cognitive test finding. There can be multiple per patient (one per test per visit). We can also use a more specific name, e.g. hasCognitiveTest or hasPsychometricFinding.
+PatientRecord → hasImaging → Imaging Study Result: Links to imaging findings (MRI, PET results, etc.). Optionally, use specific relationship names per modality (e.g. hasMRI, hasPET) if fine-grained clarity is needed, but a generic hasImaging suffices with the node type distinguishing modality.
+PatientRecord → hasBiomarker → Biomarker Finding: Links to lab test results (CSF/blood biomarker measures). If distinguishing CSF vs blood, one could use hasCSFfinding vs hasBloodfinding
+researchgate.net
+, but a single relationship with node labels indicating the type is simpler.
+PatientRecord → hasGeneticInfo → Genetic Profile/Marker: Links to genetic data node(s) for the patient. For example, hasGenotype to an APOE genotype node. If using individual variant nodes, it might be hasVariant.
+PatientRecord → hasDiagnosis → Diagnosis: Links to diagnosis nodes. If multiple diagnoses over time, each will be linked separately to the record. (Alternative: link diagnosis nodes to the time and derive patient via time → record, but here we attach directly for simplicity.)
+PatientRecord → hasConstitutional → Constitutional Data: Connects the patient’s record to their background/history node (demographics and family history)
+researchgate.net
+.
+(If not using a separate PatientRecord node, these has* relationships could link directly from Patient to the data nodes. Using the record node follows AD-DPC’s structure but functionally either works.)
+In addition, relationships to provide semantic context and temporal context:
+“Finding” → isResultOf → Test/Assay/Procedure: Connects each result node to the node representing the test or procedure that produced it
+researchgate.net
+. For example, a cognitive score node → isResultOf → the CognitiveTest node for ADAS, or a CSF amyloid measurement → isResultOf → Assay node for “CSF Aβ42 ELISA”. (AD-DPC uses isOutputOf in a similar way
+researchgate.net
+.) This relationship is directed from the finding to the test (finding is result of test).
+PatientRecord (or Patient) → underwent → Test/Procedure: (Optional) Directly linking a patient to a procedure node can indicate that a particular test was administered to that patient. However, since the existence of a result implies the test was done, this is usually implicit. It could be used to indicate scheduled tests even if results are missing.
+Finding → atTime → Visit (Timepoint): Connects each assessment/imaging/biomarker finding to the timepoint node representing the visit when it was collected. For example, (:CognitiveScore)-[:atTime]->(:Visit {m:24}). This captures the temporal dimension for all modalities
+researchgate.net
+. The direction can be from the data point to the time reference (as written) meaning “this measurement occurred at that time”. (The inverse can be used to query all findings at a given time.)
+Diagnosis → atTime → Visit: Each diagnosis can also link to when it was made/recorded, similarly to findings.
+PatientRecord → hasVisit → Visit: (Optional) If we want to explicitly model that a patient had a visit at a certain time even without specific data, we could link the record to the Visit node. In practice, this may be unnecessary if every visit has some data; the presence of any finding at a time implies the visit occurred. This relationship can be included for completeness, or we rely on atTime links via findings to infer visits.
+All relationships are oriented such that the patient (or their record) is at the source and the data point is the target for the has* relations. This makes queries intuitive (find a patient, then outgoing relations to all their data). The temporal atTime relations go from data points to the time node, and the semantic isResultOf goes from data point to the test definition. Directionality summary:
+Patient/Record ➔ hasX ➔ DataNode,
+DataNode ➔ atTime ➔ Visit,
+DataNode ➔ isResultOf ➔ Test/Assay.
+For example, a particular MRI result node for patient 123 at month 12 would be connected as:
+(Patient{RID:123})-[:hasImaging]->(MRIScan{...})-[:atTime]->(Visit{m:12}),
+(MRIScan)-[:isResultOf]->(ImagingTest{name:"MRI"}).
+3. Grouping ADNI Tables into High-Level Categories
+To integrate the many ADNI tables, we group them into the above node types:
+Demographics & Family History: Tables like PTDEMOG (if exists for baseline demographics) and family history tables (FAMHXPAR, FAMHXSIB) feed into the Patient node and ConstitutionalData node. The Patient node holds basic demographics (sex, birthdate/age, etc.)
+researchgate.net
+, while a linked ConstitutionalData node holds family history of AD (parent/sibling affected) and baseline vitals
+researchgate.net
+. For example, FAMHXPAR/SIB fields populate motherAD, fatherAD, etc., in ConstitutionalData.
+Cognitive Assessment Tables: e.g. ADASSCORES, CDR, MMSE, MOCA – each row (per subject per visit) becomes a Cognitive Assessment Result node. The node is labeled or typed by the specific test (or has a testName property). Key fields like total scores or subscores become properties on these nodes. All such nodes fall under the cognitive/psychometric findings category
+researchgate.net
+.
+Biomarker Tables: e.g. TAU, PTAU, ABETA (CSF biomarkers), possibly plasma biomarker tables, and APOERES (APOE genotype results).
+Continuous biomarker readings (tau, Aβ, etc.) become Biomarker Finding nodes (CSF or blood as appropriate) with value properties.
+The APOERES (APOE results) table can create a GeneticProfile/Marker node (with the APOE genotype). If APOE ε4 count is given (0/1/2), that can be a property or a categorical genotype notation.
+If SNP data are available (e.g. from a GWAS results table), important SNPs could be represented as separate variant nodes connected via hasGeneticInfo or similar.
+Imaging Tables: e.g. ADNI MRI results (such as volume measures from Freesurfer), PET scan results (FDG PET summary, AV45 PET summary, Tau PET “Meta ROI” summary). Each distinct scan result per visit is an Imaging Study Result node. For MRI volumetric data, one might create multiple nodes or one node with many properties – a reasonable approach is one node per scan session with a subset of key regional volumes as properties (or link to sub-nodes for each region volume if a finer graph is desired). PET summary measures (like mean cortical SUVR for AV45 amyloid) can be properties on a PET result node. So the MRI table (with volumes per region per subject/visit) could be mapped to an MRIScan node; AV45 table (amyloid PET SUVRs) to an AmyloidPETScan node; FDG PET table to an FDGPETScan node; TAUMETA (if it contains a Tau PET composite measure) to a TauPETScan node. These all share the ImagingFinding grouping.
+Diagnosis/Clinical Status: ADNI typically has diagnosis status in tables or derived files (e.g. DXSUM or DX variables per visit). Each recorded diagnosis (per subject per visit) becomes a Diagnosis node. For example, if a patient transitions from CN to MCI to AD over visits, you’d have multiple diagnosis nodes linked to that patient’s record. These correspond to AD-DPC’s diagnosis concept
+researchgate.net
+.
+Other Clinical Assessments: If there are tables for functional or behavioral assessments (e.g. FAQ – functional activities questionnaire, GDS – depression scale, etc.), these too become nodes similar to cognitive tests. They would be labeled appropriately (perhaps also under Cognitive/Assessment category or separate “FunctionalAssessment” category) and linked in the same way (patient record -> hasAssessment -> result node, which isResultOf -> test type).
+Constitutional/Medical History: Aside from family history, any baseline medical history or concomitant info in ADNI could be stored in the ConstitutionalData node (or additional nodes if there are longitudinal health status updates).
+High-Level Categories: In summary, the graph organizes ADNI data into a few high-level node categories:
+Subject Entities: Patient (and PatientRecord).
+Clinical Observations: Cognitive test results, functional assessments, diagnoses, etc.
+Bio/Fluid Markers: CSF and blood lab findings.
+Imaging Data: MRI and PET scan findings.
+Genetics: Genotype/SNP info.
+Background Info: Demographics and family history (constitutional data).
+Timepoints: Visit schedule reference nodes.
+Test/Method Definitions: Nodes for tests, assays, imaging modalities, diagnostic criteria (to enrich semantics).
+This grouping aligns with the AD-DPC ontology’s divisions (Assessments, Clinical findings, etc.)
+researchgate.net
+ while directly mapping to ADNI’s data tables.
+4. Cypher Template Examples for Nodes and Relationships
+Using Neo4j’s Cypher query language, we can create nodes and relationships in a batch-oriented way (e.g. via LOAD CSV or other ETL processes). Below are example templates illustrating how data would be inserted following the above schema. These would be adapted with actual CSV field names and run in the proper order (e.g. create patients first, then observations, then relationships):
+// Example: Create a Patient and their Record
+MERGE (p:Patient {RID: toInteger($rid)}) 
+  ON CREATE SET p.PTID = $ptid, p.sex = $sex, p.ageBaseline = toInteger($age_bl), p.education = toInteger($edu_yrs);
+MERGE (pr:PatientRecord {rid: toInteger($rid)})  // using RID as key for record as well
+MERGE (p)-[:HAS_RECORD]->(pr);
+
+// Create a Visit (Timepoint) node if not exists
+MERGE (v:Visit {viscode: $viscode}) 
+  ON CREATE SET v.months = toInteger($months);
+
+// Example: Insert a cognitive assessment result (e.g. CDR score)
+MERGE (res:PsychometricFinding:CDR {patientRID: toInteger($rid), viscode: $viscode}) 
+  ON CREATE SET res.score = toFloat($cdr_score), res.testName = "CDR";
+MERGE (pr)-[:HAS_ASSESSMENT]->(res);
+MERGE (res)-[:AT_TIME]->(v);
+MERGE (t:Test {name:"CDR", category:"Cognitive"})  // ensure test definition exists
+MERGE (res)-[:IS_RESULT_OF]->(t);
+
+// Example: Insert a biomarker finding (e.g. CSF Amyloid Beta)
+MERGE (bio:BiomarkerFinding:CSF {patientRID: toInteger($rid), viscode: $viscode, analyte:"Aβ42"}) 
+  ON CREATE SET bio.value = toFloat($abeta_val), bio.unit="pg/mL";
+MERGE (pr)-[:HAS_BIOMARKER]->(bio);
+MERGE (bio)-[:AT_TIME]->(v);
+MERGE (assay:Assay {name:"CSF Aβ42"}) 
+MERGE (bio)-[:IS_RESULT_OF]->(assay);
+
+// Example: Insert an imaging result (e.g. AV45 PET SUVR)
+MERGE (img:ImagingFinding:AV45PET {patientRID: toInteger($rid), viscode: $viscode}) 
+  ON CREATE SET img.SUVR = toFloat($av45_suvr), img.region="Composite", img.unit="ratio";
+MERGE (pr)-[:HAS_IMAGING]->(img);
+MERGE (img)-[:AT_TIME]->(v);
+MERGE (proc:ImagingTest {name:"AV45-PET", modality:"PET", tracer:"Florbetapir"}) 
+MERGE (img)-[:IS_RESULT_OF]->(proc);
+
+// Example: Insert a diagnosis
+MERGE (d:Diagnosis {patientRID: toInteger($rid), viscode: $viscode}) 
+  ON CREATE SET d.category = $dx_status;    // e.g. "MCI"
+MERGE (pr)-[:HAS_DIAGNOSIS]->(d);
+MERGE (d)-[:AT_TIME]->(v);
+MERGE (proc2:DiagnosticProcess {name:"ClinicalEvaluation"}) 
+MERGE (d)-[:IS_RESULT_OF]->(proc2);
+
+// Example: Insert genetic info (APOE genotype)
+MERGE (g:GeneticMarker:APOE {RID: toInteger($rid)}) 
+  ON CREATE SET g.e3 = toInteger($APOE3), g.e4 = toInteger($APOE4); 
+MERGE (pr)-[:HAS_GENETIC_INFO]->(g);
+// (Alternatively, attach APOE info as properties on a single GeneticProfile node.)
+In the above templates:
+We use MERGE on key fields (like RID, viscode) to avoid duplicates and ensure the same nodes are referenced across different data loads.
+Labels like PsychometricFinding:CDR indicate we can multi-label a node (general category + specific test) for flexibility. One could also just use one label (e.g. CDRScore) instead.
+We link each result to the appropriate Visit node (AT_TIME) and to the patient’s record (HAS_* relationships), as well as to the test metadata (IS_RESULT_OF). This follows the ontology-driven structure (each finding is output of a test and associated with a time)
+researchgate.net
+researchgate.net
+.
+The PatientRecord ensures all findings for a subject converge to a single node (making it easy to traverse all of a patient’s data). If preferred, one could attach findings directly to Patient and drop the record node, but the record node concept is part of AD-DPC design for clarity and extensibility
+researchgate.net
+.
+The example shows separate creation of definition nodes like (:Test), (:Assay), (:ImagingTest), which should typically be created once (they can be merged just by name as keys).
+Note: The Cypher above is illustrative. In practice, you might use LOAD CSV or the APOC library for batch insertion. Also, ensuring proper indexing (e.g. on Patient.RID, Visit.viscode, etc.) will improve performance of the merges.
+By using this enhanced schema, the ADNI data is organized into a semantically rich knowledge graph. Each patient’s multi-modal data (cognitive scores, imaging results, fluid biomarkers, genetics, diagnoses, etc.) is interlinked via meaningful relationships and timepoints. This approach is fully Neo4j-compatible (Labeled Property Graph) and grounded in the AD-DPC ontology structure, facilitating intuitive queries and easy extension. For example, one can easily query “find all biomarker and imaging findings for patients with an MCI diagnosis at 24 months” by traversing the HAS_BIOMARKER, HAS_IMAGING and AT_TIME relationships in Cypher. The design ensures that as new data types or ontology terms emerge, they can be added as new node labels or relationship types without refactoring the whole schema – supporting future growth of the AD knowledge graph.
+researchgate.net
+researchgate.net
+Citations
+
+(PDF) Alzheimer’s Disease Knowledge Graph Based on Ontology and Neo4j Graph Database
+
+https://www.researchgate.net/publication/377393517_Alzheimer's_Disease_Knowledge_Graph_Based_on_Ontology_and_Neo4j_Graph_Database
+
+(PDF) Alzheimer’s Disease Knowledge Graph Based on Ontology and Neo4j Graph Database
+
+https://www.researchgate.net/publication/377393517_Alzheimer's_Disease_Knowledge_Graph_Based_on_Ontology_and_Neo4j_Graph_Database
+
+(PDF) Alzheimer’s Disease Knowledge Graph Based on Ontology and Neo4j Graph Database
+
+https://www.researchgate.net/publication/377393517_Alzheimer's_Disease_Knowledge_Graph_Based_on_Ontology_and_Neo4j_Graph_Database
+
+(PDF) Alzheimer’s Disease Knowledge Graph Based on Ontology and Neo4j Graph Database
+
+https://www.researchgate.net/publication/377393517_Alzheimer's_Disease_Knowledge_Graph_Based_on_Ontology_and_Neo4j_Graph_Database
+
+(PDF) Alzheimer’s Disease Knowledge Graph Based on Ontology and Neo4j Graph Database
+
+https://www.researchgate.net/publication/377393517_Alzheimer's_Disease_Knowledge_Graph_Based_on_Ontology_and_Neo4j_Graph_Database
+
+(PDF) Alzheimer’s Disease Knowledge Graph Based on Ontology and Neo4j Graph Database
+
+https://www.researchgate.net/publication/377393517_Alzheimer's_Disease_Knowledge_Graph_Based_on_Ontology_and_Neo4j_Graph_Database
+
+(PDF) Alzheimer’s Disease Knowledge Graph Based on Ontology and Neo4j Graph Database
+
+https://www.researchgate.net/publication/377393517_Alzheimer's_Disease_Knowledge_Graph_Based_on_Ontology_and_Neo4j_Graph_Database
+
+(PDF) Alzheimer’s Disease Knowledge Graph Based on Ontology and Neo4j Graph Database
+
+https://www.researchgate.net/publication/377393517_Alzheimer's_Disease_Knowledge_Graph_Based_on_Ontology_and_Neo4j_G

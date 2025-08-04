@@ -1,0 +1,69 @@
+# Alzheimer's Disease Knowledge Graph Design Patterns
+
+**Comprehensive multimodal knowledge graph architectures successfully integrate PET, MRI, and clinical data through semantic web technologies, with the Neuroimaging Data Model (NIDM) and AD-DPC ontology serving as leading frameworks.** These systems achieve 92-99% classification accuracy while maintaining temporal relationships and biomarker correlations essential for longitudinal studies like ADNI. Recent implementations demonstrate sophisticated approaches to modeling disease progression through labeled property graphs that capture complex relationships between imaging modalities, cognitive assessments, and biological markers across time.
+
+The technical landscape reveals that successful AD knowledge graph implementations require careful attention to four core architectural components: multi-scale entity hierarchies, temporal relationship modeling, multimodal data integration patterns, and semantic annotation frameworks. Modern systems like AD-KG 2.0 employ adaptive methodologies that achieve F1 scores of 0.78-0.89 for relationship extraction while maintaining clinical interpretability through explainable AI mechanisms.
+
+## Foundational graph schema architectures
+
+AD knowledge graphs employ **four-layer architectural patterns** that separate data ingestion, integration, computation, and application concerns. The data layer handles heterogeneous inputs from literature (PubMed, PMC), structured databases (ADNI, STRING, DrugBank), clinical records with OMOP CDM compliance, and neuroimaging repositories. The integration layer performs ontology-driven harmonization using UMLS and Gene Ontology, semantic alignment via BioBERT-based embeddings with confidence scoring, and temporal alignment for longitudinal data.
+
+Core node types follow a **multi-scale entity hierarchy** spanning molecular to clinical levels. Molecular entities include amyloid-beta proteins (Aβ40, Aβ42), tau proteins and phosphorylated tau (p-tau), APOE alleles (ε2, ε3, ε4) with risk stratification, and genetic variants with UMLS concept identifiers. Anatomical entities encompass brain regions from standardized atlases (Desikan-Killiany, AAL), neuroimaging features (cortical thickness, PET binding patterns, DTI connectivity), and functional network nodes (default mode network, executive control).
+
+**Patient entities utilize hash-encrypted identifiers** for privacy-preserving multi-center collaboration, with demographics, clinical staging, and assessment scores. Clinical entities include cognitive assessments (MMSE, ADAS-Cog, CDR), neuropsychiatric symptoms, biomarker measurements (CSF Aβ42, p-tau, t-tau), and comorbidity conditions linked through standardized vocabularies.
+
+Relationship patterns implement sophisticated typing systems with **protein-aggregates-in-region** for pathology localization, **gene-expresses-protein** for genetic-molecular connections, and **drug-treats-disease** with confidence scores. Temporal relationships model disease progression through stage-specific transitions (normal → MCI → dementia) with progression rate modeling using continuous time representations.
+
+## Multimodal imaging integration patterns
+
+The **Neuroimaging Data Model (NIDM)** serves as the leading framework for integrating PET, MRI, fMRI, and DTI data in AD knowledge graphs. Built on W3C PROV standard and RDF semantic web technologies, NIDM provides standardized representation of neuroimaging data, workflows, and results with SPARQL query capabilities for complex cross-dataset analyses. The framework extends Brain Imaging Data Structure (BIDS) with semantic annotations and provenance tracking.
+
+**Graph-based semi-supervised learning** successfully integrates MRI (FreeSurfer, VBM) and PET (FDG, Florbetapir) data from ADNI, achieving 66.8% AUC for early MCI detection using ROI-based features from temporal lobe, hippocampus, and amygdala as key nodes. Multi-graph convolution networks (KMGCN) achieve **86.87% classification accuracy** through tensor-based approaches that integrate structural (MRI/DTI) and functional (fMRI/PET) modalities using 84 ROI parcellation from FreeSurfer.
+
+Technical relationship patterns employ core node types including Subject/Patient (ADNI participants), Study (imaging sessions), Image (raw volumes), ProcessedImage (derived data), ROI/Parcellation (brain regions), Biomarker (quantitative measures), and Software (processing tools). Key relationships include **wasGeneratedBy** (links processed images to software), **wasDerivedFrom** (connects processed to source data), **hasROI** (associates images with brain regions), **measuredAt** (links biomarkers to coordinates), and **temporallyRelatedTo** (longitudinal connections).
+
+**ADNI-specific implementations** utilize standardized protocols across ADNI-1, ADNI-2, ADNI-3, and ADNI-GO phases with PET data including amyloid (Florbetapir, PIB) and tau tracers using standardized SUVRs. MRI data encompasses T1-weighted, FLAIR, and DTI with consistent preprocessing pipelines. The LONI Image and Data Archive provides data access with metadata in both tabular CSV and RDF formats, preserving scanner and site information as provenance.
+
+Processing pipeline integration employs **PROV-O provenance modeling** with prov:Activity (software execution), prov:Agent (software tools), prov:Entity (images/parameters), prov:Used (dependencies), and prov:WasGeneratedBy (output linkage). Software versions (FSL 6.0.4, SPM12, FreeSurfer 7.1.1), Docker containers, and hardware specifications are captured for reproducibility.
+
+## Temporal relationship modeling for longitudinal studies
+
+**Temporal Graph Networks (TGN)** implement continuous-time dynamic graphs capturing AD progression through edge prediction methods for disease state transitions. These systems employ multimodal time-series forecasting using k-nearest neighbors and Cumulative Bayesian Ridge methods with high correlation imputation to generate graph node embeddings at each time step.
+
+Temporal relationship types include **progression relationships** (CN → MCI → AD transitions), **biomarker evolution relationships** (measurements across time), **causal temporal relationships** (early biomarker to clinical manifestation links), **synchronization relationships** (co-occurring changes), and **rate-of-change relationships** (acceleration/deceleration patterns).
+
+**ADNI longitudinal representation** utilizes Schedule of Events (SOE) with participants assigned to data collection schedules based on clinical diagnosis. The multi-timepoint design includes baseline, 6-month, 12-month, and 24-month follow-ups with comprehensive multimodal data collection. Temporal sliding windows implement 12-month windows along individual trajectories for data augmentation.
+
+The **ADNIMERGE dataset** provides consolidated clinical data with numeric summaries across ADNI phases, including temporal versioning with visit codes (bl, m06, m12, m24) and precise timestamps. Robust temporal models accommodate irregular visit schedules and missing timepoints without requiring model retraining.
+
+**Spatiotemporal Graph Convolutional Networks (ST-GCN)** integrate functional connectivity patterns with temporal dynamics across brain regions using multimodal fusion layers combining neuroimaging features with clinical assessments. Temporal Feature Engineering employs Functional Principal Component Analysis (FPCA) to capture significant temporal variations.
+
+Biomarker trajectory modeling uses **quantile regression models** learning typical trajectories across disease progression, Gaussian Process Mixed Effects Models fitting monotonic trajectories with uncertainty quantification, and disease progression scores extracting data-driven measures aligning individual measurements to common disease timelines.
+
+## Clinical assessment and biomarker integration patterns
+
+The **AD-DPC (Alzheimer's Disease Data and Publication Curation) ontology** covers six major conceptual groups: AD pathology (amyloid plaques, NFTs), AD spectrum (preclinical, MCI, AD stages), diagnostic processes, symptoms (cognitive impairments), assessments (14 clinical scales), and relevant clinical findings. Built using OWL format with Basic Formal Ontology (BFO) for interoperability, the ontology contains **259,260 labels and 673,325 relations** in Neo4j implementations.
+
+Clinical assessments integrate through specific mapping patterns with **MMSE mapped to CDR categories** using cutoff scores (30 for no dementia, 29-26 for questionable, 25-21 for mild). CDR shows strong correlation with biomarker levels (p<0.001) and serves as primary staging mechanism. ADAS-Cog integrates as cognitive assessment with correlation coefficients ranging from -0.2 to 0.6 with CDR-Sum of Boxes.
+
+**Biomarker correlation patterns** reveal distinct clusters: Cluster 1 (Exotaxin-3, CA-19-9, AgRP), Cluster 2 (FASL connected to Fibrinogen and MIF), and Cluster 3 (complex network with THPO and IL-12p40 as highly connected nodes). Plasma biomarkers show Aβ1-42/Aβ1-40 ratio decreasing while t-tau, NfL, and p-tau181 escalate across cognitive stages, with **p-tau181 identified as best plasma indicator** correlating with broader cognitive domains.
+
+**Functional connectivity patterns** from rs-fMRI predict AD with 92% accuracy using support vector machines, with key discriminating regions showing loss of connections with thalamus, particularly in substantia nigra and nucleus accumbens. Graph theory metrics extract local features (degree, path length, clustering coefficient) and global features (modularity, entropy) achieving accuracies of **99.75% (Random Forest) and 99.48% (CNN)** for AD detection.
+
+APOE genotype integration shows ε4 carriers have greater brain atrophy in bilateral parietal cortex and right hippocampus, with higher white matter hyperintensity volumes (effect size 0.14 SD). The Alzheimer's Knowledge Base (AlzKB) contains **118,902 entities with 1,309,527 relationships** including comprehensive APOE genetic data from 22 external sources.
+
+## Implementation best practices and recommendations
+
+**Graph design principles** require globally unique IRIs for all entities and relationships, hierarchical vocabularies with SKOS concept schemes, backward compatibility through versioned ontologies, and both human-readable labels and machine-readable identifiers. Data integration implements quality flags as boolean properties, probabilistic matching for cross-study entity resolution, separate graphs for raw/processed/statistical data, and SHACL constraint validation.
+
+**Embedding approaches** achieve high performance with ComplEx embeddings (AUROC 0.94 for drug-target prediction), RotatE embeddings (MRR 0.72 for temporal relationships), BioBERT-based methods (F1 0.81 for relation extraction), and GNN implementations (86% accuracy for disease classification).
+
+**Temporal versioning strategies** employ time-based versioning with `from` and `to` properties, bi-temporal modeling separating business time from system time, and state-relationship separation linking entities through versioned relationships. Advanced relationship properties include temporal validity with `validFrom`/`validTo` timestamps, confidence intervals for uncertainty bounds, and rate parameters for progression modeling.
+
+Technical optimizations include **indexed frequently queried properties** (subject ID, visit date, diagnosis), graph databases optimized for analytical workloads (GraphDB, Neo4j), federated queries across distributed ADNI sites, and cached aggregation queries for dashboard applications. Interoperability follows FAIR data principles with content negotiation for multiple serialization formats, REST APIs following OpenAPI specifications, and established vocabularies (Dublin Core, FOAF, OBI).
+
+## Conclusion
+
+Modern AD knowledge graph design patterns successfully integrate multimodal imaging, temporal relationships, and clinical assessments through sophisticated semantic frameworks. The convergence of NIDM for imaging integration, AD-DPC ontology for clinical concepts, and advanced temporal modeling techniques enables comprehensive representation of Alzheimer's disease complexity. These architectures achieve high classification accuracy while maintaining interpretability and supporting longitudinal research requirements, establishing a foundation for precision medicine applications and collaborative research initiatives.
+
+Future developments focus on federated learning frameworks, enhanced causal modeling, multi-disease temporal graphs, and personalized progression models that will further advance the field's capability to model and understand Alzheimer's disease through comprehensive knowledge representation.
