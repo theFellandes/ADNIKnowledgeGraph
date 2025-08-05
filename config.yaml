@@ -1,0 +1,70 @@
+# ADNI Knowledge Graph Pipeline Configuration
+
+# Neo4j Database Settings
+neo4j_uri: "bolt://localhost:7687"
+neo4j_user: "neo4j"
+neo4j_password: "your_password"
+
+# Data Paths
+base_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs"
+
+# Tables directory (CSV files)
+tables_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs/Tables"
+
+# Image directories
+mri_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs/Updated"
+pet_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs/Updated_PET"
+
+# Original DICOM paths (if available)
+mri_dicom_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs/Images"
+pet_dicom_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs/PET"
+
+# Output Settings
+output_dir: "D:/Programming/Python/ADNIKnowledgeGraph/outputs"
+
+# Pipeline Control
+clear_database: true  # Set to true to clear database before loading
+store_image_blobs: false  # Set to true to store image data in Neo4j (requires more memory)
+max_workers: 8  # Number of parallel workers for processing
+
+# Logging
+log_level: "INFO"
+log_file: "D:/Programming/Python/ADNIKnowledgeGraph/outputs/pipeline.log"
+
+# Step Control - set to false to skip specific steps
+run_database_setup: true
+run_table_loading: true
+run_patient_creation: true
+run_family_extraction: true
+run_image_processing: true
+run_findings_extraction: true
+run_batch_insertion: true
+run_relationship_creation: true
+
+# Image Processing Settings
+image_settings:
+  max_image_size: [512, 512]
+  thumbnail_size: [128, 128]
+  jpeg_quality: 85
+  process_dicoms: true
+
+# Batch Processing Settings
+batch_settings:
+  patients: 1000
+  visits: 2000
+  family_members: 2000
+  imaging_studies: 1000
+  images: 500
+  cognitive: 5000
+  biomarkers: 5000
+  diagnoses: 3000
+  volumetric: 5000
+  pet_bindings: 5000
+
+# Memory Management
+memory_threshold: 0.8  # Trigger garbage collection at 80% memory usage
+
+# Database Connection Pool
+connection_pool_size: 50
+connection_timeout: 60
+retry_time: 30

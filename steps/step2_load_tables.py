@@ -10,6 +10,7 @@ from typing import Dict, List, Tuple, Any
 import concurrent.futures
 from utils.batch_processor import BatchProcessor, DataValidator
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,13 +21,13 @@ class TableLoader:
     TABLE_CATEGORIES = {
         'demographics': ['PTDEMOG', 'ARM', 'CONSENTS', 'INCLUSIO', 'EXCLUSIO'],
         'cognitive': ['MMSE', 'CDR', 'ADAS', 'MOCA', 'RAVLT', 'FAQ', 'NEUROBAT',
-                      'ECOGPT', 'ECOGSP', 'FCI', 'AMNART'],
+                     'ECOGPT', 'ECOGSP', 'FCI', 'AMNART'],
         'biomarkers': ['BIOMARK', 'CSF', 'ELECSYS', 'LABDATA', 'LOCLAB',
-                       'LABTESTS', 'TAU', 'PTAU', 'ABETA'],
+                      'LABTESTS', 'TAU', 'PTAU', 'ABETA'],
         'imaging': ['MRI3META', 'MRIMETA', 'PETMETA', 'PETC3', 'AMYMETA',
-                    'TAUMETA', 'AV45META', 'MRIFind', 'UCSFFSX7'],
+                   'TAUMETA', 'AV45META', 'MRIFind', 'UCSFFSX7'],
         'clinical': ['DXSUM', 'MEDHIST', 'VITALS', 'PHYSICAL', 'NEUROEXM',
-                     'BLCHANGE', 'BLSCHECK'],
+                    'BLCHANGE', 'BLSCHECK'],
         'family': ['FAMHXPAR', 'FAMHXSIB', 'FHQ'],
         'genetics': ['APOERES', 'GENETIC'],
         'other': []  # Catch-all for uncategorized tables
@@ -69,7 +70,6 @@ class TableLoader:
 
     def _load_tables_parallel(self, csv_files: List[Path]) -> None:
         """Load tables in parallel"""
-
         def load_single_table(csv_file: Path) -> Tuple[str, pd.DataFrame]:
             try:
                 df = pd.read_csv(
@@ -144,9 +144,9 @@ class TableLoader:
 
     def _log_summary(self) -> None:
         """Log summary of loaded tables"""
-        logger.info("\n" + "=" * 60)
+        logger.info("\n" + "="*60)
         logger.info("TABLE LOADING SUMMARY")
-        logger.info("=" * 60)
+        logger.info("="*60)
 
         # Overall stats
         total_tables = len(self.table_data)
@@ -157,7 +157,7 @@ class TableLoader:
         # By category
         logger.info("\nTables by category:")
         for category in ['demographics', 'cognitive', 'biomarkers', 'imaging',
-                         'clinical', 'family', 'genetics', 'other']:
+                        'clinical', 'family', 'genetics', 'other']:
             tables = [t for t, c in self.table_categories.items() if c == category]
             if tables:
                 row_count = sum(len(self.table_data[t]) for t in tables)

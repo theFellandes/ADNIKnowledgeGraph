@@ -13,6 +13,7 @@ from models.entities import FamilyMember
 from utils.neo4j_connector import Neo4jConnector
 from utils.batch_processor import DataValidator
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -170,7 +171,7 @@ class FamilyExtractor:
 
             # Check for family-related columns
             family_cols = [col for col in df.columns
-                           if any(term in col.upper() for term in ['FAMILY', 'RELATIVE', 'PARENT', 'SIBLING'])]
+                          if any(term in col.upper() for term in ['FAMILY', 'RELATIVE', 'PARENT', 'SIBLING'])]
 
             if family_cols:
                 logger.info(f"Found family columns in {table_name}: {family_cols}")
@@ -201,11 +202,11 @@ class FamilyExtractor:
                         self.family_members.append(member)
 
     def _create_family_member(self, patient_id: str, relationship_type: str,
-                              gender: Optional[str] = None,
-                              has_dementia: Optional[bool] = None,
-                              dementia_type: Optional[str] = None,
-                              age_at_onset: Optional[int] = None,
-                              properties: Optional[Dict] = None) -> FamilyMember:
+                            gender: Optional[str] = None,
+                            has_dementia: Optional[bool] = None,
+                            dementia_type: Optional[str] = None,
+                            age_at_onset: Optional[int] = None,
+                            properties: Optional[Dict] = None) -> FamilyMember:
         """Create a family member object"""
         member_id = f"fm_{patient_id}_{relationship_type}_{uuid.uuid4().hex[:6]}"
 
@@ -366,7 +367,7 @@ class FamilyExtractor:
 
 
 def execute_family_extraction(neo4j_uri: str, neo4j_user: str, neo4j_password: str,
-                              table_data: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
+                            table_data: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
     """
     Main execution function for family extraction
 

@@ -13,6 +13,7 @@ from models.entities import Patient, Visit
 from utils.batch_processor import DataValidator
 from utils.neo4j_connector import Neo4jConnector
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -125,7 +126,7 @@ class PatientCreator:
 
         # Add all demographic fields
         demo_fields = ['PTRACCAT', 'PTETHCAT', 'PTMARRY', 'SITE', 'VISCODE',
-                       'COLPROT', 'ORIGPROT', 'FLDSTRENG']
+                      'COLPROT', 'ORIGPROT', 'FLDSTRENG']
 
         for field in demo_fields:
             if field in row and pd.notna(row[field]):
@@ -165,7 +166,7 @@ class PatientCreator:
         if 'DXSUM' in self.table_data:
             dx_df = self.table_data['DXSUM']
             baseline_dx = dx_df[(dx_df['PTID'] == patient.ptid) &
-                                (dx_df['VISCODE'].str.lower() == 'bl')]
+                               (dx_df['VISCODE'].str.lower() == 'bl')]
 
             if not baseline_dx.empty:
                 dx_code = baseline_dx.iloc[0].get('DIAGNOSIS', '')
@@ -185,10 +186,10 @@ class PatientCreator:
         mapping = {
             '1': 'CN',  # Cognitively Normal
             '2': 'MCI',  # Mild Cognitive Impairment
-            '3': 'AD',  # Alzheimer's Disease
+            '3': 'AD',   # Alzheimer's Disease
             '4': 'SMC',  # Subjective Memory Concern
-            '5': 'EMCI',  # Early MCI
-            '6': 'LMCI',  # Late MCI
+            '5': 'EMCI', # Early MCI
+            '6': 'LMCI', # Late MCI
             'CN': 'CN',
             'MCI': 'MCI',
             'AD': 'AD',
@@ -297,11 +298,12 @@ class PatientCreator:
         query = """
         UNWIND $batch as patient
         MERGE (p:Patient {ptid: patient.ptid})
-        SET p += patient,
+        SET p.rid = patient.rid,
             p.gender = patient.gender,
             p.age_at_baseline = patient.age_at_baseline,
             p.education_years = patient.education_years,
             p.apoe_genotype = patient.apoe_genotype,
+            p.source_tables = patient.source_tables, 
             p.created_at = patient.created_at
         """
 
@@ -369,7 +371,7 @@ class PatientCreator:
 
 
 def execute_patient_creation(neo4j_uri: str, neo4j_user: str, neo4j_password: str,
-                             table_data: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
+                           table_data: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
     """
     Main execution function for patient creation
 

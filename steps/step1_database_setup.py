@@ -7,6 +7,7 @@ import logging
 from typing import Dict, List, Tuple
 from utils.neo4j_connector import Neo4jConnector
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -204,7 +205,7 @@ class DatabaseSetup:
             {"id": id, "name": name, "description": desc}
             for id, name, desc in brain_regions
         ]
-        self.connector.batch_write(query, regions_data)
+        self.connector.batch_write(query, regions_data, param_name="regions")
 
         # Cognitive tests
         cognitive_tests = [
@@ -227,7 +228,7 @@ class DatabaseSetup:
             {"id": id, "name": name, "max_score": max_score}
             for id, name, max_score in cognitive_tests
         ]
-        self.connector.batch_write(query, tests_data)
+        self.connector.batch_write(query, tests_data, param_name="tests")
 
         # PET tracers
         pet_tracers = [
@@ -249,13 +250,13 @@ class DatabaseSetup:
             {"id": id, "name": name, "target": target}
             for id, name, target in pet_tracers
         ]
-        self.connector.batch_write(query, tracers_data)
+        self.connector.batch_write(query, tracers_data, param_name="tracers")
 
         logger.info("✅ Reference nodes created")
 
 
 def execute_database_setup(neo4j_uri: str, neo4j_user: str, neo4j_password: str,
-                           clear_database: bool = True) -> Dict[str, bool]:
+                          clear_database: bool = True) -> Dict[str, bool]:
     """
     Main execution function for database setup
 

@@ -12,7 +12,7 @@ from datetime import datetime
 class Patient:
     """Patient entity representing ADNI participant"""
     ptid: str  # Patient ID
-    rid: str  # Research ID
+    rid: str   # Research ID
     gender: Optional[str] = None
     age_at_baseline: Optional[float] = None
     education_years: Optional[int] = None

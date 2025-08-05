@@ -10,6 +10,7 @@ from tqdm import tqdm
 import psutil
 import gc
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,9 +32,9 @@ class BatchProcessor:
         self.memory_threshold = memory_threshold
 
     def process_parallel(self, items: List[Any],
-                         process_func: Callable,
-                         desc: str = "Processing",
-                         show_progress: bool = True) -> List[Any]:
+                        process_func: Callable,
+                        desc: str = "Processing",
+                        show_progress: bool = True) -> List[Any]:
         """
         Process items in parallel using ThreadPoolExecutor
 
@@ -80,9 +81,9 @@ class BatchProcessor:
         return results
 
     def process_in_batches(self, items: List[Any],
-                           batch_func: Callable,
-                           batch_size: Optional[int] = None,
-                           desc: str = "Processing batches") -> int:
+                          batch_func: Callable,
+                          batch_size: Optional[int] = None,
+                          desc: str = "Processing batches") -> int:
         """
         Process items in batches
 
@@ -118,7 +119,7 @@ class BatchProcessor:
         return total_processed
 
     def chunked_reader(self, file_path: str,
-                       chunk_size: int = 10000) -> Generator[List[Dict], None, None]:
+                      chunk_size: int = 10000) -> Generator[List[Dict], None, None]:
         """
         Read large CSV file in chunks
 
@@ -136,8 +137,8 @@ class BatchProcessor:
             self._check_memory()
 
     def parallel_file_processing(self, file_paths: List[str],
-                                 file_processor: Callable,
-                                 desc: str = "Processing files") -> Dict[str, Any]:
+                               file_processor: Callable,
+                               desc: str = "Processing files") -> Dict[str, Any]:
         """
         Process multiple files in parallel
 
@@ -158,7 +159,7 @@ class BatchProcessor:
             }
 
             for future in tqdm(concurrent.futures.as_completed(future_to_file),
-                               total=len(file_paths), desc=desc):
+                              total=len(file_paths), desc=desc):
                 file_path = future_to_file[future]
                 try:
                     result = future.result()

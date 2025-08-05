@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from neo4j import GraphDatabase, Session
 from neo4j.exceptions import ServiceUnavailable, SessionExpired
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -84,7 +85,6 @@ class Neo4jConnector:
 
     def execute_write_transaction(self, query: str, parameters: Dict[str, Any] = None) -> None:
         """Execute a write transaction"""
-
         def _write(tx):
             tx.run(query, parameters or {})
 
@@ -92,40 +92,17 @@ class Neo4jConnector:
             session.execute_write(_write)
 
     def batch_write(self, query: str, data_list: List[Dict[str, Any]],
-                    batch_size: int = 1000) -> int:
-        """
-        Execute batch write operations
-
-        Args:
-            query: Cypher query with $batch parameter
-            data_list: List of data dictionaries
-            batch_size: Size of each batch
-
-        Returns:
-            Total number of records processed
-        """
+                    batch_size: int = 1000, param_name: str = "batch") -> int:
         total_processed = 0
-
         with self.get_session() as session:
             for i in range(0, len(data_list), batch_size):
                 batch = data_list[i:i + batch_size]
 
                 def _batch_write(tx):
-                    result = tx.run(query, batch=batch)
-                    return result.consume().counters
+                    return tx.run(query, **{param_name: batch}).consume().counters
 
-                try:
-                    counters = session.execute_write(_batch_write)
-                    total_processed += len(batch)
-
-                    if i % (batch_size * 10) == 0:
-                        logger.info(f"Processed {total_processed}/{len(data_list)} records")
-
-                except Exception as e:
-                    logger.error(f"Batch write failed at index {i}: {e}")
-                    raise
-
-        logger.info(f"Batch write completed: {total_processed} records")
+                session.execute_write(_batch_write)
+                total_processed += len(batch)
         return total_processed
 
     def create_constraint(self, label: str, property: str) -> bool:

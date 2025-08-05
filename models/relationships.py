@@ -85,7 +85,6 @@ class Relationship:
 @dataclass
 class TemporalRelationship(Relationship):
     """Temporal relationship with time-based properties"""
-
     def __init__(self, from_id: str, from_type: str, to_id: str, to_type: str,
                  relationship_type: RelationshipType, months_delta: int = None):
         super().__init__(from_id, from_type, to_id, to_type, relationship_type)
@@ -97,7 +96,6 @@ class TemporalRelationship(Relationship):
 @dataclass
 class CausalRelationship(Relationship):
     """Causal relationship with strength and confidence"""
-
     def __init__(self, from_id: str, from_type: str, to_id: str, to_type: str,
                  relationship_type: RelationshipType,
                  causal_strength: float = None,
@@ -115,7 +113,6 @@ class CausalRelationship(Relationship):
 @dataclass
 class ProvenanceRelationship(Relationship):
     """Provenance relationship tracking data lineage"""
-
     def __init__(self, from_id: str, from_type: str, to_id: str, to_type: str,
                  relationship_type: RelationshipType,
                  activity: str = None,
