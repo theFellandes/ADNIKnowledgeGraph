@@ -1,6 +1,6 @@
 """
-Step 2: Load and Process CSV Tables
-Loads all ADNI CSV tables and categorizes them
+Step 2: Load and Process CSV Tables (FIXED)
+Loads all ADNI CSV tables and categorizes them with optimized processing
 """
 
 import logging
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class TableLoader:
-    """Load and categorize ADNI CSV tables"""
+    """Load and categorize ADNI CSV tables with optimized performance"""
 
     # Table categorization based on content
     TABLE_CATEGORIES = {
@@ -69,15 +69,17 @@ class TableLoader:
         return self.table_data
 
     def _load_tables_parallel(self, csv_files: List[Path]) -> None:
-        """Load tables in parallel"""
+        """Load tables in parallel with optimized memory usage"""
         def load_single_table(csv_file: Path) -> Tuple[str, pd.DataFrame]:
             try:
+                # Read with optimized settings
                 df = pd.read_csv(
                     csv_file,
                     low_memory=False,
                     na_values=['', 'NA', 'NaN', 'NULL', 'null', 'N/A', 'n/a', '-', '--'],
                     keep_default_na=True,
-                    encoding='utf-8'
+                    encoding='utf-8',
+                    dtype_backend='numpy_nullable'  # Use nullable dtypes
                 )
 
                 # Clean column names
@@ -91,17 +93,21 @@ class TableLoader:
                 table_name = csv_file.stem
                 logger.info(f"Loaded {table_name}: {len(df)} rows, {len(df.columns)} columns")
 
+                # Optimize memory usage
+                df = self._optimize_dataframe_memory(df)
+
                 return table_name, df
 
             except Exception as e:
                 logger.error(f"Failed to load {csv_file}: {e}")
                 return None
 
-        # Process files
+        # Process files using batch processor's parallel method
         results = self.batch_processor.process_parallel(
             csv_files,
             load_single_table,
-            desc="Loading CSV tables"
+            desc="Loading CSV tables",
+            show_progress=True
         )
 
         # Store results
@@ -109,6 +115,31 @@ class TableLoader:
             if result:
                 table_name, df = result
                 self.table_data[table_name] = df
+
+    def _optimize_dataframe_memory(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Optimize DataFrame memory usage by converting to appropriate dtypes"""
+        for col in df.columns:
+            col_type = df[col].dtype
+
+            # Skip if already optimized
+            if col_type == 'category':
+                continue
+
+            # Convert object columns with low cardinality to category
+            if col_type == 'object':
+                num_unique = df[col].nunique()
+                num_total = len(df[col])
+                if num_unique / num_total < 0.5:  # Less than 50% unique
+                    df[col] = df[col].astype('category')
+
+            # Downcast numeric types
+            elif col_type in ['float64', 'int64']:
+                if col_type == 'int64':
+                    df[col] = pd.to_numeric(df[col], downcast='integer', errors='ignore')
+                else:
+                    df[col] = pd.to_numeric(df[col], downcast='float', errors='ignore')
+
+        return df
 
     def _categorize_tables(self) -> None:
         """Categorize tables based on naming patterns"""
@@ -210,6 +241,19 @@ class TableLoader:
             for col in df.select_dtypes(include=['object']).columns:
                 df[col] = df[col].apply(lambda x: DataValidator.clean_string(x) if pd.notna(x) else x)
 
+    def get_memory_usage(self) -> Dict[str, float]:
+        """Get memory usage statistics for loaded tables"""
+        memory_stats = {}
+        total_memory = 0
+
+        for table_name, df in self.table_data.items():
+            memory_mb = df.memory_usage(deep=True).sum() / (1024 * 1024)
+            memory_stats[table_name] = memory_mb
+            total_memory += memory_mb
+
+        memory_stats['total_mb'] = total_memory
+        return memory_stats
+
 
 def execute_table_loading(tables_path: str) -> Dict[str, Any]:
     """
@@ -230,11 +274,16 @@ def execute_table_loading(tables_path: str) -> Dict[str, Any]:
         # Preprocess
         loader.preprocess_table_data()
 
+        # Get memory usage
+        memory_stats = loader.get_memory_usage()
+        logger.info(f"Total memory usage: {memory_stats['total_mb']:.2f} MB")
+
         # Get summary info
         results = {
             'table_data': table_data,
             'table_categories': loader.table_categories,
             'patient_ids': loader.get_patient_ids(),
+            'memory_usage': memory_stats,
             'summary': {
                 'total_tables': len(table_data),
                 'total_rows': sum(len(df) for df in table_data.values()),
@@ -257,4 +306,5 @@ if __name__ == "__main__":
     # Test execution
     results = execute_table_loading("inputs/Tables")
     print(f"Loaded {results['summary']['total_tables']} tables")
+    print(f"Total memory: {results['memory_usage']['total_mb']:.2f} MB")
     print(f"Found {len(results['patient_ids'])} patients")

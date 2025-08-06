@@ -1,6 +1,6 @@
 """
-Data entity classes for ADNI Knowledge Graph
-Based on AD-DPC ontology and enhanced with NIDM concepts
+Enhanced Data entity classes for ADNI Knowledge Graph
+Based on AD-DPC ontology, AlzKB, and DemKG research insights
 """
 
 from dataclasses import dataclass, field
@@ -8,6 +8,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 
 
+# Existing entities (keep all the original ones)
 @dataclass
 class Patient:
     """Patient entity representing ADNI participant"""
@@ -295,5 +296,258 @@ class PETBinding:
             'suvr': self.suvr,
             'reference_region': self.reference_region,
             'abnormal_flag': self.abnormal_flag,
+            'created_at': self.created_at
+        }
+
+
+# NEW ENTITIES BASED ON RESEARCH PAPERS
+
+@dataclass
+class BiologicalPathway:
+    """Biological pathway involved in AD pathophysiology (from AlzKB)"""
+    pathway_id: str
+    name: str
+    category: str  # amyloid, tau, neuroinflammation, synaptic, metabolic
+    description: Optional[str] = None
+    genes: List[str] = field(default_factory=list)
+    proteins: List[str] = field(default_factory=list)
+    kegg_id: Optional[str] = None
+    go_terms: List[str] = field(default_factory=list)
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'pathway_id': self.pathway_id,
+            'name': self.name,
+            'category': self.category,
+            'description': self.description,
+            'genes': self.genes,
+            'proteins': self.proteins,
+            'kegg_id': self.kegg_id,
+            'go_terms': self.go_terms,
+            'created_at': self.created_at
+        }
+
+
+@dataclass
+class DataSource:
+    """Data source/provenance tracking (from DemKG)"""
+    source_id: str
+    name: str
+    type: str  # database, publication, clinical_trial, registry
+    version: Optional[str] = None
+    url: Optional[str] = None
+    citation: Optional[str] = None
+    last_updated: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'source_id': self.source_id,
+            'name': self.name,
+            'type': self.type,
+            'version': self.version,
+            'url': self.url,
+            'citation': self.citation,
+            'last_updated': self.last_updated,
+            'metadata': self.metadata,
+            'created_at': self.created_at
+        }
+
+
+@dataclass
+class BiomarkerType:
+    """Biomarker classification and metadata (from AD-DPC)"""
+    type_id: str
+    name: str
+    category: str  # amyloid, tau, neurodegeneration, inflammation, synaptic
+    specimen_type: str  # CSF, blood, imaging
+    measurement_unit: str
+    normal_range_min: Optional[float] = None
+    normal_range_max: Optional[float] = None
+    clinical_significance: Optional[str] = None
+    references: List[str] = field(default_factory=list)
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'type_id': self.type_id,
+            'name': self.name,
+            'category': self.category,
+            'specimen_type': self.specimen_type,
+            'measurement_unit': self.measurement_unit,
+            'normal_range_min': self.normal_range_min,
+            'normal_range_max': self.normal_range_max,
+            'clinical_significance': self.clinical_significance,
+            'references': self.references,
+            'created_at': self.created_at
+        }
+
+
+@dataclass
+class GeneticRiskProfile:
+    """Comprehensive genetic risk assessment"""
+    profile_id: str
+    patient_id: str
+    apoe_status: str  # e2/e2, e2/e3, e2/e4, e3/e3, e3/e4, e4/e4
+    apoe_risk_category: str  # low, medium, high, very_high
+    polygenic_risk_score: Optional[float] = None
+    rare_variants: List[Dict[str, Any]] = field(default_factory=list)
+    other_risk_genes: Dict[str, Any] = field(default_factory=dict)  # TREM2, APP, PSEN1, etc.
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'profile_id': self.profile_id,
+            'patient_id': self.patient_id,
+            'apoe_status': self.apoe_status,
+            'apoe_risk_category': self.apoe_risk_category,
+            'polygenic_risk_score': self.polygenic_risk_score,
+            'rare_variants': self.rare_variants,
+            'other_risk_genes': self.other_risk_genes,
+            'created_at': self.created_at
+        }
+
+
+@dataclass
+class MultimodalSession:
+    """Multimodal assessment session combining multiple data types"""
+    session_id: str
+    patient_id: str
+    visit_id: str
+    session_date: str
+    modalities: List[str]  # cognitive, biomarker, imaging, clinical
+    cognitive_tests: List[str] = field(default_factory=list)
+    biomarkers_collected: List[str] = field(default_factory=list)
+    imaging_performed: List[str] = field(default_factory=list)
+    completeness_score: Optional[float] = None  # 0-1 scale
+    notes: Optional[str] = None
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'session_id': self.session_id,
+            'patient_id': self.patient_id,
+            'visit_id': self.visit_id,
+            'session_date': self.session_date,
+            'modalities': self.modalities,
+            'cognitive_tests': self.cognitive_tests,
+            'biomarkers_collected': self.biomarkers_collected,
+            'imaging_performed': self.imaging_performed,
+            'completeness_score': self.completeness_score,
+            'notes': self.notes,
+            'created_at': self.created_at
+        }
+
+
+@dataclass
+class ProcessingActivity:
+    """Data processing provenance tracking"""
+    activity_id: str
+    activity_type: str  # image_processing, score_calculation, quality_control
+    software_used: str
+    version: str
+    parameters: Dict[str, Any] = field(default_factory=dict)
+    input_data: List[str] = field(default_factory=list)  # IDs of input entities
+    output_data: List[str] = field(default_factory=list)  # IDs of output entities
+    processing_date: str = field(default_factory=lambda: datetime.now().isoformat())
+    operator: Optional[str] = None
+    quality_metrics: Dict[str, Any] = field(default_factory=dict)
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'activity_id': self.activity_id,
+            'activity_type': self.activity_type,
+            'software_used': self.software_used,
+            'version': self.version,
+            'parameters': self.parameters,
+            'input_data': self.input_data,
+            'output_data': self.output_data,
+            'processing_date': self.processing_date,
+            'operator': self.operator,
+            'quality_metrics': self.quality_metrics,
+            'created_at': self.created_at
+        }
+
+
+@dataclass
+class DrugTreatment:
+    """Drug treatment information (inspired by AlzKB)"""
+    treatment_id: str
+    patient_id: str
+    drug_name: str
+    drug_class: str  # cholinesterase_inhibitor, nmda_antagonist, etc.
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    dosage: Optional[str] = None
+    response: Optional[str] = None  # positive, negative, no_change
+    side_effects: List[str] = field(default_factory=list)
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'treatment_id': self.treatment_id,
+            'patient_id': self.patient_id,
+            'drug_name': self.drug_name,
+            'drug_class': self.drug_class,
+            'start_date': self.start_date,
+            'end_date': self.end_date,
+            'dosage': self.dosage,
+            'response': self.response,
+            'side_effects': self.side_effects,
+            'created_at': self.created_at
+        }
+
+
+@dataclass
+class ClinicalTrial:
+    """Clinical trial participation"""
+    trial_id: str
+    patient_id: str
+    trial_name: str
+    nct_number: Optional[str] = None  # ClinicalTrials.gov ID
+    enrollment_date: Optional[str] = None
+    trial_arm: Optional[str] = None  # treatment, placebo, control
+    status: Optional[str] = None  # enrolled, completed, withdrawn
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'trial_id': self.trial_id,
+            'patient_id': self.patient_id,
+            'trial_name': self.trial_name,
+            'nct_number': self.nct_number,
+            'enrollment_date': self.enrollment_date,
+            'trial_arm': self.trial_arm,
+            'status': self.status,
+            'created_at': self.created_at
+        }
+
+
+@dataclass
+class LifestyleFactor:
+    """Lifestyle and environmental factors"""
+    factor_id: str
+    patient_id: str
+    factor_type: str  # diet, exercise, sleep, social, cognitive_activity
+    description: str
+    frequency: Optional[str] = None  # daily, weekly, monthly
+    duration: Optional[str] = None
+    impact_score: Optional[float] = None  # Potential impact on AD risk
+    source: Optional[str] = None
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'factor_id': self.factor_id,
+            'patient_id': self.patient_id,
+            'factor_type': self.factor_type,
+            'description': self.description,
+            'frequency': self.frequency,
+            'duration': self.duration,
+            'impact_score': self.impact_score,
+            'source': self.source,
             'created_at': self.created_at
         }

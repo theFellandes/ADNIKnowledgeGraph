@@ -22,6 +22,7 @@ from steps.step5_process_images import execute_image_processing
 from steps.step6_extract_findings import execute_findings_extraction
 from steps.step7_batch_insert import execute_batch_insertion
 from steps.step8_create_relationships import execute_relationship_creation
+from utils.quality_aware_logger import QualityAwarePipeline
 
 
 # Configure logging
@@ -507,10 +508,12 @@ def main():
     print("=" * 70)
     print()
 
+    quality_pipeline = QualityAwarePipeline(config)
+
     # Run pipeline
     try:
         pipeline = ADNIPipeline(config)
-        results = pipeline.run()
+        results = quality_pipeline.run_with_quality_checks(pipeline)
 
         print("\n✅ Pipeline completed successfully!")
         print(f"   Total nodes: {results['summary']['total_nodes']:,}")
