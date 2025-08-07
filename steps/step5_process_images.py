@@ -1,6 +1,6 @@
 """
-Step 5: Process Medical Images
-Processes MRI and PET images from both converted and DICOM formats
+Step 5: Process Medical Images (MODIFIED FOR EXTERNAL STORAGE)
+Processes MRI and PET images with hierarchical external storage instead of Neo4j blobs
 """
 
 import logging
@@ -13,22 +13,36 @@ import hashlib
 import re
 
 from models.entities import ImagingStudy, ImageNode, Visit
-from utils.image_processor import ImageProcessor
 from utils.batch_processor import BatchProcessor
 from utils.neo4j_connector import Neo4jConnector
+from utils.medical_image_storage import MedicalImageStorageManager
 
 logger = logging.getLogger(__name__)
 
 
 class ImageProcessingPipeline:
-    """Process medical images for ADNI knowledge graph"""
+    """Process medical images for ADNI knowledge graph with external storage"""
 
     def __init__(self, connector: Neo4jConnector, base_path: str,
-                 store_blobs: bool = True, max_workers: int = 8):
+                 storage_path: str = None, store_blobs: bool = False, max_workers: int = 8):
+        """
+        Initialize image processing pipeline with external storage
+
+        Args:
+            connector: Neo4j connector
+            base_path: Base path for ADNI data
+            storage_path: Path for hierarchical image storage
+            max_workers: Maximum parallel workers
+        """
         self.connector = connector
         self.base_path = Path(base_path)
-        self.store_blobs = store_blobs
         self.max_workers = max_workers
+        self.store_blobs = store_blobs
+
+        # Set up storage path
+        if storage_path is None:
+            storage_path = self.base_path / "image_store"
+        self.storage_path = Path(storage_path)
 
         # Image paths
         self.mri_updated_path = self.base_path / "Updated"
@@ -36,17 +50,23 @@ class ImageProcessingPipeline:
         self.mri_dicom_path = self.base_path / "Images"
         self.pet_dicom_path = self.base_path / "PET"
 
+        # Initialize storage manager
+        self.storage_manager = MedicalImageStorageManager(
+            str(self.storage_path),
+            neo4j_connector=connector
+        )
+
         # Processors
-        self.image_processor = ImageProcessor()
         self.batch_processor = BatchProcessor(max_workers=max_workers)
 
         # Storage
         self.imaging_studies = {}
         self.image_nodes = []
+        self.storage_results = []
 
     def execute(self) -> Dict[str, Any]:
         """
-        Execute image processing pipeline
+        Execute image processing pipeline with external storage
 
         Returns:
             Dictionary with processing results
@@ -56,61 +76,142 @@ class ImageProcessingPipeline:
             'pet_processed': 0,
             'studies_created': 0,
             'images_created': 0,
-            'blobs_stored': 0,
+            'images_stored': 0,
+            'storage_size_mb': 0,
+            'quality_metrics': {},
             'errors': []
         }
 
-        # Process MRI images
-        logger.info("Processing MRI images...")
-        mri_results = self._process_modality('MRI')
-        results['mri_processed'] = mri_results['processed']
-        results['errors'].extend(mri_results['errors'])
+        # Process DICOM images first (preferred for medical imaging)
+        if self.mri_dicom_path.exists():
+            logger.info("Processing MRI DICOM images...")
+            mri_dicom_results = self._process_dicom_modality('MRI', self.mri_dicom_path)
+            results['mri_processed'] += mri_dicom_results['processed']
+            results['errors'].extend(mri_dicom_results['errors'])
 
-        # Process PET images
-        logger.info("Processing PET images...")
-        pet_results = self._process_modality('PET')
-        results['pet_processed'] = pet_results['processed']
-        results['errors'].extend(pet_results['errors'])
+        if self.pet_dicom_path.exists():
+            logger.info("Processing PET DICOM images...")
+            pet_dicom_results = self._process_dicom_modality('PET', self.pet_dicom_path)
+            results['pet_processed'] += pet_dicom_results['processed']
+            results['errors'].extend(pet_dicom_results['errors'])
+
+        # Process converted images as fallback
+        if self.mri_updated_path.exists() and results['mri_processed'] == 0:
+            logger.info("Processing converted MRI images...")
+            mri_results = self._process_converted_modality('MRI', self.mri_updated_path)
+            results['mri_processed'] += mri_results['processed']
+            results['errors'].extend(mri_results['errors'])
+
+        if self.pet_updated_path.exists() and results['pet_processed'] == 0:
+            logger.info("Processing converted PET images...")
+            pet_results = self._process_converted_modality('PET', self.pet_updated_path)
+            results['pet_processed'] += pet_results['processed']
+            results['errors'].extend(pet_results['errors'])
 
         # Create imaging studies
         logger.info("Creating imaging studies...")
         results['studies_created'] = len(self.imaging_studies)
         results['images_created'] = len(self.image_nodes)
+        results['images_stored'] = len(self.storage_results)
 
-        if self.store_blobs:
-            results['blobs_stored'] = sum(1 for img in self.image_nodes if img.image_blob)
+        # Calculate storage size
+        results['storage_size_mb'] = self._calculate_storage_size()
+
+        # Aggregate quality metrics
+        results['quality_metrics'] = self._aggregate_quality_metrics()
 
         return results
 
-    def _process_modality(self, modality: str) -> Dict[str, Any]:
-        """Process images for a specific modality"""
+    def _process_dicom_modality(self, modality: str, dicom_path: Path) -> Dict[str, Any]:
+        """Process DICOM images for a specific modality"""
         results = {'processed': 0, 'errors': []}
 
-        if modality == 'MRI':
-            updated_path = self.mri_updated_path
-            dicom_path = self.mri_dicom_path
-        else:
-            updated_path = self.pet_updated_path
-            dicom_path = self.pet_dicom_path
+        # Get all DICOM files
+        dicom_files = list(dicom_path.rglob("*.dcm"))
+        logger.info(f"Found {len(dicom_files)} DICOM files for {modality}")
 
-        # Process converted images first (PNG/JPG)
-        if updated_path.exists():
-            logger.info(f"Processing converted {modality} images from {updated_path}")
-            converted_results = self._process_converted_images(updated_path, modality)
-            results['processed'] += converted_results['processed']
-            results['errors'].extend(converted_results['errors'])
+        # Process in batches
+        batch_size = 50  # Smaller batches for DICOM processing
 
-        # Process DICOM images if needed
-        if dicom_path.exists() and self.store_blobs:
-            logger.info(f"Processing DICOM {modality} images from {dicom_path}")
-            dicom_results = self._process_dicom_images(dicom_path, modality)
-            results['processed'] += dicom_results['processed']
-            results['errors'].extend(dicom_results['errors'])
+        for i in range(0, len(dicom_files), batch_size):
+            batch = dicom_files[i:i + batch_size]
+            logger.info(f"Processing batch {i//batch_size + 1}/{(len(dicom_files) + batch_size - 1)//batch_size}")
+
+            # Process batch in parallel
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, self.max_workers)) as executor:
+                futures = []
+
+                for dicom_file in batch:
+                    # Extract identifiers from path
+                    patient_id = self._extract_patient_id_from_path(dicom_file)
+                    if not patient_id:
+                        logger.warning(f"Could not extract patient ID from {dicom_file}")
+                        continue
+
+                    study_id = self._generate_study_id(patient_id, modality, dicom_file)
+                    series_id = self._extract_series_id(dicom_file)
+
+                    future = executor.submit(
+                        self._process_single_dicom,
+                        dicom_file,
+                        patient_id,
+                        study_id,
+                        series_id,
+                        modality
+                    )
+                    futures.append(future)
+
+                # Collect results
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        result = future.result(timeout=60)  # 60 second timeout per file
+                        if result and result['success']:
+                            results['processed'] += 1
+                            self.storage_results.append(result)
+
+                            # Create image node
+                            image_node = self._create_image_node_from_storage(result, modality)
+                            if image_node:
+                                self.image_nodes.append(image_node)
+                                self._update_imaging_study(image_node)
+                    except Exception as e:
+                        logger.error(f"Error processing DICOM: {e}")
+                        results['errors'].append(str(e))
 
         return results
 
-    def _process_converted_images(self, base_path: Path, modality: str) -> Dict[str, Any]:
-        """Process converted (PNG/JPG) images"""
+    def _process_single_dicom(self, dicom_path: Path, patient_id: str,
+                             study_id: str, series_id: str, modality: str) -> Dict[str, Any]:
+        """Process a single DICOM file"""
+        try:
+            # Use storage manager to process and store
+            storage_metadata = self.storage_manager.process_dicom_for_storage(
+                str(dicom_path),
+                patient_id,
+                study_id,
+                series_id
+            )
+
+            return {
+                'success': True,
+                'storage_metadata': storage_metadata,
+                'patient_id': patient_id,
+                'study_id': study_id,
+                'series_id': series_id,
+                'modality': modality,
+                'original_path': str(dicom_path)
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to process DICOM {dicom_path}: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'original_path': str(dicom_path)
+            }
+
+    def _process_converted_modality(self, modality: str, base_path: Path) -> Dict[str, Any]:
+        """Process pre-converted images (JPG/PNG) as fallback"""
         results = {'processed': 0, 'errors': []}
 
         # Get all patient directories
@@ -119,233 +220,131 @@ class ImageProcessingPipeline:
         for patient_dir in patient_dirs:
             patient_id = patient_dir.name
 
-            # Validate patient ID
             if not self._validate_patient_id(patient_id):
                 logger.warning(f"Invalid patient ID: {patient_id}")
                 continue
 
-            # Process patient images
-            patient_results = self._process_patient_images(patient_dir, patient_id, modality)
+            # Process patient's converted images
+            patient_results = self._process_patient_converted_images(
+                patient_dir, patient_id, modality
+            )
             results['processed'] += patient_results['processed']
             results['errors'].extend(patient_results['errors'])
 
         return results
 
-    def _process_patient_images(self, patient_dir: Path, patient_id: str,
-                                modality: str) -> Dict[str, Any]:
-        """Process all images for a patient"""
+    def _process_patient_converted_images(self, patient_dir: Path, patient_id: str,
+                                         modality: str) -> Dict[str, Any]:
+        """Process converted images for a patient"""
         results = {'processed': 0, 'errors': []}
 
         # Collect all image files
         image_files = []
+        for ext in ['*.jpg', '*.jpeg', '*.png']:
+            image_files.extend(patient_dir.rglob(ext))
 
-        # Check for series directories
-        series_dirs = [d for d in patient_dir.iterdir() if d.is_dir()]
+        for img_file in image_files:
+            try:
+                # Generate IDs
+                study_id = self._generate_study_id(patient_id, modality, img_file)
+                series_id = img_file.parent.name if img_file.parent != patient_dir else "default"
+                image_id = self._generate_image_id(patient_id, img_file)
 
-        if series_dirs:
-            # Images organized by series
-            for series_dir in series_dirs:
-                series_name = series_dir.name
+                # Create storage reference (without actual storage for converted images)
+                # In production, you might want to copy these to the storage hierarchy
+                storage_ref = {
+                    'storage_id': image_id,
+                    'patient_id': patient_id,
+                    'study_id': study_id,
+                    'series_id': series_id,
+                    'original_path': str(img_file),
+                    'format': 'converted',
+                    'modality': modality
+                }
 
-                # Check for timestamp directories
-                timestamp_dirs = [d for d in series_dir.iterdir() if d.is_dir()]
+                # Create image node with reference to original file
+                visit_id = self._find_visit_id(patient_id, "")
 
-                if timestamp_dirs:
-                    for timestamp_dir in timestamp_dirs:
-                        for img_file in timestamp_dir.iterdir():
-                            if self._is_image_file(img_file):
-                                image_files.append({
-                                    'path': img_file,
-                                    'series': series_name,
-                                    'timestamp': timestamp_dir.name
-                                })
-                else:
-                    # Images directly in series directory
-                    for img_file in series_dir.iterdir():
-                        if self._is_image_file(img_file):
-                            image_files.append({
-                                'path': img_file,
-                                'series': series_name,
-                                'timestamp': None
-                            })
-        else:
-            # Images directly in patient directory
-            for img_file in patient_dir.iterdir():
-                if self._is_image_file(img_file):
-                    image_files.append({
-                        'path': img_file,
-                        'series': None,
-                        'timestamp': None
-                    })
-
-        # Process images in parallel
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            futures = []
-
-            for img_info in image_files:
-                future = executor.submit(
-                    self._process_single_image,
-                    img_info['path'],
-                    patient_id,
-                    modality,
-                    img_info['series'],
-                    img_info['timestamp']
+                image_node = ImageNode(
+                    image_id=image_id,
+                    study_id=study_id,
+                    patient_id=patient_id,
+                    visit_id=visit_id,
+                    series_description=series_id,
+                    image_type='CONVERTED',
+                    anatomical_region=self._infer_anatomical_region(img_file.name),
+                    pet_tracer=self._infer_pet_tracer(img_file.name) if modality == 'PET' else None,
+                    file_path=str(img_file),
+                    storage_format='external_file',
+                    has_diagnostic=False,  # Converted images may not be diagnostic quality
+                    has_preview=True,
+                    has_thumbnail=True
                 )
-                futures.append(future)
 
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    image_node = future.result()
-                    if image_node:
-                        self.image_nodes.append(image_node)
-                        results['processed'] += 1
+                self.image_nodes.append(image_node)
+                self._update_imaging_study(image_node)
+                results['processed'] += 1
 
-                        # Create or update imaging study
-                        self._update_imaging_study(image_node)
-
-                except Exception as e:
-                    logger.error(f"Error processing image: {e}")
-                    results['errors'].append(str(e))
+            except Exception as e:
+                logger.error(f"Error processing converted image {img_file}: {e}")
+                results['errors'].append(str(e))
 
         return results
 
-    def _process_single_image(self, image_path: Path, patient_id: str,
-                              modality: str, series_name: Optional[str] = None,
-                              timestamp: Optional[str] = None) -> Optional[ImageNode]:
-        """Process a single image file"""
+    def _create_image_node_from_storage(self, storage_result: Dict, modality: str) -> Optional[ImageNode]:
+        """Create image node from storage result"""
         try:
-            # Generate unique image ID
-            image_id = self._generate_image_id(patient_id, image_path)
-
-            # Extract metadata from filename and path
-            metadata = self._extract_metadata(image_path, series_name, timestamp)
-
-            # Determine anatomical region
-            anatomical_region = self.image_processor.determine_anatomical_region(
-                series_name or image_path.stem, modality
-            )
-
-            # Extract PET tracer if applicable
-            pet_tracer = None
-            if modality == 'PET':
-                pet_tracer = self.image_processor.extract_pet_tracer(
-                    metadata,
-                    image_path.stem
-                )
-
-            # Process image to get blobs if requested
-            image_blob = None
-            thumbnail_blob = None
-
-            if self.store_blobs:
-                img_result = self.image_processor.process_image(str(image_path))
-                if img_result['success']:
-                    image_blob = img_result['image_blob']
-                    thumbnail_blob = img_result['thumbnail_blob']
+            storage_metadata = storage_result['storage_metadata']
 
             # Find associated visit
-            visit_id = self._find_visit_id(patient_id, metadata.get('study_date', ''))
+            visit_id = self._find_visit_id(
+                storage_result['patient_id'],
+                storage_metadata.storage_timestamp[:10]  # Use date part
+            )
 
-            # Create image node
+            # Create image node with storage references
             image_node = ImageNode(
-                image_id=image_id,
-                study_id=f"study_{patient_id}_{modality}_{metadata.get('study_date', 'unknown')}",
-                patient_id=patient_id,
+                image_id=storage_metadata.storage_id,
+                study_id=storage_result['study_id'],
+                patient_id=storage_result['patient_id'],
                 visit_id=visit_id,
-                series_description=series_name or metadata.get('series_description', ''),
-                image_type='CONVERTED',
-                anatomical_region=anatomical_region,
-                pet_tracer=pet_tracer,
-                acquisition_parameters=metadata,
-                image_blob=image_blob,
-                thumbnail_blob=thumbnail_blob,
-                file_path=str(image_path)
+                series_description=storage_result.get('series_id', ''),
+                image_type='DICOM',
+                anatomical_region=self._infer_anatomical_region(storage_result.get('series_id', '')),
+                pet_tracer=self._infer_pet_tracer(storage_result.get('series_id', '')) if modality == 'PET' else None,
+
+                # Storage references instead of blobs
+                storage_id=storage_metadata.storage_id,
+                diagnostic_path=storage_metadata.file_paths.get('diagnostic'),
+                preview_path=storage_metadata.file_paths.get('preview'),
+                thumbnail_path=storage_metadata.file_paths.get('thumbnail'),
+
+                # Quality metrics
+                snr=storage_metadata.quality_metrics.get('snr'),
+                entropy=storage_metadata.quality_metrics.get('entropy'),
+                contrast=storage_metadata.quality_metrics.get('contrast'),
+
+                # Metadata
+                dimensions=list(storage_metadata.dimensions),
+                voxel_spacing=list(storage_metadata.voxel_spacing) if storage_metadata.voxel_spacing else None,
+                bits_per_pixel=storage_metadata.bits_per_pixel,
+                checksum=storage_metadata.checksums.get('diagnostic'),
+
+                # Flags
+                has_diagnostic=True,
+                has_preview=True,
+                has_thumbnail=True,
+                quality_verified=True,
+                storage_format='hierarchical',
+
+                file_path=storage_result['original_path']
             )
 
             return image_node
 
         except Exception as e:
-            logger.error(f"Failed to process image {image_path}: {e}")
+            logger.error(f"Failed to create image node: {e}")
             return None
-
-    def _process_dicom_images(self, base_path: Path, modality: str) -> Dict[str, Any]:
-        """Process DICOM images"""
-        results = {'processed': 0, 'errors': []}
-
-        # Get all DICOM files
-        dicom_files = list(base_path.rglob("*.dcm"))
-        logger.info(f"Found {len(dicom_files)} DICOM files")
-
-        # Process in batches to avoid memory issues
-        batch_size = 100
-
-        for i in range(0, len(dicom_files), batch_size):
-            batch = dicom_files[i:i + batch_size]
-
-            for dicom_path in batch:
-                try:
-                    # Extract patient ID from path
-                    patient_id = self._extract_patient_id_from_path(dicom_path)
-                    if not patient_id:
-                        continue
-
-                    # Process DICOM
-                    dicom_result = self.image_processor.process_dicom(str(dicom_path))
-
-                    if dicom_result['success']:
-                        # Create image node
-                        image_id = self._generate_image_id(patient_id, dicom_path)
-                        metadata = dicom_result['metadata']
-
-                        # Extract study date
-                        study_date = metadata.get('StudyDate', '')
-                        if study_date and len(study_date) == 8:
-                            study_date = f"{study_date[:4]}-{study_date[4:6]}-{study_date[6:8]}"
-
-                        # Find visit
-                        visit_id = self._find_visit_id(patient_id, study_date)
-
-                        # Determine anatomical region
-                        series_desc = metadata.get('SeriesDescription', '')
-                        anatomical_region = self.image_processor.determine_anatomical_region(
-                            series_desc, modality
-                        )
-
-                        # Extract PET tracer
-                        pet_tracer = None
-                        if modality == 'PET':
-                            pet_tracer = self.image_processor.extract_pet_tracer(
-                                metadata,
-                                dicom_path.name
-                            )
-
-                        # Create image node
-                        image_node = ImageNode(
-                            image_id=image_id,
-                            study_id=f"study_{patient_id}_{modality}_{study_date or 'unknown'}",
-                            patient_id=patient_id,
-                            visit_id=visit_id,
-                            series_description=series_desc,
-                            image_type='DICOM',
-                            anatomical_region=anatomical_region,
-                            pet_tracer=pet_tracer,
-                            slice_number=metadata.get('InstanceNumber'),
-                            acquisition_parameters=metadata,
-                            dicom_metadata=metadata,
-                            image_blob=dicom_result.get('image_blob') if self.store_blobs else None,
-                            thumbnail_blob=dicom_result.get('thumbnail_blob') if self.store_blobs else None,
-                            file_path=str(dicom_path)
-                        )
-
-                        self.image_nodes.append(image_node)
-                        self._update_imaging_study(image_node)
-                        results['processed'] += 1
-
-                except Exception as e:
-                    logger.error(f"Error processing DICOM {dicom_path}: {e}")
-                    results['errors'].append(str(e))
-
-        return results
 
     def _update_imaging_study(self, image_node: ImageNode) -> None:
         """Create or update imaging study for an image"""
@@ -362,54 +361,76 @@ class ImageProcessingPipeline:
                 patient_id=image_node.patient_id,
                 visit_id=image_node.visit_id,
                 modality=modality,
-                study_date=image_node.acquisition_parameters.get('study_date', ''),
+                study_date=datetime.now().strftime("%Y-%m-%d"),
                 study_description=image_node.series_description
             )
 
             self.imaging_studies[study_id] = study
 
+    def _calculate_storage_size(self) -> float:
+        """Calculate total storage size in MB"""
+        total_size = 0
+
+        # Calculate size of all files in storage directory
+        if self.storage_path.exists():
+            for file_path in self.storage_path.rglob("*"):
+                if file_path.is_file():
+                    total_size += file_path.stat().st_size
+
+        return total_size / (1024 * 1024)  # Convert to MB
+
+    def _aggregate_quality_metrics(self) -> Dict[str, Any]:
+        """Aggregate quality metrics from all processed images"""
+        metrics = {
+            'avg_snr': 0,
+            'avg_entropy': 0,
+            'avg_contrast': 0,
+            'total_images': 0
+        }
+
+        snr_values = []
+        entropy_values = []
+        contrast_values = []
+
+        for result in self.storage_results:
+            if result['success'] and 'storage_metadata' in result:
+                quality = result['storage_metadata'].quality_metrics
+                if 'snr' in quality:
+                    snr_values.append(quality['snr'])
+                if 'entropy' in quality:
+                    entropy_values.append(quality['entropy'])
+                if 'contrast' in quality:
+                    contrast_values.append(quality['contrast'])
+
+        if snr_values:
+            metrics['avg_snr'] = sum(snr_values) / len(snr_values)
+        if entropy_values:
+            metrics['avg_entropy'] = sum(entropy_values) / len(entropy_values)
+        if contrast_values:
+            metrics['avg_contrast'] = sum(contrast_values) / len(contrast_values)
+
+        metrics['total_images'] = len(self.storage_results)
+
+        return metrics
+
+    # Helper methods (same as original but adapted for storage)
     def _generate_image_id(self, patient_id: str, image_path: Path) -> str:
         """Generate unique image ID"""
-        # Create hash from patient ID and file path
         content = f"{patient_id}_{image_path}"
         hash_obj = hashlib.sha256(content.encode())
         return f"img_{hash_obj.hexdigest()[:16]}"
 
-    def _extract_metadata(self, image_path: Path, series_name: Optional[str],
-                          timestamp: Optional[str]) -> Dict[str, Any]:
-        """Extract metadata from file path and name"""
-        metadata = {}
+    def _generate_study_id(self, patient_id: str, modality: str, file_path: Path) -> str:
+        """Generate study ID"""
+        date_str = datetime.now().strftime("%Y%m%d")
+        return f"study_{patient_id}_{modality}_{date_str}"
 
-        # Extract from filename
-        filename = image_path.stem
-
-        # Common ADNI patterns
-        # Example: ADNI_002_S_0295_MR_MT1__GradWarp__N3m_Br_20070217114937668_S18402_I40731
-        parts = filename.split('_')
-
-        for i, part in enumerate(parts):
-            # Patient ID pattern
-            if re.match(r'\d{3}_S_\d{4}', '_'.join(parts[i:i + 3])):
-                metadata['patient_id'] = '_'.join(parts[i:i + 3])
-
-            # Date pattern (YYYYMMDD)
-            elif re.match(r'\d{8}', part):
-                metadata['study_date'] = f"{part[:4]}-{part[4:6]}-{part[6:8]}"
-
-            # Image ID pattern (I followed by numbers)
-            elif re.match(r'I\d+', part):
-                metadata['image_number'] = part
-
-        # Add series and timestamp
-        if series_name:
-            metadata['series_description'] = series_name
-        if timestamp:
-            metadata['acquisition_timestamp'] = timestamp
-            # Try to parse date from timestamp
-            if len(timestamp) >= 8 and timestamp[:8].isdigit():
-                metadata['study_date'] = f"{timestamp[:4]}-{timestamp[4:6]}-{timestamp[6:8]}"
-
-        return metadata
+    def _extract_series_id(self, file_path: Path) -> str:
+        """Extract series ID from file path"""
+        # Try to get from parent directory name
+        if file_path.parent.name not in ['.', '']:
+            return file_path.parent.name
+        return "default_series"
 
     def _extract_patient_id_from_path(self, path: Path) -> Optional[str]:
         """Extract patient ID from file path"""
@@ -430,11 +451,6 @@ class ImageProcessingPipeline:
         """Validate ADNI patient ID format"""
         pattern = r'^\d{3}_S_\d{4}$'
         return bool(re.match(pattern, patient_id))
-
-    def _is_image_file(self, path: Path) -> bool:
-        """Check if file is an image"""
-        image_extensions = {'.png', '.jpg', '.jpeg', '.dcm', '.nii', '.nii.gz'}
-        return path.is_file() and path.suffix.lower() in image_extensions
 
     def _find_visit_id(self, patient_id: str, study_date: str) -> str:
         """Find or create visit ID for the image"""
@@ -459,15 +475,50 @@ class ImageProcessingPipeline:
         # Default to baseline visit
         return f"{patient_id}_bl"
 
+    def _infer_anatomical_region(self, description: str) -> str:
+        """Infer anatomical region from description"""
+        desc_lower = description.lower()
+
+        if 'hippo' in desc_lower:
+            return 'hippocampus'
+        elif 'frontal' in desc_lower:
+            return 'frontal_lobe'
+        elif 'temporal' in desc_lower:
+            return 'temporal_lobe'
+        elif 'parietal' in desc_lower:
+            return 'parietal_lobe'
+        else:
+            return 'whole_brain'
+
+    def _infer_pet_tracer(self, description: str) -> Optional[str]:
+        """Infer PET tracer from description"""
+        desc_upper = description.upper()
+
+        if 'FDG' in desc_upper:
+            return 'FDG'
+        elif 'AV45' in desc_upper or 'FLORBETAPIR' in desc_upper:
+            return 'AV45'
+        elif 'AV1451' in desc_upper or 'TAU' in desc_upper:
+            return 'AV1451'
+        elif 'PIB' in desc_upper:
+            return 'PIB'
+
+        return None
+
     def get_processing_summary(self) -> Dict[str, Any]:
         """Get summary of processed images"""
         summary = {
             'total_images': len(self.image_nodes),
             'total_studies': len(self.imaging_studies),
+            'total_stored': len(self.storage_results),
             'by_modality': {},
             'by_type': {},
-            'with_blobs': 0,
-            'pet_tracers': {}
+            'storage_stats': {
+                'diagnostic_count': 0,
+                'preview_count': 0,
+                'thumbnail_count': 0
+            },
+            'quality_stats': {}
         }
 
         # Count by modality and type
@@ -480,30 +531,34 @@ class ImageProcessingPipeline:
             img_type = img.image_type
             summary['by_type'][img_type] = summary['by_type'].get(img_type, 0) + 1
 
-            # Blobs
-            if img.image_blob:
-                summary['with_blobs'] += 1
+            # Storage stats
+            if hasattr(img, 'has_diagnostic') and img.has_diagnostic:
+                summary['storage_stats']['diagnostic_count'] += 1
+            if hasattr(img, 'has_preview') and img.has_preview:
+                summary['storage_stats']['preview_count'] += 1
+            if hasattr(img, 'has_thumbnail') and img.has_thumbnail:
+                summary['storage_stats']['thumbnail_count'] += 1
 
-            # PET tracers
-            if img.pet_tracer:
-                tracer = img.pet_tracer
-                summary['pet_tracers'][tracer] = summary['pet_tracers'].get(tracer, 0) + 1
+        # Quality stats
+        summary['quality_stats'] = self._aggregate_quality_metrics()
 
         return summary
 
 
 def execute_image_processing(neo4j_uri: str, neo4j_user: str, neo4j_password: str,
-                             base_path: str, store_blobs: bool = True,
+                             base_path: str, storage_path: str | None = None,
+                             store_blobs: bool = False,
                              max_workers: int = 8) -> Dict[str, Any]:
     """
-    Main execution function for image processing
+    Main execution function for image processing with external storage
 
     Args:
         neo4j_uri: Neo4j connection URI
         neo4j_user: Username
         neo4j_password: Password
         base_path: Base path containing image directories
-        store_blobs: Whether to store image blobs in database
+        storage_path: Path for hierarchical image storage (optional)
+        store_blobs: Whether to store images as blobs in Neo4j
         max_workers: Maximum number of parallel workers
 
     Returns:
@@ -515,6 +570,7 @@ def execute_image_processing(neo4j_uri: str, neo4j_user: str, neo4j_password: st
         processor = ImageProcessingPipeline(
             connector,
             base_path,
+            storage_path=storage_path,
             store_blobs=store_blobs,
             max_workers=max_workers
         )
@@ -530,9 +586,12 @@ def execute_image_processing(neo4j_uri: str, neo4j_user: str, neo4j_password: st
 
         logger.info(f"✅ Processed {results['mri_processed']} MRI and {results['pet_processed']} PET images")
         logger.info(f"   Created {results['studies_created']} studies and {results['images_created']} image nodes")
+        logger.info(f"   Stored {results['images_stored']} images in hierarchical storage")
+        logger.info(f"   Total storage size: {results['storage_size_mb']:.2f} MB")
 
-        if store_blobs:
-            logger.info(f"   Stored {results['blobs_stored']} image blobs")
+        if results['quality_metrics']:
+            logger.info(f"   Average SNR: {results['quality_metrics'].get('avg_snr', 0):.2f}")
+            logger.info(f"   Average entropy: {results['quality_metrics'].get('avg_entropy', 0):.2f}")
 
         return results
 
@@ -550,6 +609,7 @@ if __name__ == "__main__":
         neo4j_user="neo4j",
         neo4j_password="your_password",
         base_path="inputs",
+        storage_path="outputs/image_store",
         store_blobs=True,
         max_workers=4
     )

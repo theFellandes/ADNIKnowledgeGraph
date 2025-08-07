@@ -518,99 +518,418 @@ elif page == "Biomarkers":
         st.plotly_chart(fig, use_container_width=True)
 
 elif page == "Imaging":
-    st.title("Medical Imaging Explorer")
+    import streamlit as st
+    import pandas as pd
+    import plotly.graph_objects as go
+    from PIL import Image
+    import base64
+    from io import BytesIO
+    from pathlib import Path
+    import logging
 
-    # Imaging statistics
-    col1, col2, col3 = st.columns(3)
+    # Import cache and search managers
+    try:
+        from utils.redis_cacher import CacheManager
 
-    mri_count = connector.run_query("MATCH (i:ImagingStudy {modality: 'MRI'}) RETURN count(i) as count")[0]['count']
-    pet_count = connector.run_query("MATCH (i:ImagingStudy {modality: 'PET'}) RETURN count(i) as count")[0]['count']
-    total_images = connector.run_query("MATCH (n:ImageNode) RETURN count(n) as count")[0]['count']
+        cache_available = True
+    except ImportError:
+        cache_available = False
+        logging.warning("Redis cache not available")
 
-    col1.metric("MRI Studies", f"{mri_count:,}")
-    col2.metric("PET Studies", f"{pet_count:,}")
-    col3.metric("Total Images", f"{total_images:,}")
+    try:
+        from utils.elasticsearch_indexer import SearchIndexer
 
-    st.markdown("---")
+        search_available = True
+    except ImportError:
+        search_available = False
+        logging.warning("Elasticsearch not available")
 
-    # Image viewer
-    st.subheader("Image Viewer")
 
-    # Select patient and study
-    if st.session_state.selected_patient:
-        patient_id = st.session_state.selected_patient
-    else:
-        patients = connector.run_query(
-            "MATCH (p:Patient)-[:HAS_IMAGING_STUDY]->() RETURN DISTINCT p.ptid as ptid ORDER BY p.ptid LIMIT 100")
-        patient_id = st.selectbox("Select Patient:", [p['ptid'] for p in patients])
+    # Initialize cache and search managers (cached for session)
+    @st.cache_resource
+    def get_cache_manager():
+        """Initialize Redis cache manager"""
+        if cache_available:
+            try:
+                return CacheManager(host='localhost', port=6379)
+            except Exception as e:
+                st.warning(f"Could not connect to Redis: {e}")
+        return None
 
-    if patient_id:
-        # Get imaging studies
-        studies_query = """
-        MATCH (p:Patient {ptid: $ptid})-[:HAS_IMAGING_STUDY]->(s:ImagingStudy)
-        RETURN s.study_id as study_id,
-               s.modality as modality,
-               s.study_date as date,
-               s.study_description as description
-        ORDER BY s.study_date DESC
+
+    @st.cache_resource
+    def get_search_indexer():
+        """Initialize Elasticsearch indexer"""
+        if search_available:
+            try:
+                return SearchIndexer(host='localhost', port=9200)
+            except Exception as e:
+                st.warning(f"Could not connect to Elasticsearch: {e}")
+        return None
+
+
+    def render_imaging_page(connector):
         """
+        Render the enhanced imaging page with Redis and Elasticsearch integration
 
-        studies = pd.DataFrame(connector.run_query(studies_query, {'ptid': patient_id}))
+        Args:
+            connector: Neo4j connector instance
+        """
+        st.title("Medical Imaging Explorer")
 
-        if not studies.empty:
-            # Study selection
-            study_options = studies.apply(lambda x: f"{x['modality']} - {x['date']} - {x['description']}",
-                                          axis=1).tolist()
-            selected_idx = st.selectbox("Select Study:", range(len(study_options)),
-                                        format_func=lambda x: study_options[x])
+        # Initialize cache and search
+        cache_manager = get_cache_manager()
+        search_indexer = get_search_indexer()
 
-            if selected_idx is not None:
-                study_id = studies.iloc[selected_idx]['study_id']
+        # Show status indicators
+        col1, col2, col3, col4 = st.columns(4)
 
-                # Get images
-                images_query = """
-                MATCH (s:ImagingStudy {study_id: $study_id})-[:HAS_IMAGE]->(i:ImageNode)
-                RETURN i.image_id as image_id,
-                       i.series_description as series,
-                       i.anatomical_region as region,
-                       i.pet_tracer as tracer,
-                       i.has_blob as has_blob,
-                       i.file_path as file_path
-                ORDER BY i.slice_number
-                LIMIT 20
+        with col1:
+            mri_count = connector.run_query("MATCH (i:ImagingStudy {modality: 'MRI'}) RETURN count(i) as count")[0][
+                'count']
+            st.metric("MRI Studies", f"{mri_count:,}")
+
+        with col2:
+            pet_count = connector.run_query("MATCH (i:ImagingStudy {modality: 'PET'}) RETURN count(i) as count")[0][
+                'count']
+            st.metric("PET Studies", f"{pet_count:,}")
+
+        with col3:
+            total_images = connector.run_query("MATCH (n:ImageNode) RETURN count(n) as count")[0]['count']
+            st.metric("Total Images", f"{total_images:,}")
+
+        with col4:
+            # Show cache/search status
+            status_text = "🟢 " if cache_manager else "🔴 "
+            status_text += "Cache | "
+            status_text += "🟢 " if search_indexer else "🔴 "
+            status_text += "Search"
+            st.metric("Services", status_text)
+
+        st.markdown("---")
+
+        # Image Search Section
+        if search_indexer:
+            st.subheader("🔍 Image Search")
+
+            col1, col2, col3 = st.columns([3, 1, 1])
+
+            with col1:
+                search_query = st.text_input(
+                    "Search images",
+                    placeholder="e.g., hippocampus, FDG, temporal lobe",
+                    help="Search across series descriptions, anatomical regions, and notes"
+                )
+
+            with col2:
+                modality_filter = st.selectbox("Modality", ["All", "MRI", "PET"])
+
+            with col3:
+                max_results = st.number_input("Max Results", min_value=1, max_value=100, value=10)
+
+            if search_query or modality_filter != "All":
+                # Build filters
+                filters = {}
+                if modality_filter != "All":
+                    filters['modality'] = modality_filter
+
+                # Execute search
+                with st.spinner("Searching..."):
+                    search_results = search_indexer.search_images(
+                        query=search_query,
+                        filters=filters,
+                        size=max_results
+                    )
+
+                if search_results['total'] > 0:
+                    st.success(f"Found {search_results['total']} matching images")
+
+                    # Display results
+                    for hit in search_results['hits']:
+                        with st.expander(f"📷 {hit['source']['image_id']} - Score: {hit['score']:.2f}"):
+                            col1, col2 = st.columns([1, 2])
+
+                            with col1:
+                                # Try to load thumbnail from cache or file
+                                thumbnail_path = None
+
+                                # Try cache first
+                                if cache_manager:
+                                    thumbnail_path = cache_manager.get_image_path(
+                                        hit['source']['image_id'],
+                                        'thumbnail'
+                                    )
+
+                                # Fall back to search index
+                                if not thumbnail_path:
+                                    thumbnail_path = hit['source'].get('thumbnail_path')
+
+                                if thumbnail_path and Path(thumbnail_path).exists():
+                                    try:
+                                        img = Image.open(thumbnail_path)
+                                        st.image(img, use_column_width=True)
+                                    except Exception as e:
+                                        st.info("Thumbnail not available")
+                                else:
+                                    st.info("No thumbnail")
+
+                            with col2:
+                                st.write(f"**Patient:** {hit['source']['patient_id']}")
+                                st.write(f"**Modality:** {hit['source']['modality']}")
+                                st.write(f"**Series:** {hit['source']['series_description']}")
+
+                                if 'anatomical_region' in hit['source']:
+                                    st.write(f"**Region:** {hit['source']['anatomical_region']}")
+
+                                if 'quality_metrics' in hit['source'] and hit['source']['quality_metrics']:
+                                    metrics = hit['source']['quality_metrics']
+                                    if 'snr' in metrics:
+                                        st.write(f"**SNR:** {metrics['snr']:.2f}")
+                                    if 'entropy' in metrics:
+                                        st.write(f"**Entropy:** {metrics['entropy']:.2f}")
+
+                                # Highlight matches
+                                if 'highlight' in hit and hit['highlight']:
+                                    st.write("**Matched in:**")
+                                    for field, highlights in hit['highlight'].items():
+                                        for highlight in highlights:
+                                            st.markdown(f"- {highlight}")
+                else:
+                    st.info("No images found matching your search")
+
+        st.markdown("---")
+
+        # Patient Image Viewer
+        st.subheader("📂 Patient Image Viewer")
+
+        # Select patient
+        if st.session_state.get('selected_patient'):
+            patient_id = st.session_state.selected_patient
+        else:
+            patients = connector.run_query(
+                "MATCH (p:Patient)-[:HAS_IMAGING_STUDY]->() RETURN DISTINCT p.ptid as ptid ORDER BY p.ptid LIMIT 100"
+            )
+            patient_id = st.selectbox("Select Patient:", [p['ptid'] for p in patients])
+
+        if patient_id:
+            # Check cache for patient images
+            cached_studies = []
+            if cache_manager:
+                # Try to get cached patient data
+                cache_key = f"patient:studies:{patient_id}"
+                cached_data = cache_manager.get(cache_key)
+                if cached_data:
+                    st.info("📦 Loading from cache...")
+                    cached_studies = cached_data
+
+            if not cached_studies:
+                # Get imaging studies from Neo4j
+                studies_query = """
+                MATCH (p:Patient {ptid: $ptid})-[:HAS_IMAGING_STUDY]->(s:ImagingStudy)
+                RETURN s.study_id as study_id,
+                       s.modality as modality,
+                       s.study_date as date,
+                       s.study_description as description
+                ORDER BY s.study_date DESC
                 """
 
-                images = pd.DataFrame(connector.run_query(images_query, {'study_id': study_id}))
+                studies = pd.DataFrame(connector.run_query(studies_query, {'ptid': patient_id}))
 
-                if not images.empty:
-                    # Image grid
-                    st.write(f"Found {len(images)} images in this study")
+                if not studies.empty:
+                    # Cache the studies data
+                    if cache_manager:
+                        cache_manager.set(
+                            f"patient:studies:{patient_id}",
+                            studies.to_dict('records'),
+                            expire=3600  # Cache for 1 hour
+                        )
+            else:
+                studies = pd.DataFrame(cached_studies)
 
-                    # Try to load and display images
-                    cols = st.columns(4)
-                    for idx, (_, img) in enumerate(images.iterrows()):
-                        col_idx = idx % 4
+            if not studies.empty:
+                # Study selection
+                study_options = studies.apply(
+                    lambda x: f"{x['modality']} - {x['date']} - {x['description']}",
+                    axis=1
+                ).tolist()
 
-                        with cols[col_idx]:
-                            if img['has_blob']:
-                                # Load from database
-                                blob_query = """
-                                MATCH (i:ImageNode {image_id: $image_id})
-                                RETURN i.thumbnail_blob as blob
-                                """
-                                result = connector.run_query(blob_query, {'image_id': img['image_id']})
-                                if result and result[0]['blob']:
-                                    # Decode base64
-                                    img_data = base64.b64decode(result[0]['blob'])
-                                    image = Image.open(BytesIO(img_data))
-                                    st.image(image, caption=img['series'], use_column_width=True)
-                            elif img['file_path']:
-                                # Try to load from file
-                                file_path = Path(img['file_path'])
-                                if file_path.exists():
-                                    st.image(str(file_path), caption=img['series'], use_column_width=True)
-                                else:
-                                    st.info(f"Image file not found: {file_path.name}")
+                selected_idx = st.selectbox(
+                    "Select Study:",
+                    range(len(study_options)),
+                    format_func=lambda x: study_options[x]
+                )
+
+                if selected_idx is not None:
+                    study_id = studies.iloc[selected_idx]['study_id']
+
+                    # Try cache first for images
+                    cached_images = None
+                    if cache_manager:
+                        cache_key = f"study:images:{study_id}"
+                        cached_images = cache_manager.get(cache_key)
+
+                    if cached_images:
+                        st.info("📦 Loading images from cache...")
+                        images = pd.DataFrame(cached_images)
+                    else:
+                        # Get images from Neo4j
+                        images_query = """
+                        MATCH (s:ImagingStudy {study_id: $study_id})-[:HAS_IMAGE]->(i:ImageNode)
+                        RETURN i.image_id as image_id,
+                               i.series_description as series,
+                               i.anatomical_region as region,
+                               i.pet_tracer as tracer,
+                               i.diagnostic_path as diagnostic_path,
+                               i.preview_path as preview_path,
+                               i.thumbnail_path as thumbnail_path,
+                               i.file_path as file_path,
+                               i.snr as snr,
+                               i.entropy as entropy
+                        ORDER BY i.slice_number
+                        LIMIT 20
+                        """
+
+                        images = pd.DataFrame(connector.run_query(images_query, {'study_id': study_id}))
+
+                        # Cache the images data
+                        if cache_manager and not images.empty:
+                            cache_manager.set(
+                                f"study:images:{study_id}",
+                                images.to_dict('records'),
+                                expire=3600
+                            )
+
+                    if not images.empty:
+                        st.write(f"Found {len(images)} images in this study")
+
+                        # Image display settings
+                        col1, col2 = st.columns([1, 3])
+                        with col1:
+                            display_mode = st.radio(
+                                "Display Mode",
+                                ["Thumbnails", "Preview", "Details"]
+                            )
+
+                        if display_mode == "Thumbnails":
+                            # Display in grid
+                            cols = st.columns(4)
+                            for idx, (_, img) in enumerate(images.iterrows()):
+                                col_idx = idx % 4
+
+                                with cols[col_idx]:
+                                    # Try to load image
+                                    image_loaded = False
+
+                                    # Check cache for path
+                                    if cache_manager:
+                                        cached_path = cache_manager.get_image_path(
+                                            img['image_id'],
+                                            'thumbnail'
+                                        )
+                                        if cached_path:
+                                            img['thumbnail_path'] = cached_path
+
+                                    # Try thumbnail path
+                                    if img['thumbnail_path'] and Path(img['thumbnail_path']).exists():
+                                        try:
+                                            image = Image.open(img['thumbnail_path'])
+                                            st.image(image, caption=img['series'], use_column_width=True)
+                                            image_loaded = True
+                                        except Exception as e:
+                                            pass
+
+                                    # Fall back to file_path
+                                    if not image_loaded and img['file_path'] and Path(img['file_path']).exists():
+                                        try:
+                                            image = Image.open(img['file_path'])
+                                            st.image(image, caption=img['series'], use_column_width=True)
+                                            image_loaded = True
+                                        except Exception as e:
+                                            pass
+
+                                    if not image_loaded:
+                                        st.info(f"Image {idx + 1}")
+
+                        elif display_mode == "Preview":
+                            # Display larger previews
+                            for _, img in images.iterrows():
+                                with st.expander(f"Image: {img['series']}", expanded=False):
+                                    col1, col2 = st.columns([2, 1])
+
+                                    with col1:
+                                        # Try preview or diagnostic path
+                                        image_loaded = False
+
+                                        for path_field in ['preview_path', 'diagnostic_path', 'file_path']:
+                                            if img[path_field] and Path(img[path_field]).exists():
+                                                try:
+                                                    image = Image.open(img[path_field])
+                                                    st.image(image, use_column_width=True)
+                                                    image_loaded = True
+                                                    break
+                                                except Exception as e:
+                                                    continue
+
+                                        if not image_loaded:
+                                            st.info("Preview not available")
+
+                                    with col2:
+                                        st.write(f"**ID:** {img['image_id']}")
+                                        if img['region']:
+                                            st.write(f"**Region:** {img['region']}")
+                                        if img['tracer']:
+                                            st.write(f"**Tracer:** {img['tracer']}")
+                                        if img['snr']:
+                                            st.write(f"**SNR:** {img['snr']:.2f}")
+                                        if img['entropy']:
+                                            st.write(f"**Entropy:** {img['entropy']:.2f}")
+
+                        else:  # Details mode
+                            # Display as table with quality metrics
+                            display_df = images[['image_id', 'series', 'region', 'snr', 'entropy']].copy()
+                            st.dataframe(display_df, use_container_width=True)
+
+                            # Download option
+                            csv = display_df.to_csv(index=False)
+                            st.download_button(
+                                label="Download Image Details",
+                                data=csv,
+                                file_name=f"study_{study_id}_images.csv",
+                                mime="text/csv"
+                            )
+                    else:
+                        st.warning("No images found for this study")
+            else:
+                st.info("No imaging studies found for this patient")
+
+        # Volumetric analysis section remains the same
+        st.markdown("---")
+        st.subheader("Brain Volumetric Analysis")
+
+        vol_query = """
+        MATCH (vm:VolumetricMeasure)
+        MATCH (vm)<-[:HAS_VOLUMETRIC_MEASURE]-(v:Visit)<-[:HAS_VISIT]-(p:Patient)
+        MATCH (p)-[:HAS_DIAGNOSIS]->(d:Diagnosis)
+        WHERE vm.region IN ['hippocampus', 'ventricles', 'cortex']
+        RETURN vm.region as region,
+               d.diagnosis_code as diagnosis,
+               avg(vm.volume) as avg_volume,
+               count(vm) as count
+        ORDER BY region, diagnosis
+        """
+
+        vol_data = pd.DataFrame(connector.run_query(vol_query))
+
+        if not vol_data.empty:
+            fig = px.bar(vol_data, x='region', y='avg_volume', color='diagnosis',
+                         title="Average Brain Volumes by Region and Diagnosis",
+                         barmode='group',
+                         labels={'avg_volume': 'Average Volume (mm³)'})
+            st.plotly_chart(fig, use_container_width=True)
+
+
+    # Export for use in main UI
+    __all__ = ['render_imaging_page', 'get_cache_manager', 'get_search_indexer']
 
     # Volumetric analysis
     st.subheader("Brain Volumetric Analysis")

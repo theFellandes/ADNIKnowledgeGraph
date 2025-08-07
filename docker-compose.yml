@@ -2,9 +2,10 @@ version: '3.8'
 name: adni-kg-dev
 
 services:
+  # Neo4j Graph Database
   neo4j:
     image: neo4j:5.24.2-community
-    container_name: adni-kg-dev
+    container_name: adni-kg-neo4j
     restart: always
     ports:
       - "7474:7474"  # HTTP browser
@@ -23,11 +24,161 @@ services:
       - NEO4J_server_memory_heap_initial__size=2g
       - NEO4J_server_memory_heap_max__size=4g
       - NEO4J_server_memory_pagecache_size=2g
-      - NEO4J_dbms_memory_transaction_total_max=4g  # Increase from 2.7g
+      - NEO4J_dbms_memory_transaction_total_max=4g
       - server.config.strict_validation.enabled=false
+    networks:
+      - adni-network
+    healthcheck:
+      test: ["CMD", "neo4j", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: adni-kg-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+      --save 300 10
+      --save 900 1
+    networks:
+      - adni-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Elasticsearch for Full-Text Search
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: adni-kg-elasticsearch
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - cluster.name=adni-cluster
+      - node.name=adni-node
+      - bootstrap.memory_lock=true
+      - indices.query.bool.max_clause_count=10000
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - adni-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Kibana (Optional - Visualization for Elasticsearch)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.1
+    container_name: adni-kg-kibana
+    restart: always
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=kibana
+      - xpack.security.enabled=false
+    ports:
+      - "5601:5601"
+    networks:
+      - adni-network
+    depends_on:
+      - elasticsearch
+    profiles:
+      - debug
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Nginx (Optional - Serve images via HTTP)
+  nginx:
+    image: nginx:alpine
+    container_name: adni-kg-nginx
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - ./outputs/image_store:/usr/share/nginx/html/images:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - adni-network
+    profiles:
+      - web
+    depends_on:
+      - neo4j
+
+networks:
+  adni-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
 
 volumes:
   neo4j_data:
+    driver: local
   neo4j_logs:
+    driver: local
   neo4j_import:
+    driver: local
   neo4j_plugins:
+    driver: local
+  redis_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  minio_data:
+    driver: local
+
+# Usage Instructions:
+#
+# 1. Start core services (Neo4j, Redis, Elasticsearch):
+#    docker-compose up -d
+#
+# 2. Start with debug tools (includes Redis Commander and Kibana):
+#    docker-compose --profile debug up -d
+#
+# 3. Start with storage services (includes MinIO):
+#    docker-compose --profile storage up -d
+#
+# 4. Start with web server (includes Nginx for serving images):
+#    docker-compose --profile web up -d
+#
+# 5. Start everything:
+#    docker-compose --profile debug --profile storage --profile web up -d
+#
+# 6. View logs:
+#    docker-compose logs -f [service_name]
+#
+# 7. Stop all services:
+#    docker-compose down
+#
+# 8. Stop and remove volumes (CAUTION - deletes all data):
+#    docker-compose down -v

@@ -1,0 +1,55 @@
+# ADNI Knowledge Graph Pipeline Configuration
+# Updated for External Image Storage
+
+# Neo4j Database Settings
+neo4j_uri: "bolt://localhost:7687"
+neo4j_user: "neo4j"
+neo4j_password: "your_password"
+
+# Data Paths
+base_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs"
+
+# Output Settings
+output_dir: "D:/Programming/Python/ADNIKnowledgeGraph/outputs"
+
+# Pipeline Control
+clear_database: true  # Set to true to clear database before loading
+store_image_blobs: false  # DEPRECATED - now using external storage
+use_external_storage: true  # NEW - use external file storage instead of blobs
+max_workers: 8  # Number of parallel workers for processing
+
+# Logging
+log_level: "INFO"
+log_file: "D:/Programming/Python/ADNIKnowledgeGraph/outputs/pipeline.log"
+
+# Step Control - set to false to skip specific steps
+run_database_setup: true
+run_table_loading: true
+run_patient_creation: true
+run_family_extraction: true
+run_image_processing: true
+run_findings_extraction: true
+run_batch_insertion: true
+run_relationship_creation: true
+
+# Image Storage Settings (NEW)
+image_storage:
+  # Path where processed images will be stored
+  storage_path: "D:/Programming/Python/ADNIKnowledgeGraph/outputs/image_store"
+
+  # Prefer DICOM files over converted images when available
+  prefer_dicom: true
+
+  # DICOM processing settings
+  dicom:
+    batch_size: 50
+    timeout_per_file: 60
+    extract_full_metadata: true
+
+# Memory Management
+memory_threshold: 0.8  # Trigger garbage collection at 80% memory usage
+
+# Database Connection Pool
+connection_pool_size: 50
+connection_timeout: 60
+retry_time: 30

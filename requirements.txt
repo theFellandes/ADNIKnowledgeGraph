@@ -1,18 +1,55 @@
 # Core dependencies
-streamlit>=1.28.0
-pandas>=2.0.0
-numpy>=1.24.0
-plotly>=5.17.0
-networkx>=3.1
-Pillow>=10.0.0
-neo4j>=5.14.0
+neo4j==5.24.0
+pandas==2.1.3
+numpy==1.24.3
+tqdm==4.66.1
+psutil==5.9.6
+pyyaml==6.0.1
+python-dotenv==1.0.0
 
-# Additional utilities
-psutil>=5.9.0
-pydicom>=2.4.0
-tqdm>=4.66.0
-pyyaml>=6.0.1
+# Medical imaging dependencies (NEW/UPDATED)
+pydicom==2.4.4          # DICOM file handling
+nibabel==5.2.0          # NIfTI format support
+SimpleITK==2.3.1        # Medical image processing
+h5py==3.10.0            # HDF5 format support
+zarr==2.16.1            # Zarr format (alternative to HDF5)
+opencv-python==4.8.1.78 # Image processing
+Pillow==10.1.0          # Image manipulation
+scikit-image==0.22.0    # Advanced image processing
 
-# Optional for enhanced features
-scikit-learn>=1.3.0
-scipy>=1.11.0
+# Data processing
+tables==3.9.1           # HDF5 table support
+openpyxl==3.1.2        # Excel file support
+xlrd==2.0.1            # Legacy Excel support
+
+# Streamlit UI
+streamlit==1.28.2
+plotly==5.18.0
+altair==5.1.2
+matplotlib==3.8.2
+seaborn==0.13.0
+
+# Graph visualization
+networkx==3.2.1
+pyvis==0.3.2
+
+# Utilities
+click==8.1.7           # CLI support
+python-dateutil==2.8.2
+typing-extensions==4.8.0
+
+# Quality assurance
+pytest==7.4.3          # Testing
+pytest-cov==4.1.0      # Coverage
+black==23.11.0         # Code formatting
+flake8==6.1.0          # Linting
+
+# Optional cloud storage support (uncomment if needed)
+# boto3==1.29.7         # AWS S3
+# azure-storage-blob==12.19.0  # Azure Blob Storage
+# google-cloud-storage==2.10.0  # Google Cloud Storage
+
+# Optional advanced medical imaging (uncomment if needed)
+# vtk==9.3.0            # 3D visualization
+# itk==5.3.0            # Advanced medical image analysis
+# monai==1.3.0          # Medical Open Network for AI

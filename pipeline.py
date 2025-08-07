@@ -24,11 +24,14 @@ from steps.step7_batch_insert import execute_batch_insertion
 from steps.step8_create_relationships import execute_relationship_creation
 from utils.quality_aware_logger import QualityAwarePipeline
 
+LOG_FMT = (
+    "%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s"
+)
 
 # Configure logging
 def setup_logging(log_level: str = "INFO", log_file: Optional[str] = None):
     """Set up logging configuration"""
-    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    log_format = "% (asctime)s - %(name)s - %(levelname)s - %(message)s"
 
     handlers = [logging.StreamHandler(sys.stdout)]
 
@@ -38,7 +41,7 @@ def setup_logging(log_level: str = "INFO", log_file: Optional[str] = None):
 
     logging.basicConfig(
         level=getattr(logging, log_level.upper()),
-        format=log_format,
+        format=LOG_FMT,
         handlers=handlers
     )
 
@@ -164,7 +167,7 @@ class ADNIPipeline:
             result = step_function()
             duration = (datetime.now() - start).total_seconds()
 
-            self.results[f'step{step_num}_{step_name.lower().replace(" ", "_")}'] = {
+            self.results[f'step{step_num}_{step_name.lower().replace(" ", "_") }'] = {
                 'status': 'success',
                 'duration_seconds': duration,
                 'result': result
@@ -174,7 +177,7 @@ class ADNIPipeline:
 
         except Exception as e:
             self.logger.error(f"❌ {step_name} failed: {e}")
-            self.results[f'step{step_num}_{step_name.lower().replace(" ", "_")}'] = {
+            self.results[f'step{step_num}_{step_name.lower().replace(" ", "_") }'] = {
                 'status': 'failed',
                 'error': str(e)
             }
@@ -226,19 +229,114 @@ class ADNIPipeline:
 
     def _execute_image_processing(self) -> Dict[str, Any]:
         """Execute image processing step"""
-        result = execute_image_processing(
-            neo4j_uri=self.config['neo4j_uri'],
-            neo4j_user=self.config['neo4j_user'],
-            neo4j_password=self.config['neo4j_password'],
-            base_path=self.config['base_path'],
-            store_blobs=self.config.get('store_image_blobs', False),
-            max_workers=self.config.get('max_workers', 8)
-        )
+        # Check if we should use external storage (new default)
+        use_external_storage = self.config.get('use_external_storage', True)
 
-        # Store processor for batch insertion
-        self.image_processor = result.get('processor')
+        if use_external_storage:
+            self.logger.info("📁 Using external storage for images")
 
-        return result
+            # Try to import and use the external storage version
+            try:
+                # Import from correct path
+                from steps.step5_process_images_external import execute_image_processing_external
+
+                # Get storage configuration
+                storage_config = self.config.get('image_storage', {})
+                storage_path = storage_config.get('storage_path')
+
+                if not storage_path:
+                    # Default storage path
+                    storage_path = str(Path(self.config['base_path']) / '../outputs/image_store')
+
+                # Execute with external storage
+                result = execute_image_processing_external(
+                    neo4j_uri=self.config['neo4j_uri'],
+                    neo4j_user=self.config['neo4j_user'],
+                    neo4j_password=self.config['neo4j_password'],
+                    base_path=self.config['base_path'],
+                    storage_path=storage_path,
+                    storage_config=storage_config,
+                    max_workers=self.config.get('max_workers', 8)
+                )
+
+                # Log storage statistics
+                if 'storage_size_mb' in result:
+                    self.logger.info(f"📊 Image storage size: {result['storage_size_mb']:.2f} MB")
+                if 'quality_metrics' in result:
+                    metrics = result['quality_metrics']
+                    if metrics.get('avg_snr'):
+                        self.logger.info(f"📈 Average image SNR: {metrics['avg_snr']:.2f}")
+
+                # Store processor for batch insertion
+                self.image_processor = result.get('processor')
+                return result
+
+            except ImportError as e:
+                self.logger.warning(f"External storage module not found: {e}")
+                self.logger.warning("Falling back to original image processing (blob storage)")
+
+                # Fall back to original image processing
+                try:
+                    from steps.step5_process_images import execute_image_processing
+
+                    result = execute_image_processing(
+                        neo4j_uri=self.config['neo4j_uri'],
+                        neo4j_user=self.config['neo4j_user'],
+                        neo4j_password=self.config['neo4j_password'],
+                        base_path=self.config['base_path'],
+                        store_blobs=self.config.get('store_image_blobs', False),
+                        max_workers=self.config.get('max_workers', 8)
+                    )
+
+                    # Store processor for batch insertion
+                    self.image_processor = result.get('processor')
+                    return result
+
+                except ImportError as e2:
+                    self.logger.error(f"Could not import any image processing module: {e2}")
+                    # Return minimal result to allow pipeline to continue
+                    return {
+                        'mri_processed': 0,
+                        'pet_processed': 0,
+                        'studies_created': 0,
+                        'images_created': 0,
+                        'images_stored': 0,
+                        'storage_size_mb': 0,
+                        'errors': [str(e), str(e2)]
+                    }
+        else:
+            # Use original blob storage (not recommended)
+            self.logger.warning("⚠️  Using blob storage (not recommended for production)")
+            self.logger.warning("Consider setting 'use_external_storage: true' in config.yaml")
+
+            try:
+                from steps.step5_process_images import execute_image_processing
+
+                result = execute_image_processing(
+                    neo4j_uri=self.config['neo4j_uri'],
+                    neo4j_user=self.config['neo4j_user'],
+                    neo4j_password=self.config['neo4j_password'],
+                    base_path=self.config['base_path'],
+                    store_blobs=self.config.get('store_image_blobs', True),
+                    max_workers=self.config.get('max_workers', 8)
+                )
+
+                # Store processor for batch insertion
+                self.image_processor = result.get('processor')
+                return result
+
+            except ImportError as e:
+                self.logger.error(f"Could not import image processing module: {e}")
+                # Return minimal result to allow pipeline to continue
+                return {
+                    'mri_processed': 0,
+                    'pet_processed': 0,
+                    'studies_created': 0,
+                    'images_created': 0,
+                    'images_stored': 0,
+                    'storage_size_mb': 0,
+                    'errors': [str(e)]
+                }
 
     def _execute_findings_extraction(self) -> Dict[str, Any]:
         """Execute findings extraction step"""
@@ -302,6 +400,8 @@ class ADNIPipeline:
             'visits': 0,
             'family_members': 0,
             'images': 0,
+            'images_stored': 0,
+            'storage_size_mb': 0,
             'cognitive_assessments': 0,
             'biomarkers': 0,
             'diagnoses': 0,
@@ -321,6 +421,8 @@ class ADNIPipeline:
         if 'step5_process_images' in self.results:
             step5 = self.results['step5_process_images']['result']
             stats['images'] = step5.get('images_created', 0)
+            stats['images_stored'] = step5.get('images_stored', 0)
+            stats['storage_size_mb'] = step5.get('storage_size_mb', 0)
 
         if 'step6_extract_findings' in self.results:
             step6 = self.results['step6_extract_findings']['result']
@@ -333,7 +435,7 @@ class ADNIPipeline:
             stats['relationships'] = step8.get('relationships_created', 0)
 
         # Calculate totals
-        total_nodes = sum([stats[k] for k in stats.keys() if k != 'relationships'])
+        total_nodes = sum([stats[k] for k in stats.keys() if k not in ['relationships', 'storage_size_mb']])
         total_relationships = stats['relationships']
 
         # Log report
@@ -346,6 +448,12 @@ class ADNIPipeline:
         self.logger.info(f"  Visits:                {stats['visits']:>10,}")
         self.logger.info(f"  Family Members:        {stats['family_members']:>10,}")
         self.logger.info(f"  Images:                {stats['images']:>10,}")
+
+        # Only show storage stats if using external storage
+        if stats['images_stored'] > 0:
+            self.logger.info(f"  Images Stored:         {stats['images_stored']:>10,}")
+            self.logger.info(f"  Storage Size:          {stats['storage_size_mb']:>10.2f} MB")
+
         self.logger.info(f"  Cognitive Assessments: {stats['cognitive_assessments']:>10,}")
         self.logger.info(f"  Biomarkers:            {stats['biomarkers']:>10,}")
         self.logger.info(f"  Diagnoses:             {stats['diagnoses']:>10,}")
@@ -398,6 +506,7 @@ def load_config(config_file: Optional[str] = None) -> Dict[str, Any]:
         'output_dir': 'outputs',
         'clear_database': False,
         'store_image_blobs': False,
+        'use_external_storage': True,  # NEW: Default to external storage
         'max_workers': 8,
         'log_level': 'INFO',
         'run_database_setup': True,
@@ -439,7 +548,8 @@ def main():
 
     # Pipeline control arguments
     parser.add_argument('--clear-database', action='store_true', help='Clear database before loading')
-    parser.add_argument('--store-blobs', action='store_true', help='Store image blobs in database')
+    parser.add_argument('--store-blobs', action='store_true', help='Store image blobs in database (not recommended)')
+    parser.add_argument('--use-external-storage', action='store_true', help='Use external storage for images (recommended)')
     parser.add_argument('--max-workers', type=int, help='Maximum parallel workers')
     parser.add_argument('--log-level', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
                         help='Logging level')
@@ -475,6 +585,10 @@ def main():
         config['clear_database'] = True
     if args.store_blobs:
         config['store_image_blobs'] = True
+        config['use_external_storage'] = False  # Disable external storage if using blobs
+    if args.use_external_storage:
+        config['use_external_storage'] = True
+        config['store_image_blobs'] = False  # Disable blobs if using external storage
     if args.max_workers:
         config['max_workers'] = args.max_workers
     if args.log_level:
