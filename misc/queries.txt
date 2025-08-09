@@ -1,0 +1,173 @@
+// Create diagnoses from CDR scores (CDR is Clinical Dementia Rating)
+MATCH (ca:CognitiveAssessment)
+WHERE ca.test_name = 'CDR'
+WITH ca,
+     CASE
+       WHEN ca.total_score = 0 THEN 'CN'
+       WHEN ca.total_score <= 0.5 THEN 'MCI'
+       WHEN ca.total_score >= 1 THEN 'AD'
+       ELSE 'Unknown'
+     END as diagnosis_code
+WHERE diagnosis_code <> 'Unknown'
+MERGE (d:Diagnosis {
+  diagnosis_id: ca.patient_id + '_' + ca.visit_id + '_CDR_derived',
+  patient_id: ca.patient_id,
+  visit_id: ca.visit_id,
+  diagnosis_code: diagnosis_code,
+  diagnosis_text: CASE diagnosis_code
+    WHEN 'CN' THEN 'Cognitively Normal'
+    WHEN 'MCI' THEN 'Mild Cognitive Impairment'
+    WHEN 'AD' THEN 'Alzheimers Disease'
+    ELSE 'Unknown'
+  END,
+  confidence: 0.8,
+  source: 'Derived from CDR'
+})
+WITH ca, d
+MATCH (v:Visit {visit_id: ca.visit_id})
+MERGE (v)-[:RESULTED_IN]->(d)
+RETURN count(d) as diagnoses_created;
+
+
+// Create diagnoses from MMSE scores
+MATCH (ca:CognitiveAssessment)
+WHERE ca.test_name = 'MMSE'
+WITH ca,
+     CASE
+       WHEN ca.total_score >= 27 THEN 'CN'
+       WHEN ca.total_score >= 21 AND ca.total_score < 27 THEN 'MCI'
+       WHEN ca.total_score < 21 THEN 'AD'
+       ELSE 'Unknown'
+     END as diagnosis_code
+WHERE diagnosis_code <> 'Unknown'
+MERGE (d:Diagnosis {
+  diagnosis_id: ca.patient_id + '_' + ca.visit_id + '_MMSE_derived',
+  patient_id: ca.patient_id,
+  visit_id: ca.visit_id,
+  diagnosis_code: diagnosis_code,
+  diagnosis_text: CASE diagnosis_code
+    WHEN 'CN' THEN 'Cognitively Normal'
+    WHEN 'MCI' THEN 'Mild Cognitive Impairment'
+    WHEN 'AD' THEN 'Alzheimers Disease'
+    ELSE 'Unknown'
+  END,
+  confidence: 0.75,
+  source: 'Derived from MMSE'
+})
+WITH ca, d
+MATCH (v:Visit {visit_id: ca.visit_id})
+MERGE (v)-[:RESULTED_IN]->(d)
+RETURN count(d) as diagnoses_created;
+
+// Ensure all visits are connected to patients
+MATCH (v:Visit)
+WHERE NOT (v)<-[:HAS_VISIT]-(:Patient)
+WITH v, split(v.visit_id, '_')[0] as patient_id
+MATCH (p:Patient {ptid: patient_id})
+MERGE (p)-[:HAS_VISIT]->(v)
+RETURN count(v) as visits_connected;
+
+// Connect diagnoses to patients
+MATCH (d:Diagnosis)
+WHERE NOT (d)<-[:HAS_DIAGNOSIS]-(:Patient)
+MATCH (p:Patient {ptid: d.patient_id})
+MERGE (p)-[:HAS_DIAGNOSIS]->(d)
+RETURN count(d) as diagnoses_connected;
+
+// Create progression relationships between diagnoses
+MATCH (p:Patient)-[:HAS_VISIT]->(v1:Visit)-[:RESULTED_IN]->(d1:Diagnosis)
+MATCH (p)-[:HAS_VISIT]->(v2:Visit)-[:RESULTED_IN]->(d2:Diagnosis)
+WHERE v1.months_from_baseline < v2.months_from_baseline
+  AND d1.diagnosis_code <> d2.diagnosis_code
+  AND id(d1) < id(d2)  // Avoid duplicates
+WITH p, d1, d2, v1, v2
+ORDER BY p.ptid, v1.months_from_baseline, v2.months_from_baseline
+WITH p, d1, d2, min(v2.months_from_baseline - v1.months_from_baseline) as duration
+MERGE (d1)-[:PROGRESSED_TO {
+  patient_id: p.ptid,
+  duration_months: duration
+}]->(d2)
+RETURN count(*) as progressions_created;
+
+// 1. See what cognitive trajectories exist
+MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)-[:HAS_COGNITIVE_ASSESSMENT]->(ca:CognitiveAssessment)
+WHERE ca.test_name = 'MMSE'
+WITH p.ptid as patient,
+     v.months_from_baseline as months,
+     ca.total_score as score
+ORDER BY patient, months
+WITH patient, collect({months: months, score: score}) as trajectory
+WHERE size(trajectory) >= 3
+RETURN patient, trajectory
+LIMIT 10;
+
+// 2. Find patients with declining MMSE scores
+MATCH (p:Patient)-[:HAS_VISIT]->(v1:Visit)-[:HAS_COGNITIVE_ASSESSMENT]->(ca1:CognitiveAssessment {test_name: 'MMSE'})
+MATCH (p)-[:HAS_VISIT]->(v2:Visit)-[:HAS_COGNITIVE_ASSESSMENT]->(ca2:CognitiveAssessment {test_name: 'MMSE'})
+WHERE v1.months_from_baseline = 0
+  AND v2.months_from_baseline > 0
+  AND ca2.total_score < ca1.total_score - 3  // Significant decline
+RETURN p.ptid as patient,
+       ca1.total_score as baseline_mmse,
+       ca2.total_score as followup_mmse,
+       v2.months_from_baseline as months_later,
+       ca1.total_score - ca2.total_score as decline
+ORDER BY decline DESC
+LIMIT 20;
+
+// 3. Patient summary view
+MATCH (p:Patient)
+OPTIONAL MATCH (p)-[:HAS_VISIT]->(v:Visit)
+OPTIONAL MATCH (v)-[:HAS_COGNITIVE_ASSESSMENT]->(ca:CognitiveAssessment)
+OPTIONAL MATCH (v)-[:RESULTED_IN]->(d:Diagnosis)
+WITH p,
+     count(distinct v) as visit_count,
+     count(distinct ca) as assessment_count,
+     count(distinct d) as diagnosis_count,
+     collect(distinct ca.test_name) as tests_taken,
+     collect(distinct d.diagnosis_code) as diagnoses
+RETURN p.ptid as patient,
+       p.age_at_baseline as age,
+       p.gender as gender,
+       p.apoe_genotype as apoe,
+       visit_count,
+       assessment_count,
+       diagnosis_count,
+       tests_taken,
+       diagnoses
+LIMIT 20;
+
+// 4. Find cognitive assessment patterns
+MATCH (ca:CognitiveAssessment)
+WITH ca.test_name as test,
+     count(*) as frequency,
+     avg(ca.total_score) as avg_score,
+     min(ca.total_score) as min_score,
+     max(ca.total_score) as max_score
+RETURN test, frequency,
+       round(avg_score, 2) as avg_score,
+       min_score, max_score
+ORDER BY frequency DESC;
+
+// Create test type nodes for better visualization
+MATCH (ca:CognitiveAssessment)
+WITH DISTINCT ca.test_name as test_name
+MERGE (t:TestType {name: test_name})
+WITH t
+MATCH (ca:CognitiveAssessment {test_name: t.name})
+MERGE (ca)-[:IS_TYPE]->(t)
+RETURN count(t) as test_types_created;
+
+// Create cohort nodes based on baseline assessments
+MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit {months_from_baseline: 0})
+MATCH (v)-[:HAS_COGNITIVE_ASSESSMENT]->(ca:CognitiveAssessment {test_name: 'MMSE'})
+WITH p, ca.total_score as baseline_mmse
+WITH p,
+     CASE
+       WHEN baseline_mmse >= 27 THEN 'Normal_Baseline'
+       WHEN baseline_mmse >= 21 THEN 'MCI_Baseline'
+       ELSE 'AD_Baseline'
+     END as cohort_name
+MERGE (c:Cohort {name: cohort_name})
+MERGE (p)-[:BELONGS_TO_COHORT]->(c)
+RETURN cohort_name, count(p) as patients_in_cohort;

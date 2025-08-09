@@ -1,6 +1,6 @@
 """
-Elasticsearch Search Indexer for ADNI Knowledge Graph
-Fixed version with proper connection handling for Elasticsearch 8.x
+Elasticsearch Indexer for Medical Images - Focused on Image Metadata Only
+Neo4j remains the primary database, ES is used only for fast image retrieval
 """
 
 from elasticsearch import Elasticsearch, helpers
@@ -14,22 +14,13 @@ logger = logging.getLogger(__name__)
 
 class SearchIndexer:
     """
-    Manages Elasticsearch indexing and searching for medical images
+    Elasticsearch indexer focused on medical image metadata
+    Stores minimal data for fast image search and retrieval
     """
 
-    def __init__(self, host: str = 'localhost', port: int = 9200,
-                 username: Optional[str] = None, password: Optional[str] = None):
-        """
-        Initialize Elasticsearch connection
-
-        Args:
-            host: Elasticsearch host
-            port: Elasticsearch port
-            username: Optional username for authentication
-            password: Optional password for authentication
-        """
+    def __init__(self, host: str = 'localhost', port: int = 9200):
+        """Initialize Elasticsearch connection"""
         try:
-            # Configure connection for Elasticsearch 8.x
             self.es = Elasticsearch(
                 hosts=[f"http://{host}:{port}"],
                 verify_certs=False,
@@ -43,233 +34,310 @@ class SearchIndexer:
             if not self.es.ping():
                 raise ConnectionError("Cannot connect to Elasticsearch")
 
-            # Get cluster info
             info = self.es.info()
             logger.info(f"✅ Connected to Elasticsearch {info['version']['number']}")
 
-            # Create indices if they don't exist
-            self._create_indices()
+            # Create image index if not exists
+            self._create_image_index()
 
         except Exception as e:
             logger.error(f"Failed to connect to Elasticsearch: {e}")
-            # Don't raise, just set es to None so the app can continue without search
             self.es = None
 
-    def _create_indices(self) -> None:
-        """Create required indices with appropriate mappings"""
-
+    def _create_image_index(self) -> None:
+        """Create optimized index for medical images"""
         if not self.es:
             return
 
-        # Medical images index
-        medical_images_mapping = {
-            "settings": {
-                "number_of_shards": 2,
-                "number_of_replicas": 1,
-                "analysis": {
-                    "analyzer": {
-                        "medical_analyzer": {
-                            "type": "custom",
-                            "tokenizer": "standard",
-                            "filter": ["lowercase", "stop", "snowball"]
+        index_name = "medical_images"
+
+        try:
+            if not self.es.indices.exists(index=index_name):
+                settings = {
+                    "number_of_shards": 2,
+                    "number_of_replicas": 1,
+                    "analysis": {
+                        "analyzer": {
+                            "path_analyzer": {
+                                "type": "custom",
+                                "tokenizer": "path_hierarchy"
+                            }
                         }
                     }
                 }
-            },
-            "mappings": {
-                "properties": {
-                    "image_id": {"type": "keyword"},
-                    "patient_id": {"type": "keyword"},
-                    "study_id": {"type": "keyword"},
-                    "visit_id": {"type": "keyword"},
-                    "modality": {"type": "keyword"},
-                    "series_description": {
-                        "type": "text",
-                        "analyzer": "standard",
-                        "fields": {
-                            "keyword": {"type": "keyword"}
-                        }
-                    },
-                    "anatomical_region": {"type": "keyword"},
-                    "pet_tracer": {"type": "keyword"},
-                    "acquisition_date": {"type": "date"},
-                    "storage_path": {"type": "keyword"},
-                    "preview_path": {"type": "keyword"},
-                    "thumbnail_path": {"type": "keyword"},
-                    "quality_metrics": {
-                        "properties": {
-                            "snr": {"type": "float"},
-                            "entropy": {"type": "float"},
-                            "contrast": {"type": "float"},
-                            "sharpness": {"type": "float"}
-                        }
-                    },
-                    "dimensions": {"type": "integer"},
-                    "voxel_spacing": {"type": "float"},
-                    "file_size_mb": {"type": "float"},
-                    "checksum": {"type": "keyword"},
-                    "tags": {"type": "keyword"},
-                    "notes": {"type": "text"},
-                    "timestamp": {"type": "date"},
-                    "processing_status": {"type": "keyword"},
-                    "quality_verified": {"type": "boolean"}
+
+                mappings = {
+                    "properties": {
+                        # Unique identifier
+                        "image_hash": {"type": "keyword"},
+
+                        # Patient and study identifiers
+                        "patient_id": {"type": "keyword"},
+                        "study_id": {"type": "keyword"},
+                        "series_id": {"type": "keyword"},
+
+                        # Image properties
+                        "modality": {"type": "keyword"},
+                        "study_date": {"type": "date", "format": "yyyyMMdd||yyyy-MM-dd||epoch_millis"},
+                        "series_description": {"type": "text", "fields": {"keyword": {"type": "keyword"}}},
+
+                        # File paths
+                        "dcm_path": {"type": "keyword", "fields": {"path": {"type": "text", "analyzer": "path_analyzer"}}},
+                        "png_path": {"type": "keyword", "fields": {"path": {"type": "text", "analyzer": "path_analyzer"}}},
+                        "thumbnail_path": {"type": "keyword"},
+
+                        # Image dimensions
+                        "original_resolution": {
+                            "properties": {
+                                "width": {"type": "integer"},
+                                "height": {"type": "integer"}
+                            }
+                        },
+                        "png_resolution": {
+                            "properties": {
+                                "width": {"type": "integer"},
+                                "height": {"type": "integer"}
+                            }
+                        },
+                        "thumbnail_resolution": {
+                            "properties": {
+                                "width": {"type": "integer"},
+                                "height": {"type": "integer"}
+                            }
+                        },
+
+                        # Processing metadata
+                        "conversion_date": {"type": "date"},
+                        "indexed_date": {"type": "date"},
+                        "naming_convention": {"type": "keyword"},
+
+                        # Search optimization fields
+                        "search_text": {"type": "text"},  # Concatenated searchable text
+                        "tags": {"type": "keyword"}  # For filtering
+                    }
                 }
-            }
-        }
 
-        # DICOM metadata index
-        dicom_metadata_mapping = {
-            "settings": {
-                "number_of_shards": 1,
-                "number_of_replicas": 1
-            },
-            "mappings": {
-                "properties": {
-                    "image_id": {"type": "keyword"},
-                    "patient_id": {"type": "keyword"},
-                    "study_instance_uid": {"type": "keyword"},
-                    "series_instance_uid": {"type": "keyword"},
-                    "sop_instance_uid": {"type": "keyword"},
-                    "modality": {"type": "keyword"},
-                    "manufacturer": {"type": "keyword"},
-                    "manufacturer_model": {"type": "keyword"},
-                    "magnetic_field_strength": {"type": "float"},
-                    "slice_thickness": {"type": "float"},
-                    "pixel_spacing": {"type": "float"},
-                    "window_center": {"type": "float"},
-                    "window_width": {"type": "float"},
-                    "study_date": {"type": "date", "format": "yyyyMMdd||strict_date_optional_time"},
-                    "series_date": {"type": "date", "format": "yyyyMMdd||strict_date_optional_time"},
-                    "protocol_name": {"type": "text"},
-                    "sequence_name": {"type": "text"},
-                    "raw_metadata": {"type": "object", "enabled": False}
-                }
-            }
-        }
+                self.es.indices.create(
+                    index=index_name,
+                    settings=settings,
+                    mappings=mappings
+                )
+                logger.info(f"Created Elasticsearch index: {index_name}")
 
-        # Processing logs index
-        processing_logs_mapping = {
-            "settings": {
-                "number_of_shards": 1,
-                "number_of_replicas": 0
-            },
-            "mappings": {
-                "properties": {
-                    "task_id": {"type": "keyword"},
-                    "pipeline_step": {"type": "keyword"},
-                    "status": {"type": "keyword"},
-                    "message": {"type": "text"},
-                    "error": {"type": "text"},
-                    "duration_seconds": {"type": "float"},
-                    "timestamp": {"type": "date"},
-                    "metadata": {"type": "object", "enabled": False}
-                }
-            }
-        }
+        except Exception as e:
+            logger.warning(f"Could not create index {index_name}: {e}")
 
-        # Create indices if they don't exist
-        indices = {
-            "medical_images": medical_images_mapping,
-            "dicom_metadata": dicom_metadata_mapping,
-            "processing_logs": processing_logs_mapping
-        }
+    def get_all_image_hashes(self) -> List[str]:
+        """Get all existing image hashes for deduplication"""
+        if not self.es:
+            return []
 
-        for index_name, mapping in indices.items():
-            try:
-                if not self.es.indices.exists(index=index_name):
-                    self.es.indices.create(index=index_name, body=mapping)
-                    logger.info(f"Created index: {index_name}")
-            except Exception as e:
-                logger.warning(f"Could not create index {index_name}: {e}")
+        try:
+            # Use scroll API for large result sets
+            hashes = []
 
-    def index_document(self, index: str, document: Dict[str, Any],
-                       doc_id: Optional[str] = None) -> bool:
-        """
-        Index a single document
+            # Initial search
+            response = self.es.search(
+                index="medical_images",
+                body={
+                    "query": {"match_all": {}},
+                    "_source": ["image_hash"],
+                    "size": 10000
+                },
+                scroll='2m'
+            )
 
-        Args:
-            index: Index name
-            document: Document to index
-            doc_id: Optional document ID
+            scroll_id = response['_scroll_id']
+            hits = response['hits']['hits']
 
-        Returns:
-            Success status
-        """
+            # Extract hashes
+            for hit in hits:
+                if 'image_hash' in hit['_source']:
+                    hashes.append(hit['_source']['image_hash'])
+
+            # Continue scrolling if more results
+            while len(hits) > 0:
+                response = self.es.scroll(scroll_id=scroll_id, scroll='2m')
+                hits = response['hits']['hits']
+                for hit in hits:
+                    if 'image_hash' in hit['_source']:
+                        hashes.append(hit['_source']['image_hash'])
+
+            # Clear scroll
+            self.es.clear_scroll(scroll_id=scroll_id)
+
+            return hashes
+
+        except Exception as e:
+            logger.error(f"Error getting image hashes: {e}")
+            return []
+
+    def check_image_exists(self, image_hash: str) -> bool:
+        """Check if an image already exists in the index"""
         if not self.es:
             return False
 
         try:
-            result = self.es.index(
-                index=index,
-                id=doc_id,
-                body=document,
-                refresh=True  # Make immediately searchable
+            response = self.es.exists(
+                index="medical_images",
+                id=image_hash
             )
-            return result['result'] in ['created', 'updated']
+            return response
         except Exception as e:
-            logger.error(f"Error indexing document: {e}")
+            logger.error(f"Error checking image existence: {e}")
             return False
 
-    def bulk_index(self, index: str, documents: List[Dict[str, Any]],
-                   id_field: Optional[str] = None) -> Tuple[int, List[str]]:
-        """
-        Bulk index multiple documents
+    def index_image(self, image_data: Dict[str, Any]) -> bool:
+        """Index a single image with deduplication check"""
+        if not self.es:
+            return False
 
-        Args:
-            index: Index name
-            documents: List of documents to index
-            id_field: Field to use as document ID
+        try:
+            image_hash = image_data.get('image_hash')
+            if not image_hash:
+                logger.error("Image data missing image_hash")
+                return False
 
-        Returns:
-            Tuple of (success_count, list of failed IDs)
-        """
+            # Check if already exists
+            if self.check_image_exists(image_hash):
+                logger.debug(f"Image {image_hash} already exists, skipping")
+                return True
+
+            # Add search optimization fields
+            search_text = f"{image_data.get('patient_id', '')} {image_data.get('modality', '')} {image_data.get('series_description', '')}"
+            image_data['search_text'] = search_text
+
+            # Index the document
+            response = self.es.index(
+                index="medical_images",
+                id=image_hash,
+                document=image_data,
+                refresh=False  # Don't refresh immediately for better performance
+            )
+
+            return response['result'] in ['created', 'updated']
+
+        except Exception as e:
+            logger.error(f"Error indexing image {image_data.get('image_hash', 'unknown')}: {e}")
+            return False
+
+    def _validate_date_format(self, date_str: str) -> Optional[str]:
+        """Validate and format date string for Elasticsearch"""
+        if not date_str:
+            return None
+
+        # Try to parse common DICOM date formats
+        date_formats = [
+            '%Y%m%d',  # DICOM format: YYYYMMDD
+            '%Y-%m-%d',  # ISO format
+            '%Y/%m/%d'
+        ]
+
+        for fmt in date_formats:
+            try:
+                parsed_date = datetime.strptime(str(date_str)[:10], fmt)
+                # Return in ISO format
+                return parsed_date.strftime('%Y-%m-%d')
+            except:
+                continue
+
+        # If no format works, return None
+        logger.warning(f"Could not parse date: {date_str}")
+        return None
+
+    def bulk_index_images(self, images: List[Dict[str, Any]]) -> Tuple[int, List[str]]:
+        """Bulk index images with deduplication"""
         if not self.es:
             return 0, []
 
+        # Get existing hashes for deduplication
+        existing_hashes = set(self.get_all_image_hashes())
+
         actions = []
-        for doc in documents:
-            action = {
-                "_index": index,
-                "_source": doc
-            }
-            if id_field and id_field in doc:
-                action["_id"] = doc[id_field]
-            actions.append(action)
+        skipped = []
+
+        for img_data in images:
+            image_hash = img_data.get('image_hash')
+            if not image_hash:
+                continue
+
+            # Skip if already exists
+            if image_hash in existing_hashes:
+                skipped.append(image_hash)
+                continue
+
+            # Add search optimization fields
+            search_text = f"{img_data.get('patient_id', '')} {img_data.get('modality', '')} {img_data.get('series_description', '')}"
+            img_data['search_text'] = search_text
+
+            # Validate and format date fields
+            if 'study_date' in img_data:
+                validated_date = self._validate_date_format(img_data['study_date'])
+                if validated_date:
+                    img_data['study_date'] = validated_date
+                else:
+                    # Remove invalid date
+                    del img_data['study_date']
+
+            if 'conversion_date' in img_data and not isinstance(img_data['conversion_date'], str):
+                img_data['conversion_date'] = datetime.now().isoformat()
+
+            # Ensure indexed_date is present
+            if 'indexed_date' not in img_data:
+                img_data['indexed_date'] = datetime.now().isoformat()
+
+            # Prepare bulk action
+            actions.append({
+                "_index": "medical_images",
+                "_id": image_hash,
+                "_source": img_data
+            })
+
+        if not actions:
+            logger.info(f"All {len(images)} images already exist, skipping bulk index")
+            return 0, []
 
         try:
-            success, failed = helpers.bulk(
+            # Perform bulk indexing
+            success_count = 0
+            failed_items = []
+
+            for success, info in helpers.streaming_bulk(
                 self.es,
                 actions,
                 raise_on_error=False,
-                raise_on_exception=False
-            )
+                raise_on_exception=False,
+                refresh=True
+            ):
+                if not success:
+                    failed_items.append(info)
+                else:
+                    success_count += 1
 
             failed_ids = []
-            for item in failed:
-                if 'index' in item and '_id' in item['index']:
-                    failed_ids.append(item['index']['_id'])
+            if failed_items:
+                for item in failed_items:
+                    # Extract error details
+                    if 'index' in item:
+                        error_detail = item['index'].get('error', {})
+                        doc_id = item['index'].get('_id', 'unknown')
+                        error_type = error_detail.get('type', 'unknown')
+                        error_reason = error_detail.get('reason', 'unknown')
 
-            logger.info(f"Bulk indexed {success} documents, {len(failed_ids)} failed")
-            return success, failed_ids
+                        logger.error(f"Failed to index {doc_id}: {error_type} - {error_reason}")
+                        failed_ids.append(doc_id)
+
+            logger.info(f"Bulk indexed {success_count} images, skipped {len(skipped)}, failed {len(failed_ids)}")
+
+            return success_count, failed_ids
 
         except Exception as e:
             logger.error(f"Bulk indexing error: {e}")
-            return 0, []
+            return 0, [img.get('image_hash', '') for img in images]
 
-    def search_images(self, query: str, filters: Optional[Dict[str, Any]] = None,
-                      size: int = 10, from_: int = 0) -> Dict[str, Any]:
-        """
-        Search medical images
-
-        Args:
-            query: Search query string
-            filters: Optional filters (e.g., {'modality': 'MRI'})
-            size: Number of results to return
-            from_: Offset for pagination
-
-        Returns:
-            Search results
-        """
+    def search_images(self, query: str = "", filters: Optional[Dict[str, Any]] = None,
+                     size: int = 100, from_: int = 0) -> Dict[str, Any]:
+        """Search for images with filters"""
         if not self.es:
             return {"total": 0, "hits": []}
 
@@ -281,12 +349,7 @@ class SearchIndexer:
             must_clauses.append({
                 "multi_match": {
                     "query": query,
-                    "fields": [
-                        "series_description^2",
-                        "anatomical_region",
-                        "notes",
-                        "tags"
-                    ],
+                    "fields": ["patient_id^3", "series_description^2", "search_text"],
                     "type": "best_fields",
                     "fuzziness": "AUTO"
                 }
@@ -298,38 +361,33 @@ class SearchIndexer:
             for field, value in filters.items():
                 if isinstance(value, list):
                     filter_clauses.append({"terms": {field: value}})
+                elif isinstance(value, dict) and 'range' in value:
+                    filter_clauses.append({"range": {field: value['range']}})
                 else:
                     filter_clauses.append({"term": {field: value}})
 
-        # Construct final query
+        # Construct query body
         if must_clauses or filter_clauses:
             body = {
                 "query": {
                     "bool": {
-                        "must": must_clauses,
+                        "must": must_clauses if must_clauses else {"match_all": {}},
                         "filter": filter_clauses
                     }
                 },
                 "size": size,
                 "from": from_,
                 "sort": [
-                    {"_score": {"order": "desc"}},
-                    {"timestamp": {"order": "desc"}}
-                ],
-                "highlight": {
-                    "fields": {
-                        "series_description": {},
-                        "notes": {}
-                    }
-                }
+                    {"study_date": {"order": "desc", "missing": "_last"}},
+                    {"_score": {"order": "desc"}}
+                ]
             }
         else:
-            # Match all if no query or filters
             body = {
                 "query": {"match_all": {}},
                 "size": size,
                 "from": from_,
-                "sort": [{"timestamp": {"order": "desc"}}]
+                "sort": [{"indexed_date": {"order": "desc"}}]
             }
 
         try:
@@ -341,8 +399,7 @@ class SearchIndexer:
                     {
                         "id": hit["_id"],
                         "score": hit["_score"],
-                        "source": hit["_source"],
-                        "highlight": hit.get("highlight", {})
+                        "source": hit["_source"]
                     }
                     for hit in result["hits"]["hits"]
                 ]
@@ -352,30 +409,91 @@ class SearchIndexer:
             logger.error(f"Search error: {e}")
             return {"total": 0, "hits": []}
 
-    def get_image_path(self, image_id: str, resolution: str = 'diagnostic') -> Optional[str]:
-        """
-        Get image path from Elasticsearch index
+    def get_patient_images(self, patient_id: str, modality: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get all images for a specific patient"""
+        filters = {"patient_id": patient_id}
+        if modality:
+            filters["modality"] = modality
 
-        Args:
-            image_id: Image identifier
-            resolution: Resolution type (diagnostic, preview, thumbnail)
+        result = self.search_images("", filters=filters, size=10000)
+        return [hit["source"] for hit in result["hits"]]
 
-        Returns:
-            File path or None
-        """
+    def get_image_by_hash(self, image_hash: str) -> Optional[Dict[str, Any]]:
+        """Get a specific image by its hash"""
         if not self.es:
             return None
 
         try:
-            result = self.es.get(index="medical_images", id=image_id)
-            source = result["_source"]
-
-            path_field = f"{resolution}_path"
-            return source.get(path_field)
-
+            response = self.es.get(
+                index="medical_images",
+                id=image_hash
+            )
+            return response["_source"]
         except Exception as e:
-            logger.error(f"Error retrieving image path for {image_id}: {e}")
+            logger.error(f"Error getting image {image_hash}: {e}")
             return None
+
+    def delete_image(self, image_hash: str) -> bool:
+        """Delete an image from the index"""
+        if not self.es:
+            return False
+
+        try:
+            response = self.es.delete(
+                index="medical_images",
+                id=image_hash,
+                refresh=True
+            )
+            return response['result'] == 'deleted'
+        except Exception as e:
+            logger.error(f"Error deleting image {image_hash}: {e}")
+            return False
+
+    def update_image_metadata(self, image_hash: str, updates: Dict[str, Any]) -> bool:
+        """Update image metadata"""
+        if not self.es:
+            return False
+
+        try:
+            response = self.es.update(
+                index="medical_images",
+                id=image_hash,
+                body={"doc": updates},
+                refresh=True
+            )
+            return response['result'] in ['updated', 'noop']
+        except Exception as e:
+            logger.error(f"Error updating image {image_hash}: {e}")
+            return False
+
+    def get_index_stats(self) -> Dict[str, Any]:
+        """Get statistics about the image index"""
+        if not self.es:
+            return {}
+
+        try:
+            stats = self.es.indices.stats(index="medical_images")
+
+            return {
+                "total_images": stats["indices"]["medical_images"]["total"]["docs"]["count"],
+                "index_size_bytes": stats["indices"]["medical_images"]["total"]["store"]["size_in_bytes"],
+                "index_size_mb": stats["indices"]["medical_images"]["total"]["store"]["size_in_bytes"] / (1024 * 1024)
+            }
+        except Exception as e:
+            logger.error(f"Error getting index stats: {e}")
+            return {}
+
+    def refresh_index(self) -> bool:
+        """Refresh the index to make recent changes searchable"""
+        if not self.es:
+            return False
+
+        try:
+            self.es.indices.refresh(index="medical_images")
+            return True
+        except Exception as e:
+            logger.error(f"Error refreshing index: {e}")
+            return False
 
     def close(self) -> None:
         """Close Elasticsearch connection"""
@@ -385,11 +503,3 @@ class SearchIndexer:
                 logger.info("Elasticsearch connection closed")
             except Exception as e:
                 logger.error(f"Error closing Elasticsearch: {e}")
-
-    def __enter__(self):
-        """Context manager entry"""
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit"""
-        self.close()

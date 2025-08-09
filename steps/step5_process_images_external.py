@@ -1,127 +1,559 @@
 """
-Step 5: Process Medical Images with External Storage, Redis, and Elasticsearch
-Fixed version that properly integrates caching and search capabilities
+Step 5: Process Medical Images with Proper Path Handling
+Ensures absolute paths are stored in both Neo4j and Elasticsearch
 """
 
 import logging
-import os
-from pathlib import Path
-from typing import Dict, List, Any, Optional
-import concurrent.futures
-from datetime import datetime
-import hashlib
-import re
 import json
+import hashlib
+import shutil
+import sys
+from pathlib import Path
+from typing import Dict, List, Any, Optional, Tuple
+from datetime import datetime
+import concurrent.futures
+from dataclasses import dataclass, asdict
 
 from models.entities import ImagingStudy, ImageNode
-from utils.batch_processor import BatchProcessor
+from utils.dcm2png_parallel import drain_new_dicoms, DICOMtoFSConverter
 from utils.neo4j_connector import Neo4jConnector
-
-# Import cache and search managers
-try:
-    from utils.redis_cacher import CacheManager
-except ImportError:
-    CacheManager = None
-    logging.warning("Redis cache manager not available")
-
-try:
-    from utils.elasticsearch_indexer import SearchIndexer
-except ImportError:
-    SearchIndexer = None
-    logging.warning("Elasticsearch indexer not available")
-
-# Try to import the medical image storage manager
-try:
-    from utils.medical_image_storage import MedicalImageStorageManager
-except ImportError:
-    MedicalImageStorageManager = None
-    logging.warning("Medical image storage manager not available. Using simplified storage.")
+from utils.batch_processor import BatchProcessor
+from utils.elasticsearch_indexer import SearchIndexer
 
 logger = logging.getLogger(__name__)
 
 
-def execute_image_processing_external(
-    neo4j_uri: str,
-    neo4j_user: str,
-    neo4j_password: str,
-    base_path: str,
-    storage_path: str = None,
-    storage_config: Dict[str, Any] = None,
-    max_workers: int = 8,
-    cache_manager: Optional[Any] = None,
-    search_indexer: Optional[Any] = None,
-    **kwargs
-) -> Dict[str, Any]:
-    """
-    Main execution function for image processing with external storage, Redis, and Elasticsearch
+@dataclass
+class ImageMetadataExtended:
+    """Extended metadata for images with all absolute paths"""
+    image_hash: str
+    patient_id: str
+    study_id: str
+    series_id: str
+    modality: str
+    dcm_path: str  # Absolute path to original DICOM
+    png_path: str  # Absolute path to full resolution PNG
+    thumbnail_path: str  # Absolute path to thumbnail PNG
+    original_resolution: Tuple[int, int]
+    png_resolution: Tuple[int, int]
+    thumbnail_resolution: Tuple[int, int]
+    conversion_date: str
+    study_date: str
+    series_description: str
+    dicom_metadata: Dict[str, Any]
+    naming_convention: str
+    processing_status: str = "completed"
+    quality_verified: bool = True
 
-    Args:
-        neo4j_uri: Neo4j connection URI
-        neo4j_user: Username
-        neo4j_password: Password
-        base_path: Base path containing image directories
-        storage_path: Path for hierarchical image storage
-        storage_config: Storage configuration dictionary
-        max_workers: Maximum number of parallel workers
-        cache_manager: Optional Redis cache manager instance
-        search_indexer: Optional Elasticsearch indexer instance
-        **kwargs: Additional arguments
 
-    Returns:
-        Processing results dictionary
-    """
+class IncrementalImageProcessingPipeline:
+    """Incremental image processing pipeline with proper absolute path handling"""
 
-    logger.info("Starting image processing with external storage, caching, and search")
+    def __init__(self, connector: Neo4jConnector, base_path: str,
+                 storage_path: str, es_host: str = 'localhost',
+                 es_port: int = 9200, batch_size: int = 100,
+                 max_workers: int = 8):
+        """Initialize pipeline with incremental processing support"""
+        self.connector = connector
+        self.base_path = Path(base_path).resolve()  # Ensure absolute path
+        self.storage_path = Path(storage_path).resolve()  # Ensure absolute path
+        self.batch_size = batch_size
+        self.max_workers = max_workers
 
-    # Set default storage path if not provided
-    if storage_path is None:
-        storage_path = Path(base_path).parent / "outputs" / "image_store"
-    else:
-        storage_path = Path(storage_path)
+        # Set up paths for incremental processing
+        self.new_mri_path = self.base_path / "New_MRI"
+        self.new_pet_path = self.base_path / "New_PET"
+        self.mri_dcm_path = self.base_path / "MRI_DCM"
+        self.pet_dcm_path = self.base_path / "PET_DCM"
 
-    # Create storage directory
-    storage_path.mkdir(parents=True, exist_ok=True)
-    logger.info(f"Using storage path: {storage_path}")
+        # Output paths (absolute)
+        self.png_output_path = self.storage_path / "png_images"
+        self.thumbnail_output_path = self.storage_path / "thumbnails"
+        self.metadata_path = self.storage_path / "metadata"
 
-    # Initialize Redis cache if not provided
-    if cache_manager is None and CacheManager is not None:
+        # Create directories
+        for p in [self.new_mri_path, self.new_pet_path, self.mri_dcm_path,
+                  self.pet_dcm_path, self.png_output_path, self.thumbnail_output_path,
+                  self.metadata_path]:
+            p.mkdir(parents=True, exist_ok=True)
+
+        # Initialize components
+        self.batch_processor = BatchProcessor(max_workers=max_workers)
+        self.es_indexer = SearchIndexer(es_host, es_port)
+
+        # Storage for processing
+        self.processed_hashes = set()
+        self.image_metadata = []
+        self.processing_stats = {
+            'total_found': 0,
+            'new_images': 0,
+            'moved': 0,
+            'converted': 0,
+            'already_processed': 0,
+            'indexed_es': 0,
+            'indexed_neo4j': 0,
+            'failed': 0
+        }
+
+    def _ensure_absolute_path(self, path_str: str) -> str:
+        """Ensure a path is absolute"""
+        if not path_str:
+            return ""
+        path = Path(path_str)
+        if not path.is_absolute():
+            # Try to resolve relative to storage path or base path
+            if (self.storage_path / path).exists():
+                return str((self.storage_path / path).resolve())
+            elif (self.base_path / path).exists():
+                return str((self.base_path / path).resolve())
+            else:
+                return str(path.resolve())
+        return str(path.resolve())
+
+    def execute(self) -> Dict[str, Any]:
+        """Execute the incremental processing pipeline"""
+        start_time = datetime.now()
+
+        results = {
+            'images_processed': 0,
+            'images_converted': 0,
+            'images_indexed_es': 0,
+            'images_indexed_neo4j': 0,
+            'processing_time': 0,
+            'errors': []
+        }
+
         try:
-            cache_manager = CacheManager(host='localhost', port=6379)
-            logger.info("✅ Redis cache initialized")
-        except Exception as e:
-            logger.warning(f"Could not initialize Redis cache: {e}")
-            cache_manager = None
+            # Step 1: Load existing images from Elasticsearch to avoid duplicates
+            logger.info("Loading existing images from Elasticsearch for deduplication...")
+            self._load_existing_images()
 
-    # Initialize Elasticsearch if not provided
-    if search_indexer is None and SearchIndexer is not None:
+            # Step 2: Move new DICOM files to processing folders
+            logger.info("Moving new DICOM files to processing folders...")
+            move_results = self._move_new_dicoms()
+            self.processing_stats['moved'] = move_results['total_moved']
+
+            # Step 3: Run incremental DICOM conversion
+            logger.info("Running incremental DICOM to PNG conversion...")
+            conversion_results = self._run_incremental_conversion()
+            results['images_converted'] = conversion_results['converted']
+            self.processing_stats['converted'] = conversion_results['converted']
+
+            # Step 4: Process metadata for newly converted images
+            logger.info("Processing metadata for newly converted images...")
+            metadata_results = self._process_new_metadata()
+            results['images_processed'] = metadata_results['processed']
+
+            # Step 5: Index to Elasticsearch (incremental)
+            logger.info("Indexing new images to Elasticsearch...")
+            es_results = self._index_to_elasticsearch_incremental()
+            results['images_indexed_es'] = es_results['indexed']
+
+            # Step 6: Create Neo4j nodes (with duplicate checking)
+            logger.info("Creating Neo4j nodes for new images...")
+            neo4j_results = self._create_neo4j_nodes_incremental()
+            results['images_indexed_neo4j'] = neo4j_results['created']
+
+            # Calculate total time
+            total_time = (datetime.now() - start_time).total_seconds()
+            results['processing_time'] = total_time
+            results['statistics'] = self.processing_stats
+
+            self._log_summary(results)
+
+        except Exception as e:
+            logger.error(f"Pipeline failed: {e}")
+            results['errors'].append(str(e))
+            raise
+
+        return results
+
+    def _load_existing_images(self) -> None:
+        """Load existing image hashes from Elasticsearch to prevent duplicates"""
         try:
-            search_indexer = SearchIndexer(host='localhost', port=9200)
-            logger.info("✅ Elasticsearch indexer initialized")
+            existing_images = self.es_indexer.get_all_image_hashes()
+            self.processed_hashes = set(existing_images)
+            logger.info(f"Loaded {len(self.processed_hashes)} existing image hashes from Elasticsearch")
         except Exception as e:
-            logger.warning(f"Could not initialize Elasticsearch: {e}")
-            search_indexer = None
+            logger.warning(f"Could not load existing images from Elasticsearch: {e}")
+            self.processed_hashes = set()
 
-    # Initialize Neo4j connection
+    def _move_new_dicoms(self) -> Dict[str, int]:
+        """Move DICOM files from New_* folders to *_DCM folders preserving structure"""
+        moved_stats = {'MRI': 0, 'PET': 0, 'total_moved': 0}
+
+        # Move MRI DICOMs
+        if self.new_mri_path.exists():
+            moved_stats['MRI'] = self._move_files_preserving_structure(
+                self.new_mri_path, self.mri_dcm_path
+            )
+
+        # Move PET DICOMs
+        if self.new_pet_path.exists():
+            moved_stats['PET'] = self._move_files_preserving_structure(
+                self.new_pet_path, self.pet_dcm_path
+            )
+
+        moved_stats['total_moved'] = moved_stats['MRI'] + moved_stats['PET']
+        logger.info(f"Moved {moved_stats['MRI']} MRI and {moved_stats['PET']} PET DICOM files")
+
+        return moved_stats
+
+    def _move_files_preserving_structure(self, source_dir: Path, dest_dir: Path) -> int:
+        """Move files from source to destination preserving folder structure"""
+        moved_count = 0
+
+        for file_path in source_dir.rglob('*'):
+            if file_path.is_file():
+                relative_path = file_path.relative_to(source_dir)
+                dest_path = dest_dir / relative_path
+
+                dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+                if not dest_path.exists():
+                    shutil.move(str(file_path), str(dest_path))
+                    moved_count += 1
+                    logger.debug(f"Moved: {relative_path}")
+                else:
+                    file_path.unlink()
+                    logger.debug(f"File already exists, removed from source: {relative_path}")
+
+        self._cleanup_empty_dirs(source_dir)
+
+        return moved_count
+
+    def _cleanup_empty_dirs(self, root_dir: Path) -> None:
+        """Remove empty directories while preserving root"""
+        for dirpath in sorted(root_dir.rglob('*'), reverse=True):
+            if dirpath.is_dir() and dirpath != root_dir:
+                try:
+                    dirpath.rmdir()
+                except OSError:
+                    pass
+
+    def _run_incremental_conversion(self) -> Dict[str, Any]:
+        """Run incremental DICOM to PNG conversion"""
+        converter_mri = DICOMtoFSConverter(
+            input_dir=str(self.mri_dcm_path),
+            output_dir=str(self.storage_path),
+            modality='MRI',
+            skip_if_exists=True
+        )
+
+        converter_pet = DICOMtoFSConverter(
+            input_dir=str(self.pet_dcm_path),
+            output_dir=str(self.storage_path),
+            modality='PET',
+            skip_if_exists=True
+        )
+
+        mri_stats = converter_mri.convert_all()
+        pet_stats = converter_pet.convert_all()
+
+        return {
+            'converted': mri_stats['converted'] + pet_stats['converted'],
+            'skipped': mri_stats['skipped'] + pet_stats['skipped'],
+            'failed': mri_stats['errors'] + pet_stats['errors'],
+            'mri_stats': mri_stats,
+            'pet_stats': pet_stats
+        }
+
+    def _process_new_metadata(self) -> Dict[str, Any]:
+        """Process metadata only for newly converted images with absolute paths"""
+        processed_count = 0
+
+        metadata_files = []
+        for metadata_dir in [self.metadata_path / 'MRI', self.metadata_path / 'PET']:
+            if metadata_dir.exists():
+                for json_file in metadata_dir.rglob('*.json'):
+                    file_hash = self._calculate_file_hash(json_file)
+
+                    if file_hash not in self.processed_hashes:
+                        metadata_files.append(json_file)
+
+        logger.info(f"Found {len(metadata_files)} new metadata files to process")
+
+        for i in range(0, len(metadata_files), self.batch_size):
+            batch = metadata_files[i:i + self.batch_size]
+            batch_results = self._process_metadata_batch(batch)
+            processed_count += batch_results['processed']
+
+        return {'processed': processed_count}
+
+    def _process_metadata_batch(self, metadata_files: List[Path]) -> Dict[str, Any]:
+        """Process a batch of metadata files with absolute path conversion"""
+        processed = 0
+
+        for metadata_file in metadata_files:
+            try:
+                with open(metadata_file, 'r') as f:
+                    metadata = json.load(f)
+
+                image_hash = self._calculate_image_hash(metadata)
+
+                if image_hash in self.processed_hashes:
+                    self.processing_stats['already_processed'] += 1
+                    continue
+
+                # Ensure all paths are absolute
+                dcm_path = self._ensure_absolute_path(metadata.get('dcm_path', metadata.get('original_path', '')))
+                png_path = self._ensure_absolute_path(metadata.get('png_path', ''))
+                thumbnail_path = self._ensure_absolute_path(metadata.get('thumbnail_path', ''))
+
+                # Create extended metadata object with absolute paths
+                extended_metadata = ImageMetadataExtended(
+                    image_hash=image_hash,
+                    patient_id=metadata.get('patient_id', ''),
+                    study_id=metadata.get('study_id', ''),
+                    series_id=metadata.get('series_id', ''),
+                    modality=metadata.get('modality', ''),
+                    dcm_path=dcm_path,  # Now absolute
+                    png_path=png_path,  # Now absolute
+                    thumbnail_path=thumbnail_path,  # Now absolute
+                    original_resolution=tuple(metadata.get('original_resolution', [0, 0])),
+                    png_resolution=tuple(metadata.get('png_resolution', [0, 0])),
+                    thumbnail_resolution=tuple(metadata.get('thumbnail_resolution', [128, 128])),
+                    conversion_date=metadata.get('conversion_date', datetime.now().isoformat()),
+                    study_date=metadata.get('study_date', ''),
+                    series_description=metadata.get('series_description', ''),
+                    dicom_metadata=metadata.get('dicom_metadata', {}),
+                    naming_convention=metadata.get('naming_convention', '')
+                )
+
+                self.image_metadata.append(extended_metadata)
+                self.processed_hashes.add(image_hash)
+                processed += 1
+
+            except Exception as e:
+                logger.error(f"Error processing metadata file {metadata_file}: {e}")
+                self.processing_stats['failed'] += 1
+
+        return {'processed': processed}
+
+    def _calculate_file_hash(self, file_path: Path) -> str:
+        """Calculate hash for a file path"""
+        return hashlib.md5(str(file_path).encode()).hexdigest()
+
+    def _calculate_image_hash(self, metadata: Dict[str, Any]) -> str:
+        """Calculate unique hash for an image based on its metadata"""
+        hash_string = f"{metadata.get('patient_id', '')}_{metadata.get('study_date', '')}_{metadata.get('series_id', '')}_{metadata.get('original_path', metadata.get('dcm_path', ''))}"
+        return hashlib.sha256(hash_string.encode()).hexdigest()[:32]
+
+    def _index_to_elasticsearch_incremental(self) -> Dict[str, int]:
+        """Index only new images to Elasticsearch with absolute paths"""
+        if not self.image_metadata:
+            return {'indexed': 0}
+
+        indexed_count = 0
+        failed_ids = []
+
+        for i in range(0, len(self.image_metadata), self.batch_size):
+            batch = self.image_metadata[i:i + self.batch_size]
+
+            es_documents = []
+            for metadata in batch:
+                # Ensure paths are absolute in ES document
+                es_doc = {
+                    'image_hash': metadata.image_hash,
+                    'patient_id': metadata.patient_id,
+                    'study_id': metadata.study_id,
+                    'series_id': metadata.series_id,
+                    'modality': metadata.modality,
+                    'dcm_path': metadata.dcm_path,  # Already absolute
+                    'png_path': metadata.png_path,  # Already absolute
+                    'thumbnail_path': metadata.thumbnail_path,  # Already absolute
+                    'original_resolution': {
+                        'width': metadata.original_resolution[0],
+                        'height': metadata.original_resolution[1]
+                    },
+                    'png_resolution': {
+                        'width': metadata.png_resolution[0],
+                        'height': metadata.png_resolution[1]
+                    },
+                    'thumbnail_resolution': {
+                        'width': metadata.thumbnail_resolution[0],
+                        'height': metadata.thumbnail_resolution[1]
+                    },
+                    'conversion_date': metadata.conversion_date,
+                    'study_date': metadata.study_date,
+                    'series_description': metadata.series_description,
+                    'naming_convention': metadata.naming_convention,
+                    'indexed_date': datetime.now().isoformat()
+                }
+                es_documents.append(es_doc)
+
+            success, failed = self.es_indexer.bulk_index_images(es_documents)
+            indexed_count += success
+            failed_ids.extend(failed)
+
+        self.processing_stats['indexed_es'] = indexed_count
+
+        if failed_ids:
+            logger.warning(f"Failed to index {len(failed_ids)} images to Elasticsearch")
+
+        return {'indexed': indexed_count, 'failed': failed_ids}
+
+    def _create_neo4j_nodes_incremental(self) -> Dict[str, int]:
+        """Create Neo4j nodes only for new images with absolute paths"""
+        if not self.image_metadata:
+            return {'created': 0}
+
+        created_count = 0
+
+        existing_neo4j = self._get_existing_neo4j_images()
+
+        new_images = [
+            img for img in self.image_metadata
+            if img.image_hash not in existing_neo4j
+        ]
+
+        if not new_images:
+            logger.info("No new images to add to Neo4j")
+            return {'created': 0}
+
+        studies_created = self._create_imaging_studies(new_images)
+        images_created = self._create_image_nodes(new_images)
+
+        created_count = studies_created + images_created
+        self.processing_stats['indexed_neo4j'] = created_count
+
+        return {'created': created_count}
+
+    def _get_existing_neo4j_images(self) -> set:
+        """Get existing image hashes from Neo4j"""
+        query = """
+        MATCH (img:ImageNode)
+        WHERE img.image_hash IS NOT NULL
+        RETURN img.image_hash as hash
+        """
+
+        results = self.connector.run_query(query)
+        return {r['hash'] for r in results if r.get('hash')}
+
+    def _create_imaging_studies(self, images: List[ImageMetadataExtended]) -> int:
+        """Create imaging study nodes in Neo4j"""
+        studies = {}
+        for img in images:
+            if img.study_id not in studies:
+                studies[img.study_id] = {
+                    'study_id': img.study_id,
+                    'patient_id': img.patient_id,
+                    'modality': img.modality,
+                    'study_date': img.study_date,
+                    'created_at': datetime.now().isoformat()
+                }
+
+        if not studies:
+            return 0
+
+        query = """
+        UNWIND $batch as study
+        MERGE (s:ImagingStudy {study_id: study.study_id})
+        SET s.patient_id = study.patient_id,
+            s.modality = study.modality,
+            s.study_date = study.study_date,
+            s.created_at = study.created_at
+        WITH s, study
+        MATCH (p:Patient {ptid: study.patient_id})
+        MERGE (p)-[:HAS_IMAGING_STUDY]->(s)
+        """
+
+        return self.connector.batch_write(query, list(studies.values()), batch_size=100)
+
+    def _create_image_nodes(self, images: List[ImageMetadataExtended]) -> int:
+        """Create image nodes in Neo4j with all metadata and absolute paths"""
+        image_data = []
+
+        for img in images:
+            data = {
+                'image_hash': img.image_hash,
+                'image_id': img.image_hash[:16],
+                'study_id': img.study_id,
+                'patient_id': img.patient_id,
+                'series_id': img.series_id,
+                'series_description': img.series_description,
+                'modality': img.modality,
+                'dcm_path': img.dcm_path,  # Absolute path
+                'png_path': img.png_path,  # Absolute path
+                'thumbnail_path': img.thumbnail_path,  # Absolute path
+                'study_date': img.study_date,
+                'conversion_date': img.conversion_date,
+                'naming_convention': img.naming_convention,
+                'processing_status': img.processing_status,
+                'quality_verified': img.quality_verified,
+                'created_at': datetime.now().isoformat(),
+                'original_width': img.original_resolution[0],
+                'original_height': img.original_resolution[1],
+                'png_width': img.png_resolution[0],
+                'png_height': img.png_resolution[1]
+            }
+
+            if img.dicom_metadata:
+                data['dicom_metadata'] = json.dumps(img.dicom_metadata)
+
+            image_data.append(data)
+
+        query = """
+        UNWIND $batch as image
+        MERGE (i:ImageNode {image_hash: image.image_hash})
+        SET i += image
+        WITH i, image
+        MATCH (s:ImagingStudy {study_id: image.study_id})
+        MERGE (s)-[:HAS_IMAGE]->(i)
+        WITH i, image
+        MATCH (p:Patient {ptid: image.patient_id})
+        MERGE (p)-[:HAS_IMAGE]->(i)
+        """
+
+        return self.connector.batch_write(query, image_data, batch_size=50)
+
+    def _log_summary(self, results: Dict[str, Any]) -> None:
+        """Log processing summary"""
+        logger.info("\n" + "="*60)
+        logger.info("INCREMENTAL IMAGE PROCESSING SUMMARY")
+        logger.info("="*60)
+        logger.info(f"Files moved to DCM folders: {self.processing_stats['moved']}")
+        logger.info(f"Images converted to PNG: {self.processing_stats['converted']}")
+        logger.info(f"Images already processed: {self.processing_stats['already_processed']}")
+        logger.info(f"New images indexed to Elasticsearch: {self.processing_stats['indexed_es']}")
+        logger.info(f"New images added to Neo4j: {self.processing_stats['indexed_neo4j']}")
+        logger.info(f"Failed: {self.processing_stats['failed']}")
+        logger.info(f"Total processing time: {results['processing_time']:.2f} seconds")
+        logger.info("="*60)
+
+
+def execute_image_processing_external(neo4j_uri: str, neo4j_user: str, neo4j_password: str,
+                                     base_path: str, storage_path: str,
+                                     storage_config: Dict[str, Any] = None,
+                                     max_workers: int = 8) -> Dict[str, Any]:
+    """Main execution function for incremental image processing"""
     connector = Neo4jConnector(neo4j_uri, neo4j_user, neo4j_password)
 
     try:
-        # Initialize processor
-        processor = EnhancedImageProcessor(
+        config = storage_config or {}
+        batch_size = config.get('batch_size', 100)
+        es_host = config.get('es_host', 'localhost')
+        es_port = config.get('es_port', 9200)
+
+        logger.info(f"Starting incremental image processing pipeline")
+        logger.info(f"  Base path: {base_path}")
+        logger.info(f"  Storage path: {storage_path}")
+        logger.info(f"  Elasticsearch: {es_host}:{es_port}")
+
+        processor = IncrementalImageProcessingPipeline(
             connector=connector,
             base_path=base_path,
             storage_path=storage_path,
-            storage_config=storage_config or {},
-            max_workers=max_workers,
-            cache_manager=cache_manager,
-            search_indexer=search_indexer
+            es_host=es_host,
+            es_port=es_port,
+            batch_size=batch_size,
+            max_workers=max_workers
         )
 
-        # Execute processing
         results = processor.execute()
-
-        # Add processor to results for subsequent steps
         results['processor'] = processor
 
+        logger.info(f"✅ Incremental image processing completed")
         return results
 
     except Exception as e:
@@ -129,553 +561,3 @@ def execute_image_processing_external(
         raise
     finally:
         connector.close()
-        if cache_manager:
-            cache_manager.close()
-        if search_indexer:
-            search_indexer.close()
-
-
-class EnhancedImageProcessor:
-    """
-    Enhanced image processor with Redis caching and Elasticsearch indexing
-    """
-
-    def __init__(self, connector: Neo4jConnector,
-                 base_path: str,
-                 storage_path: Path,
-                 storage_config: Dict[str, Any],
-                 max_workers: int = 8,
-                 cache_manager: Optional[Any] = None,
-                 search_indexer: Optional[Any] = None):
-        """Initialize enhanced image processor"""
-
-        self.connector = connector
-        self.base_path = Path(base_path)
-        self.storage_path = storage_path
-        self.storage_config = storage_config
-        self.max_workers = max_workers
-        self.cache_manager = cache_manager
-        self.search_indexer = search_indexer
-
-        # Image paths - check what exists
-        self.mri_dicom_path = self.base_path / "Images"
-        self.pet_dicom_path = self.base_path / "PET"
-        self.mri_converted_path = self.base_path / "Updated"
-        self.pet_converted_path = self.base_path / "Updated_PET"
-
-        # Log which directories exist
-        logger.info("Checking for image directories:")
-        for name, path in [
-            ("MRI DICOM", self.mri_dicom_path),
-            ("PET DICOM", self.pet_dicom_path),
-            ("MRI Converted", self.mri_converted_path),
-            ("PET Converted", self.pet_converted_path)
-        ]:
-            if path.exists():
-                logger.info(f"  ✓ {name}: {path}")
-            else:
-                logger.info(f"  ✗ {name}: Not found")
-
-        # Storage for pipeline compatibility
-        self.imaging_studies = {}
-        self.image_nodes = []
-
-        # Batch processor
-        self.batch_processor = BatchProcessor(max_workers=max_workers)
-
-        # Create storage subdirectories
-        for subdir in ["metadata", "diagnostic", "preview", "thumbnail"]:
-            (self.storage_path / subdir).mkdir(parents=True, exist_ok=True)
-
-        # Initialize medical image storage manager if available
-        if MedicalImageStorageManager:
-            self.storage_manager = MedicalImageStorageManager(
-                str(self.storage_path),
-                neo4j_connector=connector
-            )
-        else:
-            self.storage_manager = None
-
-    def execute(self) -> Dict[str, Any]:
-        """Execute enhanced image processing pipeline"""
-
-        results = {
-            'mri_processed': 0,
-            'pet_processed': 0,
-            'studies_created': 0,
-            'images_created': 0,
-            'images_stored': 0,
-            'images_cached': 0,
-            'images_indexed': 0,
-            'storage_size_mb': 0,
-            'errors': []
-        }
-
-        # Process converted images (JPG/PNG) - these are most likely to exist
-        if self.mri_converted_path.exists():
-            logger.info("Processing converted MRI images...")
-            mri_results = self._process_converted_directory(self.mri_converted_path, 'MRI')
-            results['mri_processed'] += mri_results['processed']
-            results['images_cached'] += mri_results.get('cached', 0)
-            results['images_indexed'] += mri_results.get('indexed', 0)
-            results['errors'].extend(mri_results['errors'])
-
-        if self.pet_converted_path.exists():
-            logger.info("Processing converted PET images...")
-            pet_results = self._process_converted_directory(self.pet_converted_path, 'PET')
-            results['pet_processed'] += pet_results['processed']
-            results['images_cached'] += pet_results.get('cached', 0)
-            results['images_indexed'] += pet_results.get('indexed', 0)
-            results['errors'].extend(pet_results['errors'])
-
-        # Process DICOM if available and storage manager exists
-        if self.storage_manager:
-            if self.mri_dicom_path.exists():
-                logger.info("Processing MRI DICOM with full storage...")
-                mri_dicom_results = self._process_dicom_directory(self.mri_dicom_path, 'MRI')
-                results['mri_processed'] += mri_dicom_results['processed']
-                results['images_cached'] += mri_dicom_results.get('cached', 0)
-                results['images_indexed'] += mri_dicom_results.get('indexed', 0)
-                results['errors'].extend(mri_dicom_results['errors'])
-
-            if self.pet_dicom_path.exists():
-                logger.info("Processing PET DICOM with full storage...")
-                pet_dicom_results = self._process_dicom_directory(self.pet_dicom_path, 'PET')
-                results['pet_processed'] += pet_dicom_results['processed']
-                results['images_cached'] += pet_dicom_results.get('cached', 0)
-                results['images_indexed'] += pet_dicom_results.get('indexed', 0)
-                results['errors'].extend(pet_dicom_results['errors'])
-
-        # Update counts
-        results['studies_created'] = len(self.imaging_studies)
-        results['images_created'] = len(self.image_nodes)
-        results['images_stored'] = len(self.image_nodes)  # All are "stored" as references
-
-        # Calculate approximate storage size
-        results['storage_size_mb'] = self._calculate_storage_size()
-
-        logger.info(f"✅ Processed {results['images_created']} images")
-        logger.info(f"   MRI: {results['mri_processed']}, PET: {results['pet_processed']}")
-        logger.info(f"   Cached: {results['images_cached']}, Indexed: {results['images_indexed']}")
-
-        return results
-
-    def _process_converted_directory(self, directory: Path, modality: str) -> Dict[str, Any]:
-        """Process pre-converted images (JPG/PNG) with caching and indexing"""
-
-        results = {'processed': 0, 'cached': 0, 'indexed': 0, 'errors': []}
-
-        # Find all image files
-        image_files = []
-        for ext in ['*.jpg', '*.jpeg', '*.png']:
-            image_files.extend(directory.rglob(ext))
-
-        logger.info(f"Found {len(image_files)} converted {modality} images")
-
-        # Process in batches for better performance
-        batch_size = 100
-        for i in range(0, len(image_files), batch_size):
-            batch = image_files[i:i+batch_size]
-
-            # Prepare documents for bulk indexing
-            es_documents = []
-
-            for img_file in batch:
-                try:
-                    # Extract patient ID
-                    patient_id = self._extract_patient_id(img_file)
-                    if not patient_id:
-                        continue
-
-                    # Generate IDs
-                    study_id = self._generate_study_id(patient_id, modality, img_file)
-                    image_id = self._generate_image_id(patient_id, img_file)
-
-                    # Find or create visit ID
-                    visit_id = self._find_visit_id(patient_id, "")
-
-                    # Extract series info from path
-                    series_desc = img_file.parent.name if img_file.parent != directory else modality
-
-                    # Create image node (without unsupported parameters)
-                    image_node = ImageNode(
-                        image_id=image_id,
-                        study_id=study_id,
-                        patient_id=patient_id,
-                        visit_id=visit_id,
-                        series_description=series_desc,
-                        image_type='CONVERTED',
-                        file_path=str(img_file),
-                        # Store paths in existing fields
-                        diagnostic_path=str(img_file),
-                        preview_path=str(img_file),
-                        thumbnail_path=str(img_file),
-                        has_diagnostic=True,
-                        has_preview=True,
-                        has_thumbnail=True
-                    )
-
-                    self.image_nodes.append(image_node)
-                    self._update_imaging_study(image_node)
-                    results['processed'] += 1
-
-                    # Cache metadata in Redis
-                    if self.cache_manager:
-                        cache_data = {
-                            'image_id': image_id,
-                            'patient_id': patient_id,
-                            'study_id': study_id,
-                            'visit_id': visit_id,
-                            'modality': modality,
-                            'series_description': series_desc,
-                            'file_path': str(img_file),
-                            'diagnostic_path': str(img_file),
-                            'preview_path': str(img_file),
-                            'thumbnail_path': str(img_file),
-                            'timestamp': datetime.now().isoformat()
-                        }
-
-                        # Cache image metadata
-                        if self.cache_manager.cache_image_metadata(image_id, cache_data):
-                            results['cached'] += 1
-
-                        # Cache image paths for quick retrieval
-                        self.cache_manager.cache_image_path(image_id, 'diagnostic', str(img_file))
-                        self.cache_manager.cache_image_path(image_id, 'preview', str(img_file))
-                        self.cache_manager.cache_image_path(image_id, 'thumbnail', str(img_file))
-
-                    # Prepare for Elasticsearch indexing
-                    if self.search_indexer:
-                        es_doc = {
-                            'image_id': image_id,
-                            'patient_id': patient_id,
-                            'study_id': study_id,
-                            'visit_id': visit_id,
-                            'modality': modality,
-                            'series_description': series_desc,
-                            'anatomical_region': self._infer_anatomical_region(series_desc),
-                            'pet_tracer': self._infer_pet_tracer(series_desc) if modality == 'PET' else None,
-                            'storage_path': str(img_file),
-                            'preview_path': str(img_file),
-                            'thumbnail_path': str(img_file),
-                            'timestamp': datetime.now().isoformat(),
-                            'processing_status': 'completed',
-                            'quality_verified': False
-                        }
-                        es_documents.append(es_doc)
-
-                    # Save metadata to file
-                    self._save_image_metadata(image_node)
-
-                except Exception as e:
-                    logger.error(f"Error processing {img_file}: {e}")
-                    results['errors'].append(str(e))
-
-            # Bulk index to Elasticsearch
-            if self.search_indexer and es_documents:
-                success_count, failed = self.search_indexer.bulk_index(
-                    'medical_images',
-                    es_documents,
-                    id_field='image_id'
-                )
-                results['indexed'] += success_count
-                if failed:
-                    logger.warning(f"Failed to index {len(failed)} documents")
-
-            if (i + batch_size) % 1000 == 0:
-                logger.info(f"  Processed {min(i + batch_size, len(image_files))}/{len(image_files)} images")
-
-        return results
-
-    def _process_dicom_directory(self, directory: Path, modality: str) -> Dict[str, Any]:
-        """Process DICOM files with full storage, caching, and indexing"""
-
-        results = {'processed': 0, 'cached': 0, 'indexed': 0, 'errors': []}
-
-        if not self.storage_manager:
-            logger.warning("Storage manager not available for DICOM processing")
-            return results
-
-        # Check if pydicom is available
-        try:
-            import pydicom
-        except ImportError:
-            logger.warning("pydicom not installed. Skipping DICOM processing.")
-            return results
-
-        # Find all DICOM files
-        dicom_files = list(directory.rglob("*.dcm"))
-        logger.info(f"Found {len(dicom_files)} DICOM files")
-
-        # Process a limited number for performance
-        max_dicoms = min(len(dicom_files), 100)  # Process up to 100 DICOM files
-
-        for dicom_file in dicom_files[:max_dicoms]:
-            try:
-                # Extract patient ID from path first
-                patient_id = self._extract_patient_id(dicom_file)
-                if not patient_id:
-                    continue
-
-                # Generate IDs
-                study_id = self._generate_study_id(patient_id, modality, dicom_file)
-                series_id = self._extract_series_id(dicom_file)
-
-                # Process with storage manager
-                storage_metadata = self.storage_manager.process_dicom_for_storage(
-                    str(dicom_file),
-                    patient_id,
-                    study_id,
-                    series_id
-                )
-
-                # Find visit
-                visit_id = self._find_visit_id(patient_id, "")
-
-                # Create image node
-                image_node = ImageNode(
-                    image_id=storage_metadata.storage_id,
-                    study_id=study_id,
-                    patient_id=patient_id,
-                    visit_id=visit_id,
-                    series_description=series_id,
-                    image_type='DICOM',
-                    file_path=str(dicom_file),
-                    diagnostic_path=storage_metadata.file_paths.get('diagnostic'),
-                    preview_path=storage_metadata.file_paths.get('preview'),
-                    thumbnail_path=storage_metadata.file_paths.get('thumbnail'),
-                    has_diagnostic=True,
-                    has_preview=True,
-                    has_thumbnail=True,
-                    # Store quality metrics
-                    snr=storage_metadata.quality_metrics.get('snr'),
-                    entropy=storage_metadata.quality_metrics.get('entropy')
-                )
-
-                self.image_nodes.append(image_node)
-                self._update_imaging_study(image_node)
-                results['processed'] += 1
-
-                # Cache in Redis
-                if self.cache_manager:
-                    cache_data = {
-                        'image_id': storage_metadata.storage_id,
-                        'patient_id': patient_id,
-                        'study_id': study_id,
-                        'visit_id': visit_id,
-                        'modality': modality,
-                        'storage_metadata': asdict(storage_metadata),
-                        'timestamp': datetime.now().isoformat()
-                    }
-
-                    if self.cache_manager.cache_image_metadata(storage_metadata.storage_id, cache_data):
-                        results['cached'] += 1
-
-                    # Cache paths
-                    for resolution, path in storage_metadata.file_paths.items():
-                        self.cache_manager.cache_image_path(storage_metadata.storage_id, resolution, path)
-
-                # Index in Elasticsearch
-                if self.search_indexer:
-                    es_doc = {
-                        'image_id': storage_metadata.storage_id,
-                        'patient_id': patient_id,
-                        'study_id': study_id,
-                        'visit_id': visit_id,
-                        'modality': modality,
-                        'series_description': series_id,
-                        'storage_path': storage_metadata.file_paths.get('diagnostic'),
-                        'preview_path': storage_metadata.file_paths.get('preview'),
-                        'thumbnail_path': storage_metadata.file_paths.get('thumbnail'),
-                        'quality_metrics': storage_metadata.quality_metrics,
-                        'dimensions': list(storage_metadata.dimensions),
-                        'voxel_spacing': list(storage_metadata.voxel_spacing) if storage_metadata.voxel_spacing else None,
-                        'checksum': storage_metadata.checksums.get('diagnostic'),
-                        'timestamp': storage_metadata.storage_timestamp,
-                        'processing_status': 'completed',
-                        'quality_verified': True
-                    }
-
-                    if self.search_indexer.index_document('medical_images', es_doc, doc_id=storage_metadata.storage_id):
-                        results['indexed'] += 1
-
-            except Exception as e:
-                logger.debug(f"Error processing DICOM {dicom_file}: {e}")
-                results['errors'].append(str(e))
-
-        if max_dicoms < len(dicom_files):
-            logger.info(f"  Processed {max_dicoms} of {len(dicom_files)} DICOM files (limited for performance)")
-
-        return results
-
-    def _save_image_metadata(self, image_node: ImageNode) -> None:
-        """Save image metadata to JSON file"""
-
-        metadata_file = self.storage_path / "metadata" / f"{image_node.image_id}.json"
-
-        # Convert image node to dictionary
-        metadata = {
-            'image_id': image_node.image_id,
-            'patient_id': image_node.patient_id,
-            'study_id': image_node.study_id,
-            'visit_id': image_node.visit_id,
-            'series_description': image_node.series_description,
-            'image_type': image_node.image_type,
-            'file_path': image_node.file_path,
-            'diagnostic_path': image_node.diagnostic_path,
-            'preview_path': image_node.preview_path,
-            'thumbnail_path': image_node.thumbnail_path,
-            'created_at': datetime.now().isoformat()
-        }
-
-        # Save to JSON
-        with open(metadata_file, 'w') as f:
-            json.dump(metadata, f, indent=2)
-
-    def _update_imaging_study(self, image_node: ImageNode) -> None:
-        """Create or update imaging study"""
-
-        study_id = image_node.study_id
-
-        if study_id not in self.imaging_studies:
-            study = ImagingStudy(
-                study_id=study_id,
-                patient_id=image_node.patient_id,
-                visit_id=image_node.visit_id,
-                modality='PET' if 'PET' in study_id else 'MRI',
-                study_date=datetime.now().strftime("%Y-%m-%d"),
-                study_description=image_node.series_description
-            )
-            self.imaging_studies[study_id] = study
-
-    def _calculate_storage_size(self) -> float:
-        """Calculate approximate storage size"""
-
-        total_size = 0
-
-        # Calculate size of storage directory
-        if self.storage_path.exists():
-            for file_path in self.storage_path.rglob("*"):
-                if file_path.is_file():
-                    total_size += file_path.stat().st_size
-
-        # Also include referenced files
-        for image_node in self.image_nodes:
-            if image_node.file_path and Path(image_node.file_path).exists():
-                try:
-                    total_size += Path(image_node.file_path).stat().st_size
-                except:
-                    pass
-
-        return total_size / (1024 * 1024)  # Convert to MB
-
-    # Helper methods
-
-    def _extract_patient_id(self, path: Path) -> Optional[str]:
-        """Extract patient ID from path"""
-
-        # Check filename and parent directories
-        path_str = str(path)
-        match = re.search(r'(\d{3}_S_\d{4})', path_str)
-        if match:
-            return match.group(1)
-
-        # Check each parent directory
-        for parent in path.parents:
-            if re.match(r'^\d{3}_S_\d{4}$', parent.name):
-                return parent.name
-
-        return None
-
-    def _generate_study_id(self, patient_id: str, modality: str, file_path: Path) -> str:
-        """Generate study ID"""
-
-        # Try to extract date from path
-        date_match = re.search(r'(\d{8})', str(file_path))
-        if date_match:
-            date_str = date_match.group(1)
-        else:
-            date_str = datetime.now().strftime("%Y%m%d")
-
-        return f"study_{patient_id}_{modality}_{date_str}"
-
-    def _generate_image_id(self, patient_id: str, image_path: Path) -> str:
-        """Generate unique image ID"""
-
-        content = f"{patient_id}_{image_path.name}_{image_path.stat().st_size}"
-        hash_obj = hashlib.sha256(content.encode())
-        return f"img_{hash_obj.hexdigest()[:16]}"
-
-    def _extract_series_id(self, file_path: Path) -> str:
-        """Extract series ID from file path"""
-
-        # Try to get from parent directory name
-        if file_path.parent.name not in ['.', '']:
-            return file_path.parent.name
-        return "default_series"
-
-    def _find_visit_id(self, patient_id: str, study_date: str) -> str:
-        """Find or create visit ID"""
-
-        # Format study date if needed
-        if study_date and len(study_date) == 8:
-            study_date = f"{study_date[:4]}-{study_date[4:6]}-{study_date[6:8]}"
-
-        query = """
-        MATCH (p:Patient {ptid: $patient_id})-[:HAS_VISIT]->(v:Visit)
-        WHERE v.visit_date = $study_date OR 
-              (v.visit_date IS NULL AND $study_date = '')
-        RETURN v.visit_id as visit_id
-        ORDER BY v.months_from_baseline
-        LIMIT 1
-        """
-
-        result = self.connector.run_query(
-            query,
-            {'patient_id': patient_id, 'study_date': study_date}
-        )
-
-        if result and result[0]['visit_id']:
-            return result[0]['visit_id']
-
-        # Default to baseline visit
-        return f"{patient_id}_bl"
-
-    def _infer_anatomical_region(self, description: str) -> str:
-        """Infer anatomical region from description"""
-        desc_lower = description.lower()
-
-        if 'hippo' in desc_lower:
-            return 'hippocampus'
-        elif 'frontal' in desc_lower:
-            return 'frontal_lobe'
-        elif 'temporal' in desc_lower:
-            return 'temporal_lobe'
-        elif 'parietal' in desc_lower:
-            return 'parietal_lobe'
-        else:
-            return 'whole_brain'
-
-    def _infer_pet_tracer(self, description: str) -> Optional[str]:
-        """Infer PET tracer from description"""
-        desc_upper = description.upper()
-
-        if 'FDG' in desc_upper:
-            return 'FDG'
-        elif 'AV45' in desc_upper or 'FLORBETAPIR' in desc_upper:
-            return 'AV45'
-        elif 'AV1451' in desc_upper or 'TAU' in desc_upper:
-            return 'AV1451'
-        elif 'PIB' in desc_upper:
-            return 'PIB'
-
-        return None
-
-
-# Import function for asdict if not available
-try:
-    from dataclasses import asdict
-except ImportError:
-    def asdict(obj):
-        """Simple conversion to dict for dataclass-like objects"""
-        return {k: getattr(obj, k) for k in dir(obj) if not k.startswith('_')}

@@ -1,315 +1,308 @@
 """
-Step 4: Extract Family Member Data (ENHANCED)
-Extracts family history with flexible column discovery and quality logging
+Step 4: Extract Family Member Data (FIXED)
+Fixed version with proper relationship classification and Neo4j insertion
 """
 
 import logging
 import pandas as pd
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 import re
 import uuid
+from dataclasses import dataclass
+from datetime import datetime
 
 from models.entities import FamilyMember
 from utils.neo4j_connector import Neo4jConnector
 from utils.batch_processor import DataValidator
-from utils.data_quality_logger import get_quality_logger, log_extraction_issue
 
 logger = logging.getLogger(__name__)
 
 
-class FamilyExtractor:
-    """Extract family member data from ADNI tables with enhanced discovery"""
+@dataclass
+class FamilyTree:
+    """Data structure for managing family relationships"""
+    patient_id: str
+    family_members: List[FamilyMember]
+    relationships: List[Dict[str, Any]]
 
-    def __init__(self, connector: Neo4jConnector, table_data: Dict[str, pd.DataFrame]):
-        self.connector = connector
-        self.table_data = table_data
-        self.family_members = []
-        self.quality_logger = get_quality_logger()
+    def add_member(self, member: FamilyMember):
+        """Add a family member to the tree"""
+        self.family_members.append(member)
 
-        # Log available tables
-        family_tables = [t for t in table_data.keys() if any(
-            pattern in t.upper() for pattern in ['FAM', 'FHQ', 'FAMILY']
-        )]
-        logger.info(f"Available family-related tables: {family_tables}")
+    def get_members_by_type(self, relationship_type: str) -> List[FamilyMember]:
+        """Get all family members of a specific relationship type"""
+        return [m for m in self.family_members if m.relationship_type == relationship_type]
 
-    def execute(self) -> Dict[str, Any]:
-        """
-        Extract and create family member records with enhanced logging
 
-        Returns:
-            Dictionary with extraction results
-        """
-        results = {
-            'family_members_created': 0,
+class FixedFamilyRelationshipExtractor:
+    """Fixed family relationship extractor with better parsing and Neo4j integration"""
+
+    def __init__(self, neo4j_connector: Neo4jConnector):
+        self.neo4j = neo4j_connector
+        self.family_trees: Dict[str, FamilyTree] = {}
+        self.extraction_stats = {
+            'patients_processed': 0,
+            'family_members_extracted': 0,
             'relationships_created': 0,
-            'errors': [],
-            'tables_processed': []
+            'errors': []
         }
 
-        # Extract from family history tables
-        logger.info("Extracting family member data...")
+    def extract_family_data(self, patient_data: Dict[str, pd.DataFrame]) -> Dict[str, FamilyTree]:
+        """Extract family relationships from ADNI data with improved parsing"""
 
-        # Process each potential family table
-        family_tables = {
-            'FAMHXPAR': self._process_parent_table_enhanced,
-            'FAMHXSIB': self._process_sibling_table_enhanced,
-            'FHQ': self._process_family_questionnaire_enhanced
-        }
+        logger.info("Starting family relationship extraction (FIXED)...")
 
-        for table_name, process_func in family_tables.items():
-            if table_name in self.table_data:
-                logger.info(f"Processing {table_name} table...")
-                try:
-                    df = self.table_data[table_name]
-                    logger.info(f"  Table shape: {df.shape}")
-                    logger.info(f"  Columns: {list(df.columns)[:20]}")  # First 20 columns
+        # Process family history tables
+        family_extracted = False
 
-                    count_before = len(self.family_members)
-                    process_func(df, table_name)
-                    count_after = len(self.family_members)
+        # Look for specific family tables
+        for table_name, df in patient_data.items():
+            table_upper = table_name.upper()
 
-                    extracted = count_after - count_before
-                    logger.info(f"  Extracted {extracted} family members from {table_name}")
-                    results['tables_processed'].append(table_name)
+            # Process different types of family tables
+            if 'FAMHX' in table_upper or 'FAMILY' in table_upper or 'FHQ' in table_upper:
+                logger.info(f"Processing family table: {table_name}")
+                self._process_family_table(df, table_name)
+                family_extracted = True
 
-                except Exception as e:
-                    logger.error(f"Error processing {table_name}: {e}")
-                    results['errors'].append(f"{table_name}: {str(e)}")
-                    log_extraction_issue('Step4_Family', table_name, str(e))
-            else:
-                logger.warning(f"Table {table_name} not found in loaded data")
+            # Also check for family data in other tables
+            elif any(col for col in df.columns if self._is_family_column(col)):
+                logger.info(f"Found family data in table: {table_name}")
+                self._extract_from_clinical_table(df, table_name)
+                family_extracted = True
 
-        # Also check for family data in other tables
-        self._extract_from_other_tables()
+        if not family_extracted:
+            logger.warning("No family history data found in any tables")
 
-        # Deduplicate
-        before_dedup = len(self.family_members)
-        self._deduplicate_family_members()
-        after_dedup = len(self.family_members)
-        logger.info(f"Deduplicated from {before_dedup} to {after_dedup} family members")
+        logger.info(f"Family extraction completed. Processed {len(self.family_trees)} patients")
+        logger.info(f"Total family members extracted: {self.extraction_stats['family_members_extracted']}")
 
-        if len(self.family_members) == 0:
-            logger.warning("⚠️ No family members extracted - investigating why...")
-            self._diagnose_extraction_issues()
+        return self.family_trees
 
-        # Insert into Neo4j
-        logger.info("Inserting family members into Neo4j...")
-        results['family_members_created'] = self._insert_family_members()
+    def _is_family_column(self, column_name: str) -> bool:
+        """Check if a column contains family data"""
+        col_upper = column_name.upper()
 
-        # Create relationships
-        logger.info("Creating family relationships...")
-        results['relationships_created'] = self._create_family_relationships()
+        # Family relationship keywords
+        family_keywords = ['MOTHER', 'FATHER', 'MOM', 'DAD', 'PARENT',
+                          'SIBLING', 'BROTHER', 'SISTER', 'SIB',
+                          'CHILD', 'SON', 'DAUGHTER', 'OFFSPRING',
+                          'FAMILY', 'RELATIVE']
 
-        return results
-
-    def _process_parent_table_enhanced(self, df: pd.DataFrame, table_name: str) -> None:
-        """Process parent family history table with flexible column discovery"""
-        logger.info(f"  Analyzing {table_name} structure...")
-
-        # Find ID columns
-        id_columns = self._find_id_columns(df)
-        if not id_columns:
-            logger.warning(f"  No ID columns found in {table_name}")
-            log_extraction_issue('Step4_Family', table_name, 'No patient ID columns found',
-                               {'columns': list(df.columns)[:10]})
-            return
-
-        ptid_col = id_columns[0]
-        logger.info(f"  Using ID column: {ptid_col}")
-
-        # Look for dementia/AD columns
-        dementia_columns = self._find_dementia_columns(df)
-        logger.info(f"  Found dementia-related columns: {dementia_columns}")
-
-        # Process each row
-        extracted_count = 0
-        for _, row in df.iterrows():
-            ptid = str(row.get(ptid_col, '')).strip()
-            if not ptid or pd.isna(row[ptid_col]):
-                continue
-
-            # Check mother columns
-            mother_cols = [col for col in df.columns if any(
-                term in col.upper() for term in ['MOM', 'MOTHER', 'MOMDEM', 'NACCMOM']
-            )]
-
-            for col in mother_cols:
-                if self._indicates_dementia_flexible(row.get(col)):
-                    age_col = self._find_related_age_column(df.columns, col)
-                    age = self._extract_age(row, age_col) if age_col else None
-
-                    mother = self._create_family_member(
-                        patient_id=ptid,
-                        relationship_type='parent',
-                        gender='F',
-                        has_dementia=True,
-                        age_at_onset=age,
-                        properties={'parent_type': 'mother', 'source_column': col}
-                    )
-                    self.family_members.append(mother)
-                    extracted_count += 1
-                    break
-
-            # Check father columns
-            father_cols = [col for col in df.columns if any(
-                term in col.upper() for term in ['DAD', 'FATHER', 'DADDEM', 'NACCDAD']
-            )]
-
-            for col in father_cols:
-                if self._indicates_dementia_flexible(row.get(col)):
-                    age_col = self._find_related_age_column(df.columns, col)
-                    age = self._extract_age(row, age_col) if age_col else None
-
-                    father = self._create_family_member(
-                        patient_id=ptid,
-                        relationship_type='parent',
-                        gender='M',
-                        has_dementia=True,
-                        age_at_onset=age,
-                        properties={'parent_type': 'father', 'source_column': col}
-                    )
-                    self.family_members.append(father)
-                    extracted_count += 1
-                    break
-
-        logger.info(f"  Extracted {extracted_count} parents with dementia from {table_name}")
-
-    def _process_sibling_table_enhanced(self, df: pd.DataFrame, table_name: str) -> None:
-        """Process sibling family history table with flexible discovery"""
-        logger.info(f"  Analyzing {table_name} structure...")
-
-        # Find ID columns
-        id_columns = self._find_id_columns(df)
-        if not id_columns:
-            logger.warning(f"  No ID columns found in {table_name}")
-            return
-
-        ptid_col = id_columns[0]
-
-        # Look for sibling columns
-        sibling_patterns = ['SIB', 'BROTHER', 'SISTER', 'SIBLING']
-        sibling_cols = []
-
-        for col in df.columns:
-            if any(pattern in col.upper() for pattern in sibling_patterns):
-                sibling_cols.append(col)
-
-        logger.info(f"  Found sibling columns: {sibling_cols[:10]}")
-
-        extracted_count = 0
-        for _, row in df.iterrows():
-            ptid = str(row.get(ptid_col, '')).strip()
-            if not ptid:
-                continue
-
-            for col in sibling_cols:
-                if self._indicates_dementia_flexible(row.get(col)):
-                    sibling = self._create_family_member(
-                        patient_id=ptid,
-                        relationship_type='sibling',
-                        has_dementia=True,
-                        properties={'source_column': col}
-                    )
-                    self.family_members.append(sibling)
-                    extracted_count += 1
-
-        logger.info(f"  Extracted {extracted_count} siblings with dementia from {table_name}")
-
-    def _process_family_questionnaire_enhanced(self, df: pd.DataFrame, table_name: str) -> None:
-        """Process general family history questionnaire with enhanced discovery"""
-        logger.info(f"  Analyzing {table_name} structure...")
-
-        # Find ID columns
-        id_columns = self._find_id_columns(df)
-        if not id_columns:
-            logger.warning(f"  No ID columns found in {table_name}")
-            return
-
-        ptid_col = id_columns[0]
-
-        # Look for any family/dementia related columns
-        family_keywords = ['FAM', 'FAMILY', 'RELATIVE', 'PARENT', 'MOTHER', 'FATHER',
-                          'MOM', 'DAD', 'SIBLING', 'BROTHER', 'SISTER', 'CHILD']
+        # Dementia/AD keywords
         dementia_keywords = ['DEM', 'ALZH', 'AD', 'MEMORY', 'COGNITIVE']
 
-        relevant_cols = []
-        for col in df.columns:
-            col_upper = col.upper()
-            if (any(fk in col_upper for fk in family_keywords) and
-                any(dk in col_upper for dk in dementia_keywords)):
-                relevant_cols.append(col)
+        # Check if column has both family and dementia keywords
+        has_family = any(kw in col_upper for kw in family_keywords)
+        has_dementia = any(kw in col_upper for kw in dementia_keywords)
 
-        logger.info(f"  Found relevant columns: {relevant_cols}")
+        return has_family and (has_dementia or 'ONSET' in col_upper or 'AGE' in col_upper)
 
-        # Also check for numeric columns that might be coded (0/1, 1/2, etc.)
-        numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns
-        for col in numeric_cols:
-            if any(term in col.upper() for term in family_keywords):
-                relevant_cols.append(col)
+    def _process_family_table(self, df: pd.DataFrame, table_name: str) -> None:
+        """Process a dedicated family history table"""
 
-        extracted_count = 0
+        # Find patient ID column
+        ptid_col = self._find_patient_id_column(df)
+        if not ptid_col:
+            logger.warning(f"No patient ID column found in {table_name}")
+            return
+
+        processed_count = 0
+
         for _, row in df.iterrows():
-            ptid = str(row.get(ptid_col, '')).strip()
+            ptid = self._extract_patient_id(row, ptid_col)
             if not ptid:
                 continue
 
-            for col in relevant_cols:
-                value = row.get(col)
-                if self._indicates_dementia_flexible(value):
-                    relationship = self._infer_relationship_from_column(col)
+            # Ensure family tree exists
+            if ptid not in self.family_trees:
+                self.family_trees[ptid] = FamilyTree(ptid, [], [])
 
-                    member = self._create_family_member(
-                        patient_id=ptid,
-                        relationship_type=relationship,
-                        has_dementia=True,
-                        properties={'source_column': col, 'value': str(value)}
-                    )
-                    self.family_members.append(member)
-                    extracted_count += 1
+            family_tree = self.family_trees[ptid]
 
-        logger.info(f"  Extracted {extracted_count} family members from {table_name}")
+            # Extract family members from all columns
+            for col in df.columns:
+                if col == ptid_col:
+                    continue
 
-    def _find_id_columns(self, df: pd.DataFrame) -> List[str]:
-        """Find patient ID columns in dataframe"""
-        id_patterns = ['PTID', 'RID', 'SUBJID', 'SUBJECT', 'ID', 'PATIENT']
-        found_cols = []
+                # Process each column that might contain family data
+                family_member = self._extract_family_member_from_column(row, col, table_name)
+                if family_member:
+                    # Update patient_id
+                    family_member.patient_id = ptid
 
-        for col in df.columns:
-            if any(pattern in col.upper() for pattern in id_patterns):
-                # Check if it has valid patient IDs
-                sample = df[col].dropna().head(5)
-                if len(sample) > 0:
-                    found_cols.append(col)
+                    # Check for duplicates before adding
+                    if not self._is_duplicate_member(family_tree, family_member):
+                        family_tree.add_member(family_member)
+                        processed_count += 1
 
-        return found_cols
+        logger.info(f"Extracted {processed_count} family members from {table_name}")
+        self.extraction_stats['family_members_extracted'] += processed_count
 
-    def _find_dementia_columns(self, df: pd.DataFrame) -> List[str]:
-        """Find columns that might contain dementia information"""
-        dementia_patterns = ['DEM', 'ALZH', 'AD', 'MEMORY', 'COGNITIVE', 'IMPAIR']
-        found_cols = []
+    def _extract_from_clinical_table(self, df: pd.DataFrame, table_name: str) -> None:
+        """Extract family data from general clinical tables"""
 
-        for col in df.columns:
-            col_upper = col.upper()
-            if any(pattern in col_upper for pattern in dementia_patterns):
-                found_cols.append(col)
+        # Find patient ID column
+        ptid_col = self._find_patient_id_column(df)
+        if not ptid_col:
+            return
 
-        return found_cols
+        # Find family-related columns
+        family_cols = [col for col in df.columns if self._is_family_column(col)]
 
-    def _indicates_dementia_flexible(self, value: Any) -> bool:
-        """Check if value indicates dementia using flexible matching"""
+        if not family_cols:
+            return
+
+        processed_count = 0
+
+        for _, row in df.iterrows():
+            ptid = self._extract_patient_id(row, ptid_col)
+            if not ptid:
+                continue
+
+            # Ensure family tree exists
+            if ptid not in self.family_trees:
+                self.family_trees[ptid] = FamilyTree(ptid, [], [])
+
+            family_tree = self.family_trees[ptid]
+
+            # Process each family column
+            for col in family_cols:
+                family_member = self._extract_family_member_from_column(row, col, table_name)
+                if family_member:
+                    family_member.patient_id = ptid
+
+                    if not self._is_duplicate_member(family_tree, family_member):
+                        family_tree.add_member(family_member)
+                        processed_count += 1
+
+        if processed_count > 0:
+            logger.info(f"Extracted {processed_count} family members from {table_name}")
+            self.extraction_stats['family_members_extracted'] += processed_count
+
+    def _extract_family_member_from_column(self, row: pd.Series, column: str,
+                                          table_name: str) -> Optional[FamilyMember]:
+        """Extract family member information from a specific column"""
+
+        value = row.get(column)
+
+        # Skip if no value or not indicating dementia
+        if pd.isna(value) or value == '' or value == 0:
+            return None
+
+        # Determine relationship type from column name
+        relationship_type = self._determine_relationship_type(column)
+
+        # Skip if can't determine relationship
+        if relationship_type == 'unknown':
+            return None
+
+        # Check if value indicates dementia
+        has_dementia = self._indicates_dementia(value)
+
+        if not has_dementia:
+            return None
+
+        # Determine gender based on relationship
+        gender = self._determine_gender(column, relationship_type)
+
+        # Extract age if available
+        age_at_onset = self._extract_age_from_column(row, column)
+
+        # Create family member
+        member_id = f"fm_{uuid.uuid4().hex[:8]}"
+
+        return FamilyMember(
+            member_id=member_id,
+            patient_id="",  # Will be set by caller
+            relationship_type=relationship_type,
+            gender=gender,
+            has_dementia=has_dementia,
+            dementia_type=self._extract_dementia_type(column),
+            age_at_onset=age_at_onset,
+            properties={
+                'source_table': table_name,
+                'source_column': column,
+                'value': str(value)
+            }
+        )
+
+    def _determine_relationship_type(self, column_name: str) -> str:
+        """Determine family relationship type from column name (FIXED)"""
+        col_upper = column_name.upper()
+
+        # Parent detection (most specific first)
+        if any(term in col_upper for term in ['MOTHER', 'MOM', 'MOMDEM', 'NACCMOM']):
+            return 'parent'
+        elif any(term in col_upper for term in ['FATHER', 'DAD', 'DADDEM', 'NACCDAD']):
+            return 'parent'
+        elif 'PARENT' in col_upper:
+            return 'parent'
+
+        # Sibling detection
+        elif any(term in col_upper for term in ['SIBLING', 'BROTHER', 'SISTER', 'SIB']):
+            return 'sibling'
+
+        # Child detection
+        elif any(term in col_upper for term in ['CHILD', 'SON', 'DAUGHTER', 'OFFSPRING']):
+            return 'child'
+
+        # Other family members
+        elif any(term in col_upper for term in ['GRANDPARENT', 'GRANDMOTHER', 'GRANDFATHER']):
+            return 'grandparent'
+        elif any(term in col_upper for term in ['AUNT', 'UNCLE']):
+            return 'other_relative'
+        elif any(term in col_upper for term in ['COUSIN']):
+            return 'other_relative'
+
+        # General family
+        elif 'FAMILY' in col_upper or 'RELATIVE' in col_upper:
+            # Try to be more specific based on additional context
+            if '1ST' in col_upper or 'FIRST' in col_upper:
+                return 'parent'  # First degree relatives often parents
+            else:
+                return 'other_relative'
+
+        else:
+            return 'unknown'
+
+    def _determine_gender(self, column_name: str, relationship_type: str) -> Optional[str]:
+        """Determine gender based on column name and relationship"""
+        col_upper = column_name.upper()
+
+        if any(term in col_upper for term in ['MOTHER', 'MOM', 'GRANDMOTHER']):
+            return 'F'
+        elif any(term in col_upper for term in ['FATHER', 'DAD', 'GRANDFATHER']):
+            return 'M'
+        elif 'SISTER' in col_upper:
+            return 'F'
+        elif 'BROTHER' in col_upper:
+            return 'M'
+        elif 'DAUGHTER' in col_upper:
+            return 'F'
+        elif 'SON' in col_upper:
+            return 'M'
+        elif 'AUNT' in col_upper:
+            return 'F'
+        elif 'UNCLE' in col_upper:
+            return 'M'
+
+        return None  # Return None if gender cannot be determined
+
+    def _indicates_dementia(self, value: Any) -> bool:
+        """Check if value indicates dementia"""
         if pd.isna(value):
             return False
 
         # Handle numeric codes
         if isinstance(value, (int, float)):
-            # Common codings: 1=Yes, 2=No or 0=No, 1=Yes
-            return int(value) == 1
+            return int(value) == 1 or int(value) == 2  # Sometimes 2 also indicates presence
 
         # Handle string values
         str_val = str(value).strip().upper()
 
         # Direct positive indicators
-        positive_indicators = ['1', 'YES', 'Y', 'TRUE', 'T', '1.0']
+        positive_indicators = ['1', '2', 'YES', 'Y', 'TRUE', 'T', '1.0', '2.0']
         if str_val in positive_indicators:
             return True
 
@@ -317,246 +310,259 @@ class FamilyExtractor:
         dementia_terms = ['DEMENTIA', 'ALZHEIMER', 'AD', 'MEMORY', 'COGNITIVE', 'IMPAIR']
         return any(term in str_val for term in dementia_terms)
 
-    def _find_related_age_column(self, columns: List[str], base_col: str) -> Optional[str]:
-        """Find age column related to a dementia column"""
-        base_upper = base_col.upper()
-
-        # Look for age columns with similar prefix
-        for col in columns:
-            col_upper = col.upper()
-            if 'AGE' in col_upper:
-                # Check if it's related to the same family member
-                if 'MOM' in base_upper and 'MOM' in col_upper:
-                    return col
-                elif 'DAD' in base_upper and 'DAD' in col_upper:
-                    return col
-                elif 'MOTHER' in base_upper and 'MOTHER' in col_upper:
-                    return col
-                elif 'FATHER' in base_upper and 'FATHER' in col_upper:
-                    return col
-
-        return None
-
-    def _infer_relationship_from_column(self, column_name: str) -> str:
-        """Infer family relationship type from column name"""
+    def _extract_dementia_type(self, column_name: str) -> Optional[str]:
+        """Extract dementia type from column name"""
         col_upper = column_name.upper()
 
-        if any(term in col_upper for term in ['MOTHER', 'MOM']):
-            return 'parent'
-        elif any(term in col_upper for term in ['FATHER', 'DAD']):
-            return 'parent'
-        elif any(term in col_upper for term in ['SIBLING', 'BROTHER', 'SISTER', 'SIB']):
-            return 'sibling'
-        elif any(term in col_upper for term in ['CHILD', 'SON', 'DAUGHTER']):
-            return 'child'
-        else:
-            return 'other'
-
-    def _extract_from_other_tables(self) -> None:
-        """Look for family history in other clinical tables"""
-        # Check all tables for family-related columns
-        for table_name, df in self.table_data.items():
-            # Skip if already processed
-            if table_name in ['FAMHXPAR', 'FAMHXSIB', 'FHQ']:
-                continue
-
-            # Look for family columns
-            family_cols = []
-            for col in df.columns:
-                col_upper = col.upper()
-                if (('FAM' in col_upper or 'FAMILY' in col_upper or 'RELATIVE' in col_upper) and
-                    any(term in col_upper for term in ['DEM', 'AD', 'ALZ', 'HISTORY'])):
-                    family_cols.append(col)
-
-            if family_cols:
-                logger.info(f"Found family columns in {table_name}: {family_cols}")
-                self._process_generic_family_columns(df, table_name, family_cols)
-
-    def _process_generic_family_columns(self, df: pd.DataFrame, table_name: str, family_cols: List[str]):
-        """Process family-related columns from any table"""
-        id_columns = self._find_id_columns(df)
-        if not id_columns:
-            return
-
-        ptid_col = id_columns[0]
-        extracted_count = 0
-
-        for _, row in df.iterrows():
-            ptid = str(row.get(ptid_col, '')).strip()
-            if not ptid:
-                continue
-
-            for col in family_cols:
-                if self._indicates_dementia_flexible(row.get(col)):
-                    relationship = self._infer_relationship_from_column(col)
-
-                    member = self._create_family_member(
-                        patient_id=ptid,
-                        relationship_type=relationship,
-                        has_dementia=True,
-                        properties={'source_table': table_name, 'source_column': col}
-                    )
-                    self.family_members.append(member)
-                    extracted_count += 1
-
-        if extracted_count > 0:
-            logger.info(f"  Extracted {extracted_count} family members from {table_name}")
-
-    def _diagnose_extraction_issues(self) -> None:
-        """Diagnose why no family members were extracted"""
-        logger.warning("Diagnosing family extraction issues...")
-
-        # Check FAMHXPAR
-        if 'FAMHXPAR' in self.table_data:
-            df = self.table_data['FAMHXPAR']
-            logger.info(f"  FAMHXPAR shape: {df.shape}")
-            logger.info(f"  FAMHXPAR columns: {list(df.columns)}")
-
-            # Check for any non-null values
-            for col in df.columns:
-                non_null = df[col].notna().sum()
-                if non_null > 0:
-                    unique_vals = df[col].dropna().unique()[:5]
-                    logger.info(f"    {col}: {non_null} non-null values, samples: {unique_vals}")
-
-        # Log to quality logger
-        log_extraction_issue(
-            'Step4_Family',
-            'All family tables',
-            'No family members extracted - possible column name mismatch or all null values',
-            {'tables_checked': list(self.table_data.keys())}
-        )
-
-    def _create_family_member(self, patient_id: str, relationship_type: str,
-                            gender: Optional[str] = None,
-                            has_dementia: Optional[bool] = None,
-                            dementia_type: Optional[str] = None,
-                            age_at_onset: Optional[int] = None,
-                            properties: Optional[Dict] = None) -> FamilyMember:
-        """Create a family member object"""
-        member_id = f"fm_{patient_id}_{relationship_type}_{uuid.uuid4().hex[:6]}"
-
-        return FamilyMember(
-            member_id=member_id,
-            patient_id=patient_id,
-            relationship_type=relationship_type,
-            gender=gender,
-            has_dementia=has_dementia,
-            dementia_type=dementia_type,
-            age_at_onset=age_at_onset,
-            properties=properties or {}
-        )
-
-    def _extract_age(self, row: pd.Series, column: str) -> Optional[int]:
-        """Extract age from column"""
-        if not column or column not in row:
-            return None
-
-        value = row[column]
-        if pd.isna(value):
-            return None
-
-        try:
-            age = int(float(value))
-            if 0 < age < 120:  # Reasonable age range
-                return age
-        except:
-            pass
+        if 'ALZH' in col_upper or 'AD' in col_upper:
+            return "Alzheimer's Disease"
+        elif 'VASCULAR' in col_upper:
+            return 'Vascular Dementia'
+        elif 'LEWY' in col_upper:
+            return 'Lewy Body Dementia'
+        elif 'FRONTOTEMPORAL' in col_upper or 'FTD' in col_upper:
+            return 'Frontotemporal Dementia'
+        elif 'DEMENTIA' in col_upper:
+            return 'Dementia (unspecified)'
 
         return None
 
-    def _deduplicate_family_members(self) -> None:
-        """Remove duplicate family members"""
-        unique_members = {}
+    def _extract_age_from_column(self, row: pd.Series, base_col: str) -> Optional[int]:
+        """Try to extract age at onset from related columns"""
+        # Look for age column with similar prefix
+        base_prefix = base_col.split('_')[0] if '_' in base_col else base_col[:3]
 
-        for member in self.family_members:
-            # Create unique key
-            key = f"{member.patient_id}_{member.relationship_type}_{member.gender or 'U'}"
+        for col in row.index:
+            if 'AGE' in col.upper() and base_prefix.upper() in col.upper():
+                value = row[col]
+                if not pd.isna(value):
+                    try:
+                        age = int(float(value))
+                        if 30 <= age <= 120:  # Reasonable age range
+                            return age
+                    except:
+                        pass
 
-            if key not in unique_members:
-                unique_members[key] = member
-            else:
-                # Merge information
-                existing = unique_members[key]
-                if member.has_dementia and not existing.has_dementia:
-                    existing.has_dementia = True
-                if member.age_at_onset and not existing.age_at_onset:
-                    existing.age_at_onset = member.age_at_onset
-                existing.properties.update(member.properties)
+        return None
 
-        self.family_members = list(unique_members.values())
-        logger.info(f"Deduplicated to {len(self.family_members)} unique family members")
+    def _is_duplicate_member(self, family_tree: FamilyTree, new_member: FamilyMember) -> bool:
+        """Check if this family member already exists"""
+        for existing in family_tree.family_members:
+            if (existing.relationship_type == new_member.relationship_type and
+                existing.gender == new_member.gender and
+                existing.has_dementia == new_member.has_dementia):
+                return True
+        return False
 
-    def _insert_family_members(self) -> int:
-        """Insert family member nodes into Neo4j"""
-        if not self.family_members:
-            logger.warning("No family members to insert")
+    def _find_patient_id_column(self, df: pd.DataFrame) -> Optional[str]:
+        """Find the patient ID column in the dataframe"""
+        id_patterns = ['PTID', 'RID', 'SUBJID', 'SUBJECT', 'ID', 'PATIENT']
+
+        for col in df.columns:
+            col_upper = col.upper()
+            if any(pattern in col_upper for pattern in id_patterns):
+                # Verify it contains valid patient IDs
+                sample = df[col].dropna().head(5)
+                if len(sample) > 0 and all(str(val).strip() for val in sample):
+                    return col
+        return None
+
+    def _extract_patient_id(self, row: pd.Series, ptid_col: str) -> Optional[str]:
+        """Extract and validate patient ID from row"""
+        if ptid_col not in row:
+            return None
+
+        ptid = str(row[ptid_col]).strip()
+        return ptid if ptid and not pd.isna(row[ptid_col]) else None
+
+    def create_family_nodes_in_neo4j(self) -> int:
+        """Create family member nodes in Neo4j"""
+
+        logger.info("Creating family member nodes in Neo4j...")
+
+        # Setup constraints and indexes
+        self.neo4j.create_constraint('FamilyMember', 'member_id')
+        self.neo4j.create_index('FamilyMember', 'patient_id')
+        self.neo4j.create_index('FamilyMember', 'relationship_type')
+
+        # Collect all family members
+        all_members = []
+        for family_tree in self.family_trees.values():
+            all_members.extend(family_tree.family_members)
+
+        if not all_members:
+            logger.warning("No family members to create")
             return 0
 
-        member_data = [m.to_dict() for m in self.family_members]
+        logger.info(f"Creating {len(all_members)} family member nodes...")
 
+        # Prepare data for batch insert
+        member_data = []
+        for member in all_members:
+            member_dict = {
+                'member_id': member.member_id,
+                'patient_id': member.patient_id,
+                'relationship_type': member.relationship_type,
+                'gender': member.gender if member.gender is not None else 'U',  # Use 'U' for unknown
+                'has_dementia': member.has_dementia if member.has_dementia is not None else False,
+                'dementia_type': member.dementia_type,
+                'age_at_onset': member.age_at_onset,
+                'source_table': member.properties.get('source_table'),
+                'source_column': member.properties.get('source_column'),
+                'created_at': datetime.now().isoformat()
+            }
+            # Remove None values to avoid Neo4j issues
+            member_dict = {k: v for k, v in member_dict.items() if v is not None}
+            member_data.append(member_dict)
+
+        # Create family member nodes
         query = """
         UNWIND $batch as member
         MERGE (fm:FamilyMember {member_id: member.member_id})
         SET fm += member,
-            fm.patient_id = member.patient_id,
-            fm.relationship_type = member.relationship_type,
-            fm.gender = member.gender,
-            fm.has_dementia = member.has_dementia,
-            fm.dementia_type = member.dementia_type,
-            fm.age_at_onset = member.age_at_onset,
-            fm.created_at = member.created_at
+            fm.updated_at = datetime()
         """
 
-        return self.connector.batch_write(query, member_data, batch_size=2000)
+        created_count = self.neo4j.batch_write(query, member_data, batch_size=1000)
+        logger.info(f"Created {created_count} family member nodes")
 
-    def _create_family_relationships(self) -> int:
-        """Create relationships between patients and family members"""
-        if not self.family_members:
-            return 0
-
-        relationships = []
-
-        for member in self.family_members:
-            relationships.append({
-                'patient_id': member.patient_id,
-                'member_id': member.member_id,
-                'relationship_type': member.relationship_type
-            })
-
-        # Base relationship
-        query = """
-        UNWIND $batch as rel
-        MATCH (p:Patient {ptid: rel.patient_id})
-        MATCH (fm:FamilyMember {member_id: rel.member_id})
+        # Connect family members to patients
+        connect_query = """
+        UNWIND $batch as member
+        MATCH (p:Patient {ptid: member.patient_id})
+        MATCH (fm:FamilyMember {member_id: member.member_id})
         MERGE (p)-[:HAS_FAMILY_MEMBER]->(fm)
         """
 
-        return self.connector.batch_write(query, relationships, batch_size=5000)
+        self.neo4j.batch_write(connect_query, member_data, batch_size=1000)
+        logger.info("Connected family members to patients")
+
+        # Create specific relationship types (FIXED to handle null gender and correct parameter passing)
+        self._create_typed_relationships_fixed()
+
+        return created_count
+
+    def _create_typed_relationships_fixed(self):
+        """Create specific typed relationships with proper null handling and correct parameter passing"""
+
+        for family_tree in self.family_trees.values():
+            patient_id = family_tree.patient_id
+
+            # Create parent relationships
+            parents = family_tree.get_members_by_type('parent')
+            if parents:
+                parent_data = []
+                for parent in parents:
+                    data = {
+                        'patient_id': patient_id,
+                        'member_id': parent.member_id
+                    }
+                    # Only add gender if it's not None
+                    if parent.gender is not None:
+                        data['gender'] = parent.gender
+                    parent_data.append(data)
+
+                # Use different queries based on whether gender is present
+                for data in parent_data:
+                    if 'gender' in data:
+                        query = """
+                        MATCH (p:Patient {ptid: $patient_id})
+                        MATCH (fm:FamilyMember {member_id: $member_id})
+                        MERGE (p)-[:HAS_PARENT {gender: $gender}]->(fm)
+                        """
+                    else:
+                        query = """
+                        MATCH (p:Patient {ptid: $patient_id})
+                        MATCH (fm:FamilyMember {member_id: $member_id})
+                        MERGE (p)-[:HAS_PARENT]->(fm)
+                        """
+
+                    # FIXED: Pass parameters as a dictionary, not as keyword arguments
+                    self.neo4j.execute_write_transaction(query, data)
+
+            # Create sibling relationships
+            siblings = family_tree.get_members_by_type('sibling')
+            if siblings:
+                for sibling in siblings:
+                    data = {
+                        'patient_id': patient_id,
+                        'member_id': sibling.member_id
+                    }
+
+                    # Create relationship without gender property if it's null
+                    if sibling.gender is not None:
+                        query = """
+                        MATCH (p:Patient {ptid: $patient_id})
+                        MATCH (fm:FamilyMember {member_id: $member_id})
+                        MERGE (p)-[:HAS_SIBLING {gender: $gender}]->(fm)
+                        """
+                        data['gender'] = sibling.gender
+                    else:
+                        query = """
+                        MATCH (p:Patient {ptid: $patient_id})
+                        MATCH (fm:FamilyMember {member_id: $member_id})
+                        MERGE (p)-[:HAS_SIBLING]->(fm)
+                        """
+
+                    # FIXED: Pass parameters as a dictionary, not as keyword arguments
+                    self.neo4j.execute_write_transaction(query, data)
+
+            # Create child relationships
+            children = family_tree.get_members_by_type('child')
+            if children:
+                for child in children:
+                    data = {
+                        'patient_id': patient_id,
+                        'member_id': child.member_id
+                    }
+
+                    if child.gender is not None:
+                        query = """
+                        MATCH (p:Patient {ptid: $patient_id})
+                        MATCH (fm:FamilyMember {member_id: $member_id})
+                        MERGE (p)-[:HAS_CHILD {gender: $gender}]->(fm)
+                        """
+                        data['gender'] = child.gender
+                    else:
+                        query = """
+                        MATCH (p:Patient {ptid: $patient_id})
+                        MATCH (fm:FamilyMember {member_id: $member_id})
+                        MERGE (p)-[:HAS_CHILD]->(fm)
+                        """
+
+                    # FIXED: Pass parameters as a dictionary, not as keyword arguments
+                    self.neo4j.execute_write_transaction(query, data)
 
 
-def execute_family_extraction(neo4j_uri: str, neo4j_user: str, neo4j_password: str,
-                            table_data: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
+def execute_family_extraction_fixed(neo4j_uri: str, neo4j_user: str, neo4j_password: str,
+                                    table_data: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
     """
-    Main execution function for family extraction
-
-    Args:
-        neo4j_uri: Neo4j connection URI
-        neo4j_user: Username
-        neo4j_password: Password
-        table_data: Loaded table data
-
-    Returns:
-        Extraction results
+    Fixed execution function for family extraction
     """
     connector = Neo4jConnector(neo4j_uri, neo4j_user, neo4j_password)
 
     try:
-        extractor = FamilyExtractor(connector, table_data)
-        results = extractor.execute()
+        extractor = FixedFamilyRelationshipExtractor(connector)
 
-        logger.info(f"✅ Created {results['family_members_created']} family members")
+        # Extract family data
+        family_trees = extractor.extract_family_data(table_data)
+
+        # Create nodes in Neo4j
+        nodes_created = extractor.create_family_nodes_in_neo4j()
+
+        results = {
+            'family_members_created': nodes_created,
+            'patients_with_family': len(family_trees),
+            'extraction_stats': extractor.extraction_stats
+        }
+
+        logger.info(f"✅ Created {nodes_created} family member nodes")
+        logger.info(f"✅ Processed {len(family_trees)} patients with family data")
+
         return results
 
+    except Exception as e:
+        logger.error(f"Family extraction failed: {e}")
+        raise
     finally:
         connector.close()

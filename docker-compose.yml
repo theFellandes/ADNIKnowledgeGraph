@@ -61,7 +61,7 @@ services:
 
   # Elasticsearch for Full-Text Search
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.4
     container_name: adni-kg-elasticsearch
     restart: always
     environment:
@@ -95,7 +95,7 @@ services:
 
   # Kibana (Optional - Visualization for Elasticsearch)
   kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.1
+    image: docker.elastic.co/kibana/kibana:9.0.4
     container_name: adni-kg-kibana
     restart: always
     environment:

@@ -1,0 +1,173 @@
+Preserving Medical Image Quality: DICOM vs. PNG, TIFF, and Other Formats
+Preserving Image Quality: Lossless vs. Lossy Formats
+When selecting an image format for storing medical images, the highest priority is preserving quality. This means avoiding lossy compression methods (like standard JPEG), since they irreversibly discard image information and can blur fine details
+mathworks.com
+. In contrast, lossless formats retain 100% of the original pixel data. Formats such as TIFF or PNG use lossless compression that reduces file size without any degradation in image quality
+intelerad.com
+. For example, a radiology blog notes that lossless compression “reduces the file without diminishing the quality of the image” (e.g. by converting to PNG or TIFF), whereas lossy compression achieves smaller files only by eliminating some of the image data
+intelerad.com
+. Given that diagnostic accuracy is paramount, using lossless storage ensures no clinically relevant details are lost. Medical guidelines reinforce this focus on quality. In fact, U.S. regulations for mammography require that images be stored either in original form or with only lossless compression; lossy compression is explicitly prohibited for long-term archiving of mammograms
+pmc.ncbi.nlm.nih.gov
+. This underscores the importance of preserving full fidelity in medical imaging. Many radiology standards bodies (ACR, RCR, CAR, etc.) allow lossy compression only in limited scenarios and often with conservative ratios – for example, the UK Royal College of Radiologists recommends 10:1 as the maximum compression for many X-ray images (and as low as 5:1 for CT scans) to ensure diagnostic quality is not compromised
+pmc.ncbi.nlm.nih.gov
+. Such guidelines generally require that any lossy-compressed image be indistinguishable from the original for diagnostic purposes. In practice, to be safe, one should treat lossless storage as the default for archiving critical medical images.
+DICOM vs. Standard Image Formats (PNG, TIFF, SVG)
+DICOM (.dcm) is the standard file format and communication protocol in medical imaging. Unlike a simple image file, DICOM is a container that includes the pixel data and rich metadata (patient demographics, scanner parameters, image orientation, multi-slice sequences, etc.)
+mathworks.com
+. DICOM images are typically either uncompressed or use special medical compressions (including lossless options like JPEG-LS or JPEG2000). By design, DICOM preserves the full bit depth and dynamic range of the modality (e.g. 12-bit or 16-bit grayscale for CT/MRI), whereas some common image formats might inadvertently reduce bit-depth or apply gamma adjustments if not handled carefully. In a recent study comparing the same radiographic images saved in different formats, the DICOM version had objectively better image quality than the TIFF, PNG, BMP, and JPEG versions
+pmc.ncbi.nlm.nih.gov
+. Specifically, the DICOM images exhibited lower noise and greater image uniformity compared to images exported in those other formats
+pmc.ncbi.nlm.nih.gov
+pmc.ncbi.nlm.nih.gov
+. (The non-DICOM exports presumably introduced subtle changes – for example, the export software may have downsampled the bit depth or applied compression.) The takeaway is that the DICOM format, being the native data from the device, is optimal for preserving all original image information. That said, standard formats like PNG or TIFF can also be used to store medical images without quality loss, provided they are used correctly. Both PNG and TIFF support lossless compression, and importantly, they can handle high bit depths (TIFF in particular supports 16-bit grayscale or higher, and PNG supports up to 16 bits per channel)
+candelis.com
+. If a DICOM’s pixel data is exported directly into a 16-bit PNG or TIFF, the pixel values can be preserved exactly. The main difference is that these formats will not carry the full DICOM metadata and context – you would need to separately preserve any clinical metadata if it’s required. Also, care must be taken during conversion: one should avoid unintentionally applying window/level or converting to 8-bit color, which would indeed lose information. When used properly, a TIFF or PNG image can be pixel-for-pixel identical to the original DICOM pixel data. Using SVG (a vector graphics format) is generally not appropriate for radiological images. SVG is designed for line art and shapes, not for encoding millions of individual pixel intensities. Converting a complex greyscale image (like an X-ray or MRI slice) to SVG would require vectorizing it, which either is impossible for true continuous-tone images or would produce an enormous file with reduced detail. SVG is valuable for drawings or diagrams (since it is resolution-independent), but it cannot faithfully represent a detailed photographic image without severe quality loss. Therefore, SVG is not used for medical image storage (except perhaps for schematic overlays); raster formats (DICOM, TIFF, PNG) are needed for preserving the actual image data. Among these, DICOM remains the gold standard due to its ability to encapsulate both image and metadata, and to integrate with medical workflows
+mathworks.com
+. Importantly, lossy formats like JPEG should be avoided for the primary diagnostic images. As one imaging expert succinctly put it, “jpeg are not good for scientific study as jpeg is a lossy image compression... whatever you do, avoid using JPEG for serious science work.”
+mathworks.com
+mathworks.com
+ In other words, even though JPEG files are smaller, they achieve that by throwing away fine details – an unacceptable trade-off in contexts like radiology where subtle details could impact diagnosis.
+File Size, Compression, and Retrieval Speed
+One motivation to consider alternative formats is file size and retrieval speed. DICOM files can be quite large; for example, a single CT scan (comprised of many slices) can be tens or even hundreds of megabytes. Both network transmission and web viewing can become slow if the full files are huge. Here, using compression (but without quality loss) can help. Lossless compression algorithms typically achieve a 2:1 to 10:1 reduction in medical image file size, depending on image content
+advahealthsolutions.com
+. This means a 100 MB dataset might compress down to ~50 MB or even 10 MB with no loss of detail. Formats like PNG and TIFF internally use lossless compression (PNG uses DEFLATE, TIFF can use LZW or other lossless schemes), so converting an uncompressed DICOM to a PNG will often yield a smaller file to transfer. Additionally, the DICOM standard itself supports embedding compressed pixel data (e.g. a DICOM file can use JPEG-LS or JPEG2000 compression internally), which similarly achieves size reduction while preserving full image fidelity
+advahealthsolutions.com
+advahealthsolutions.com
+. It’s worth noting the performance trade-off between file size and computational overhead. A raw/uncompressed image will be fastest for a computer to open (since no decoding is needed) but slowest to transfer over a network due to its large size. Conversely, a compressed image (like a PNG) uses fewer bytes and thus transfers faster, but requires a moment of CPU time to decompress on the client side. Given modern hardware, the decompression step for formats like PNG is usually negligible compared to network transfer times. As one practitioner pointed out, on local storage it can actually be faster to use uncompressed images (to avoid the CPU cost of decoding), but over a network the bottleneck is typically bandwidth, so compressing the data yields a net speedup
+reddit.com
+. In web environments, this means that using lossless compression is usually beneficial: the reduced file size more than makes up for the minimal CPU decoding time in the browser or application. Real-world results can vary depending on how the images were originally stored. If a DICOM image is already in a compressed form, converting it to PNG might not save space – in fact, one user observed a DICOM file of 163 KB ballooning to about 394 KB when naively converted to PNG
+reddit.com
+. This happened likely because the DICOM was already compressed (or contained very sparse image data), whereas the PNG’s compression algorithm was less efficient for that particular content. Generally though, if starting from an uncompressed DICOM, a PNG or TIFF will produce a smaller file than the original DICOM. Moreover, because PNG is lossless, any difference in file size is purely about compression efficiency, not image quality. A Q&A on DICOM conversion confirms that converting to PNG does not degrade quality (unlike converting to JPEG), though PNG files “may result in larger file sizes” than the original in some cases
+collectiveminds.health
+. If minimizing size is critical, one could also consider more advanced lossless codecs like JPEG-LS or JPEG2000 (in lossless mode), which often compress medical images better than PNG does. The DICOM standard supports these, and indeed the Canadian Association of Radiologists recommends using JPEG2000 over older JPEG because of its superior compression and ability to handle high bit-depth images
+pmc.ncbi.nlm.nih.gov
+. In practice, JPEG2000 and even newer codecs (like H.265/HEVC in an intra-frame lossless mode) can yield slightly higher compression ratios on medical images while still allowing exact pixel-for-pixel reconstruction
+advahealthsolutions.com
+pmc.ncbi.nlm.nih.gov
+. For example, one study noted that HEVC and JPEG2000 could compress certain medical images to roughly half the size of what baseline PNG or older methods achieved, all without losing information
+advahealthsolutions.com
+. In summary, to improve retrieval speed without sacrificing quality, leverage lossless compression. Whether that means storing images as PNG/TIFF files or as DICOM-with-internal-JPEG2000, the end result is smaller file sizes but identical diagnostic content. This can significantly speed up image loading from a server or PACS, especially for large studies, while keeping the full fidelity required for diagnostics. The key is to avoid lossy compression in any step that would permanently remove clinically important detail.
+Multi-Version Storage and Web Visualization Strategy
+Given the need for both speed and quality, a sensible approach is to store two versions of each image: (1) a full-quality version for diagnostic use and archival, and (2) a downsized or derived version for quick viewing and web display. This addresses the use-case described: on a web page, one can initially load a small thumbnail (perhaps a low-resolution JPEG or PNG) for fast preview, and then when the user clicks “Details” or opens the image, the system can fetch the high-resolution version on demand. The detailed version should be the original-quality image (or a mathematically lossless equivalent). In a medical context, that usually means the DICOM file itself or an exact full-resolution conversion (e.g. a 16-bit PNG/TIFF). Since both versions are stored, the high-res image doesn’t need to be generated on the fly or compromised – it’s readily available for diagnostic review. For example, a PACS or image server might keep the original DICOM and also generate a full-res PNG for web viewing. The clinician’s diagnostic workstation could retrieve the DICOM (ensuring all metadata and windowing capability is present), whereas a web browser app might use the PNG if it doesn’t have a built-in DICOM viewer. Either way, the image data presented for diagnosis is unaltered from the original. This dual-storage strategy is common in medical imaging systems. The thumbnail (or downsampled image) is used for fast navigation through image lists, saving bandwidth and load time. However, when actual diagnosis or detailed viewing is needed, the full image is pulled and displayed. Notably, many systems will use a standard format like JPEG for thumbnails (since a small lossy thumbnail is generally acceptable for mere preview purposes), while ensuring the full diagnostic image is lossless. This aligns with best practices: you might display a small JPEG in the study list, but upon opening the exam, the radiologist sees either the original DICOM or a full-quality lossless image. In essence, the thumbnail addresses performance, and the full image preserves quality. Storing both versions does require a bit more storage space, but thumbnails or downsampled images are typically very small compared to the originals. The trade-off is well worth it for the improvements in user experience. It is also helpful for sharing images with those who may not need the full diagnostic detail – for instance, sharing a clinical image with a patient or in a presentation. In such cases, a standard format image (PNG/JPEG) at reduced resolution can be used for convenience, while the original remains on the server for reference. (One DICOM-sharing guide notes that if you are sending images to patients or others who “do not need the same level of detail as a medical provider,” you can convert the DICOM into a smaller common format to save time and bandwidth
+collectiveminds.health
+.) As long as the diagnostic workflows still have access to the full-quality image, this approach does not compromise care. On the contrary, it improves efficiency by delivering each user the appropriate version: a lightweight preview for quick viewing and the heavy full-quality file only when needed.
+Conclusion and Recommendations
+To maximize image quality while also considering storage and speed, here are key recommendations based on the research:
+Use lossless formats and avoid quality loss. Always preserve the original image data. If the images come off the modality in DICOM format, retain those DICOM files for archival. DICOM is specifically designed for medical imaging and ensures that all pixel data and relevant metadata are kept intact
+mathworks.com
+. If you convert to another format, choose a lossless option (e.g. PNG or TIFF) and verify that no downsampling or bit-depth reduction occurs during conversion. Studies have shown that DICOM images maintain higher objective image quality than improperly exported copies
+pmc.ncbi.nlm.nih.gov
+pmc.ncbi.nlm.nih.gov
+, so make sure any conversion is done in a way that nothing is lost.
+Store both an original and a derived version. Given your use-case, it is wise to store two versions of each image: the full-resolution original (for diagnostic use) and a secondary version optimized for web visualization. The secondary version could be a high-quality PNG or TIFF if you need full fidelity in the browser, or a JPEG/PNG thumbnail for quick previews. Having an easily viewable image format alongside the DICOM can simplify integration with web viewers and allow quick sharing with non-radiologists (since browsers and standard image software can open PNG/JPEG easily)
+collectiveminds.health
+. Meanwhile, the original DICOM (or an exact duplicate in another format) is kept for any tasks requiring absolute quality (e.g. radiologist reads, image processing, or future re-analysis).
+Prioritize lossless compression (if any). If you need to compress images to save space or improve transfer speed, use lossless compression techniques. This could mean storing the DICOM with a lossless transfer syntax (like JPEG2000 lossless) or converting the pixel data to a PNG/TIFF which are inherently lossless. Lossless compression can often reduce file sizes significantly (by 2× to 10×) without any sacrifice in image quality
+advahealthsolutions.com
+. Avoid standard JPEG or other lossy formats for the stored diagnostic images, since those will discard detail and could impair diagnosis
+mathworks.com
+. The only time lossy images should be used is for things like tiny thumbnails or when explicitly allowed for non-diagnostic purposes – and even then, many institutions choose ratios that are visually lossless for safety
+pmc.ncbi.nlm.nih.gov
+. When in doubt, stick to lossless methods (or keep the original alongside any lossy version).
+Leverage thumbnails and on-demand loading for web apps. For web visualization, follow the practice of loading a small thumbnail in the gallery or list view, then loading the full image on-demand when the user wants details. Thumbnails can be pre-generated and stored to make the web UI very snappy. The detailed image can be fetched in the background when a user opens the study. This way, network usage is minimized until necessary. As discussed, the detailed image delivered should be the high-quality version (original or lossless-equivalent) to ensure the user can perform diagnostic zooming, windowing, etc. without any quality issues. This approach of multi-resolution storage is common in PACS and pathology imaging (where, for example, large images are stored in pyramidal TIFFs or tiled DICOMs for efficient viewing at various zoom levels)
+pmc.ncbi.nlm.nih.gov
+. It improves user experience while still guaranteeing that the fidelity is there when it counts.
+Overall, the main focus should be preserving image quality. By using appropriate lossless formats and storage strategies, you can ensure that no diagnostically important information is lost. The research and standards in medical imaging consistently emphasize maintaining original image integrity for primary use
+pmc.ncbi.nlm.nih.gov
+. Speed and efficiency can be addressed by smart use of compression and multiple image versions, rather than by resorting to lossy compression. In short: keep your original data safe (no quality loss), and add additional compressed or downscaled versions as needed for convenience. This way, you satisfy both requirements – maximal image quality and reasonable retrieval speed – in a robust, evidence-backed manner. Sources:
+Nogueira-Reis et al., Braz Dent J. (2023) – Found DICOM format yielded lower noise and better uniformity than TIFF/PNG/JPEG when the same X-ray images were saved in different formats
+pmc.ncbi.nlm.nih.gov
+pmc.ncbi.nlm.nih.gov
+.
+Roberson, MATLAB Central (2015) – Explained why DICOM is used instead of JPEG/TIFF; DICOM is a complete standard for medical images (storing pixel data plus meta-information like patient ID, calibration, multi-slice, etc.), whereas JPEG is lossy (“blurs” details) and even TIFF lacks many medical-specific capabilities
+mathworks.com
+mathworks.com
+.
+Intelerad Blog (2023) – Notes that DICOM files are large (e.g. a CT scan ~30 MB), so practitioners may compress images. Lossless methods (e.g. exporting to TIFF/PNG) reduce file size without quality loss, whereas lossy methods (JPEG, GIF) achieve smaller size by discarding data
+intelerad.com
+.
+Candelis Guide – “How to Share, View, Store DICOM” – Describes exporting DICOM images with either lossless compression (to a TIFF/PNG with no quality impact) or lossy compression (to JPEG/GIF, which removes some data)
+candelis.com
+. Emphasizes that lossless conversion preserves image quality and data integrity
+candelis.com
+.
+AdvaHealth Solutions (2021) – Discusses DICOM compression for teleradiology. Lossless compression maintains original detail and can shrink files by about 2× to 10× in size, improving transfer times without harming image quality
+advahealthsolutions.com
+. Recommends lossless methods (JPEG-LS, JPEG2000) as “safe choices” for most cases
+advahealthsolutions.com
+.
+FDA Mammography Standards (MQSA) – Require that digital mammograms be stored either uncompressed or with lossless compression; the use of lossy compression for long-term storage is not allowed
+pmc.ncbi.nlm.nih.gov
+. This highlights the legal/regulatory mandate to preserve full quality for critical medical images.
+Collective Minds Radiology FAQ (2024) – Confirms that converting DICOM images to PNG does not lose quality (PNG is lossless), although PNG files may be larger than the original or than an equivalent JPEG. Converting to JPEG, however, will introduce quality loss
+collectiveminds.health
+. Also notes that converting to common formats is useful for sharing images with non-professionals or using in standard image tools
+collectiveminds.health
+ (which supports keeping a secondary version for ease of access).
+Citations
+
+why DICOM images are used in biomedical imaging instead of .jpg or .tiff ? - MATLAB Answers - MATLAB Central
+
+https://www.mathworks.com/matlabcentral/answers/262297-why-dicom-images-are-used-in-biomedical-imaging-instead-of-jpg-or-tiff
+
+Medical Imaging Viewer (InteleViewer­ or Enterprise Viewer) | Intelerad
+
+https://www.intelerad.com/en/2023/02/23/handling-dicom-medical-imaging-data/
+The Current Role of Image Compression Standards in Medical Imaging - PMC
+
+https://pmc.ncbi.nlm.nih.gov/articles/PMC8525863/
+The Current Role of Image Compression Standards in Medical Imaging - PMC
+
+https://pmc.ncbi.nlm.nih.gov/articles/PMC8525863/
+
+why DICOM images are used in biomedical imaging instead of .jpg or .tiff ? - MATLAB Answers - MATLAB Central
+
+https://www.mathworks.com/matlabcentral/answers/262297-why-dicom-images-are-used-in-biomedical-imaging-instead-of-jpg-or-tiff
+DICOM file format has better radiographic image quality than other file formats: an objective study - PMC
+
+https://pmc.ncbi.nlm.nih.gov/articles/PMC10642272/
+DICOM file format has better radiographic image quality than other file formats: an objective study - PMC
+
+https://pmc.ncbi.nlm.nih.gov/articles/PMC10642272/
+
+DICOM Files: How to Share, View, Store and More | Candelis
+
+https://www.candelis.com/blog/dicom-files-how-to
+
+why DICOM images are used in biomedical imaging instead of .jpg or .tiff ? - MATLAB Answers - MATLAB Central
+
+https://www.mathworks.com/matlabcentral/answers/262297-why-dicom-images-are-used-in-biomedical-imaging-instead-of-jpg-or-tiff
+
+Overcoming bandwidth limitations with DICOM compression - AdvaHealth Solutions
+
+https://advahealthsolutions.com/overcoming-bandwidth-limitations-with-dicom-compression/
+
+Overcoming bandwidth limitations with DICOM compression - AdvaHealth Solutions
+
+https://advahealthsolutions.com/overcoming-bandwidth-limitations-with-dicom-compression/
+
+Overcoming bandwidth limitations with DICOM compression - AdvaHealth Solutions
+
+https://advahealthsolutions.com/overcoming-bandwidth-limitations-with-dicom-compression/
+
+Benefits of converting DICOM images to PNG's [P] : r/MachineLearning
+
+https://www.reddit.com/r/MachineLearning/comments/16y6ul8/benefits_of_converting_dicom_images_to_pngs_p/
+
+Benefits of converting DICOM images to PNG's [P] : r/MachineLearning
+
+https://www.reddit.com/r/MachineLearning/comments/16y6ul8/benefits_of_converting_dicom_images_to_pngs_p/
+
+Converting DICOM to JPG or PNG: A Comprehensive Guide to Methods and Libraries
+
+https://collectiveminds.health/articles/converting-dicom-to-jpg-a-comprehensive-guide-to-methods-and-libraries
+The Current Role of Image Compression Standards in Medical Imaging - PMC
+
+https://pmc.ncbi.nlm.nih.gov/articles/PMC8525863/
+
+Converting DICOM to JPG or PNG: A Comprehensive Guide to Methods and Libraries
+
+https://collectiveminds.health/articles/converting-dicom-to-jpg-a-comprehensive-guide-to-methods-and-libraries
+The Current Role of Image Compression Standards in Medical Imaging - PMC
+
+https://pmc.ncbi.nlm.nih.gov/articles/PMC8525863/

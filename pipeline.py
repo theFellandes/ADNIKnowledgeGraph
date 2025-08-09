@@ -1,6 +1,6 @@
 """
 ADNI Knowledge Graph Pipeline
-Main orchestrator for building a comprehensive Alzheimer's Disease knowledge graph
+Main orchestrator with support for incremental data loading
 """
 
 import logging
@@ -17,22 +17,20 @@ import yaml
 from steps.step1_database_setup import execute_database_setup
 from steps.step2_load_tables import execute_table_loading
 from steps.step3_create_patients import execute_patient_creation
-from steps.step4_extract_family import execute_family_extraction
-from steps.step5_process_images import execute_image_processing
-from steps.step6_extract_findings import execute_findings_extraction
-from steps.step7_batch_insert import execute_batch_insertion
-from steps.step8_create_relationships import execute_relationship_creation
+from steps.step4_extract_family import execute_family_extraction_fixed
+from steps.step5_process_images_optimized import execute_image_processing_optimized
+from steps.step6_extract_findings_robust import execute_findings_extraction_fixed
+from steps.step7_batch_insert import execute_batch_insertion_fixed
+from steps.step8_create_relationships import execute_comprehensive_relationship_creation
+from steps.step9_knowledge_graph_enhancer import enhance_knowledge_graph
+from steps.step10_execute_queries import execute_analysis_queries
 from utils.quality_aware_logger import QualityAwarePipeline
 
-LOG_FMT = (
-    "%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s"
-)
+LOG_FMT = "%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s"
 
-# Configure logging
+
 def setup_logging(log_level: str = "INFO", log_file: Optional[str] = None):
     """Set up logging configuration"""
-    log_format = "% (asctime)s - %(name)s - %(levelname)s - %(message)s"
-
     handlers = [logging.StreamHandler(sys.stdout)]
 
     if log_file:
@@ -47,7 +45,7 @@ def setup_logging(log_level: str = "INFO", log_file: Optional[str] = None):
 
 
 class ADNIPipeline:
-    """Main pipeline orchestrator for ADNI knowledge graph"""
+    """Main pipeline orchestrator for ADNI knowledge graph with incremental support"""
 
     def __init__(self, config: Dict[str, Any]):
         """
@@ -61,12 +59,24 @@ class ADNIPipeline:
         self.start_time = None
         self.logger = logging.getLogger(__name__)
 
+        # Determine pipeline mode
+        self.incremental_mode = config.get('incremental', False)
+        self.clear_mode = config.get('clear_database', False)
+
         # Validate configuration
         self._validate_config()
 
         # Create output directory
         self.output_dir = Path(config.get('output_dir', 'outputs'))
         self.output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Log mode
+        if self.clear_mode:
+            self.logger.info("🗑️ Pipeline running in CLEAR MODE - all data will be deleted first")
+        elif self.incremental_mode:
+            self.logger.info("➕ Pipeline running in INCREMENTAL MODE - existing data will be preserved")
+        else:
+            self.logger.info("🆕 Pipeline running in FRESH MODE")
 
     def _validate_config(self):
         """Validate required configuration parameters"""
@@ -85,6 +95,11 @@ class ADNIPipeline:
         if not tables_path.exists():
             raise ValueError(f"Tables directory not found: {tables_path}")
 
+        # Warn about conflicting modes
+        if self.clear_mode and self.incremental_mode:
+            self.logger.warning("Both clear_database and incremental are set. Clear takes precedence.")
+            self.incremental_mode = False
+
     def run(self) -> Dict[str, Any]:
         """
         Execute the complete pipeline
@@ -100,7 +115,7 @@ class ADNIPipeline:
         self.logger.info(f"Configuration: {self._safe_config()}")
 
         try:
-            # Step 1: Database Setup
+            # Step 1: Database Setup (with ES clearing if needed)
             if self.config.get('run_database_setup', True):
                 self._run_step(1, "Database Setup", self._execute_database_setup)
 
@@ -116,7 +131,7 @@ class ADNIPipeline:
             if self.config.get('run_family_extraction', True):
                 self._run_step(4, "Extract Family", self._execute_family_extraction)
 
-            # Step 5: Process Images
+            # Step 5: Process Images (already has incremental support)
             if self.config.get('run_image_processing', True):
                 self._run_step(5, "Process Images", self._execute_image_processing)
 
@@ -131,6 +146,14 @@ class ADNIPipeline:
             # Step 8: Create Relationships
             if self.config.get('run_relationship_creation', True):
                 self._run_step(8, "Create Relationships", self._execute_relationship_creation)
+
+            # Step 9: Enhance Knowledge Graph
+            if self.config.get('run_knowledge_graph_enhancer', True):
+                self._run_step(9, "Enhance Knowledge Graph", self._execute_knowledge_enhancement)
+
+            # Step 10: Execute Queries
+            if self.config.get('run_query_execution', True):
+                self._run_step(10, "Execute Queries", self._execute_queries)
 
             # Generate final report
             self._generate_final_report()
@@ -159,6 +182,12 @@ class ADNIPipeline:
         """Run a single pipeline step"""
         self.logger.info(f"\n{'=' * 60}")
         self.logger.info(f"STEP {step_num}: {step_name.upper()}")
+
+        if self.incremental_mode and step_num > 1:
+            self.logger.info(f"  Mode: INCREMENTAL")
+        elif self.clear_mode and step_num == 1:
+            self.logger.info(f"  Mode: CLEAR ALL DATA")
+
         self.logger.info(f"{'=' * 60}")
 
         start = datetime.now()
@@ -167,7 +196,7 @@ class ADNIPipeline:
             result = step_function()
             duration = (datetime.now() - start).total_seconds()
 
-            self.results[f'step{step_num}_{step_name.lower().replace(" ", "_") }'] = {
+            self.results[f'step{step_num}_{step_name.lower().replace(" ", "_")}'] = {
                 'status': 'success',
                 'duration_seconds': duration,
                 'result': result
@@ -177,19 +206,34 @@ class ADNIPipeline:
 
         except Exception as e:
             self.logger.error(f"❌ {step_name} failed: {e}")
-            self.results[f'step{step_num}_{step_name.lower().replace(" ", "_") }'] = {
+            self.results[f'step{step_num}_{step_name.lower().replace(" ", "_")}'] = {
                 'status': 'failed',
                 'error': str(e)
             }
             raise
 
     def _execute_database_setup(self) -> Dict[str, Any]:
-        """Execute database setup step"""
+        """Execute database setup step with ES clearing support"""
+
+        # Get Elasticsearch config
+        es_config = self.config.get('elasticsearch', {})
+        es_host = es_config.get('host', 'localhost')
+        es_port = es_config.get('port', 9200)
+
+        # If using image storage config, use those ES settings
+        if 'image_storage' in self.config:
+            storage_config = self.config['image_storage']
+            es_host = storage_config.get('es_host', es_host)
+            es_port = storage_config.get('es_port', es_port)
+
         return execute_database_setup(
             neo4j_uri=self.config['neo4j_uri'],
             neo4j_user=self.config['neo4j_user'],
             neo4j_password=self.config['neo4j_password'],
-            clear_database=self.config.get('clear_database', False)
+            clear_database=self.clear_mode,
+            incremental=self.incremental_mode,
+            es_host=es_host,
+            es_port=es_port
         )
 
     def _execute_table_loading(self) -> Dict[str, Any]:
@@ -204,10 +248,12 @@ class ADNIPipeline:
         return result
 
     def _execute_patient_creation(self) -> Dict[str, Any]:
-        """Execute patient creation step"""
+        """Execute patient creation step with incremental support"""
         if not hasattr(self, 'table_data'):
             raise ValueError("Table data not loaded. Run table loading step first.")
 
+        # TODO: Modify execute_patient_creation to support incremental mode
+        # For now, it will use MERGE operations which are naturally incremental
         return execute_patient_creation(
             neo4j_uri=self.config['neo4j_uri'],
             neo4j_user=self.config['neo4j_user'],
@@ -220,7 +266,7 @@ class ADNIPipeline:
         if not hasattr(self, 'table_data'):
             raise ValueError("Table data not loaded. Run table loading step first.")
 
-        return execute_family_extraction(
+        return execute_family_extraction_fixed(
             neo4j_uri=self.config['neo4j_uri'],
             neo4j_user=self.config['neo4j_user'],
             neo4j_password=self.config['neo4j_password'],
@@ -228,160 +274,110 @@ class ADNIPipeline:
         )
 
     def _execute_image_processing(self) -> Dict[str, Any]:
-        """Execute image processing step"""
-        # Check if we should use external storage (new default)
+        """Execute optimized image processing"""
         use_external_storage = self.config.get('use_external_storage', True)
 
         if use_external_storage:
-            self.logger.info("📁 Using external storage for images")
+            self.logger.info("📁 Using optimized external storage for images")
 
-            # Try to import and use the external storage version
-            try:
-                # Import from correct path
-                from steps.step5_process_images_external import execute_image_processing_external
+            storage_config = self.config.get('image_storage', {})
+            storage_path = storage_config.get('storage_path')
 
-                # Get storage configuration
-                storage_config = self.config.get('image_storage', {})
-                storage_path = storage_config.get('storage_path')
+            if not storage_path:
+                storage_path = str(Path(self.config['base_path']) / '../outputs/image_store')
 
-                if not storage_path:
-                    # Default storage path
-                    storage_path = str(Path(self.config['base_path']) / '../outputs/image_store')
+            Path(storage_path).mkdir(parents=True, exist_ok=True)
 
-                # Execute with external storage
-                result = execute_image_processing_external(
-                    neo4j_uri=self.config['neo4j_uri'],
-                    neo4j_user=self.config['neo4j_user'],
-                    neo4j_password=self.config['neo4j_password'],
-                    base_path=self.config['base_path'],
-                    storage_path=storage_path,
-                    storage_config=storage_config,
-                    max_workers=self.config.get('max_workers', 8)
-                )
 
-                # Log storage statistics
-                if 'storage_size_mb' in result:
-                    self.logger.info(f"📊 Image storage size: {result['storage_size_mb']:.2f} MB")
-                if 'quality_metrics' in result:
-                    metrics = result['quality_metrics']
-                    if metrics.get('avg_snr'):
-                        self.logger.info(f"📈 Average image SNR: {metrics['avg_snr']:.2f}")
+            # Use optimized processing
+            result = execute_image_processing_optimized(
+                neo4j_uri=self.config['neo4j_uri'],
+                neo4j_user=self.config['neo4j_user'],
+                neo4j_password=self.config['neo4j_password'],
+                base_path=self.config['base_path'],
+                storage_path=storage_path,
+                storage_config=storage_config,
+                max_workers=self.config.get('max_workers', 8)
+            )
 
-                # Store processor for batch insertion
-                self.image_processor = result.get('processor')
-                return result
-
-            except ImportError as e:
-                self.logger.warning(f"External storage module not found: {e}")
-                self.logger.warning("Falling back to original image processing (blob storage)")
-
-                # Fall back to original image processing
-                try:
-                    from steps.step5_process_images import execute_image_processing
-
-                    result = execute_image_processing(
-                        neo4j_uri=self.config['neo4j_uri'],
-                        neo4j_user=self.config['neo4j_user'],
-                        neo4j_password=self.config['neo4j_password'],
-                        base_path=self.config['base_path'],
-                        store_blobs=self.config.get('store_image_blobs', False),
-                        max_workers=self.config.get('max_workers', 8)
-                    )
-
-                    # Store processor for batch insertion
-                    self.image_processor = result.get('processor')
-                    return result
-
-                except ImportError as e2:
-                    self.logger.error(f"Could not import any image processing module: {e2}")
-                    # Return minimal result to allow pipeline to continue
-                    return {
-                        'mri_processed': 0,
-                        'pet_processed': 0,
-                        'studies_created': 0,
-                        'images_created': 0,
-                        'images_stored': 0,
-                        'storage_size_mb': 0,
-                        'errors': [str(e), str(e2)]
-                    }
+            self.image_processor = result.get('processor')
+            return result
         else:
-            # Use original blob storage (not recommended)
-            self.logger.warning("⚠️  Using blob storage (not recommended for production)")
-            self.logger.warning("Consider setting 'use_external_storage: true' in config.yaml")
-
-            try:
-                from steps.step5_process_images import execute_image_processing
-
-                result = execute_image_processing(
-                    neo4j_uri=self.config['neo4j_uri'],
-                    neo4j_user=self.config['neo4j_user'],
-                    neo4j_password=self.config['neo4j_password'],
-                    base_path=self.config['base_path'],
-                    store_blobs=self.config.get('store_image_blobs', True),
-                    max_workers=self.config.get('max_workers', 8)
-                )
-
-                # Store processor for batch insertion
-                self.image_processor = result.get('processor')
-                return result
-
-            except ImportError as e:
-                self.logger.error(f"Could not import image processing module: {e}")
-                # Return minimal result to allow pipeline to continue
-                return {
-                    'mri_processed': 0,
-                    'pet_processed': 0,
-                    'studies_created': 0,
-                    'images_created': 0,
-                    'images_stored': 0,
-                    'storage_size_mb': 0,
-                    'errors': [str(e)]
-                }
+            self.logger.warning("External storage disabled - no image processing")
+            return {
+                "images_created": 0,
+                "images_stored": 0,
+                "images_indexed": 0
+            }
 
     def _execute_findings_extraction(self) -> Dict[str, Any]:
-        """Execute findings extraction step"""
+        """Execute fixed findings extraction"""
         if not hasattr(self, 'table_data'):
             raise ValueError("Table data not loaded. Run table loading step first.")
 
-        result = execute_findings_extraction(
+        result = execute_findings_extraction_fixed(
             neo4j_uri=self.config['neo4j_uri'],
             neo4j_user=self.config['neo4j_user'],
             neo4j_password=self.config['neo4j_password'],
             table_data=self.table_data
         )
 
-        # Store extractor for batch insertion
         self.findings_extractor = result.get('extractor')
-
         return result
 
     def _execute_batch_insertion(self) -> Dict[str, Any]:
         """Execute batch insertion step"""
-        # Prepare data objects
         data_objects = {}
 
-        if hasattr(self, 'image_processor'):
+        if hasattr(self, 'image_processor') and self.image_processor:
             data_objects['image_processor'] = self.image_processor
+            self.logger.info("Image processor available for batch insertion")
+        else:
+            self.logger.warning("Image processor not available for batch insertion")
 
-        if hasattr(self, 'findings_extractor'):
+        if hasattr(self, 'findings_extractor') and self.findings_extractor:
             data_objects['findings_extractor'] = self.findings_extractor
+            self.logger.info("Findings extractor available for batch insertion")
+        else:
+            self.logger.warning("Findings extractor not available for batch insertion")
 
-        if not data_objects:
-            raise ValueError("No data to insert. Run processing steps first.")
-
-        return execute_batch_insertion(
-            neo4j_uri=self.config['neo4j_uri'],
-            neo4j_user=self.config['neo4j_user'],
-            neo4j_password=self.config['neo4j_password'],
-            data_objects=data_objects
-        )
+        try:
+            return execute_batch_insertion_fixed(
+                neo4j_uri=self.config['neo4j_uri'],
+                neo4j_user=self.config['neo4j_user'],
+                neo4j_password=self.config['neo4j_password'],
+                data_objects=data_objects
+            )
+        except Exception as e:
+            self.logger.error(f"Batch insertion failed: {e}")
+            return {'error': str(e), 'total_inserted': 0}
 
     def _execute_relationship_creation(self) -> Dict[str, Any]:
         """Execute relationship creation step"""
-        return execute_relationship_creation(
+        return execute_comprehensive_relationship_creation(
             neo4j_uri=self.config['neo4j_uri'],
             neo4j_user=self.config['neo4j_user'],
             neo4j_password=self.config['neo4j_password']
+        )
+
+    def _execute_knowledge_enhancement(self) -> Dict[str, Any]:
+        """Execute knowledge graph enhancement"""
+        return enhance_knowledge_graph(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password']
+        )
+
+    def _execute_queries(self) -> Dict[str, Any]:
+        """Execute analysis queries"""
+        queries_file = self.config.get('queries_file', 'queries.txt')
+
+        return execute_analysis_queries(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password'],
+            queries_file=queries_file,
+            include_additional=self.config.get('include_additional_queries', True)
         )
 
     def _generate_final_report(self):
@@ -390,9 +386,24 @@ class ADNIPipeline:
         self.logger.info("FINAL PIPELINE REPORT")
         self.logger.info("=" * 70)
 
-        # Overall statistics
-        total_nodes = 0
-        total_relationships = 0
+        # Mode information
+        if self.clear_mode:
+            self.logger.info("📋 Mode: CLEAR (All data was deleted and recreated)")
+        elif self.incremental_mode:
+            self.logger.info("📋 Mode: INCREMENTAL (New data added to existing)")
+        else:
+            self.logger.info("📋 Mode: FRESH")
+
+        # Get database stats if available
+        if 'step1_database_setup' in self.results:
+            setup_result = self.results['step1_database_setup'].get('result', {})
+            if 'final_stats' in setup_result:
+                stats = setup_result['final_stats']
+                self.logger.info("\n📊 DATABASE STATISTICS:")
+                self.logger.info(f"  Neo4j Patients:        {stats.get('neo4j_patient', 0):>10,}")
+                self.logger.info(f"  Neo4j Visits:          {stats.get('neo4j_visit', 0):>10,}")
+                self.logger.info(f"  Neo4j Images:          {stats.get('neo4j_imagenode', 0):>10,}")
+                self.logger.info(f"  ES Indexed Images:     {stats.get('elasticsearch_images', 0):>10,}")
 
         # Collect statistics from each step
         stats = {
@@ -410,53 +421,43 @@ class ADNIPipeline:
 
         # Extract counts from results
         if 'step3_create_patients' in self.results:
-            step3 = self.results['step3_create_patients']['result']
+            step3 = self.results['step3_create_patients'].get('result', {})
             stats['patients'] = step3.get('patients_created', 0)
             stats['visits'] = step3.get('visits_created', 0)
 
         if 'step4_extract_family' in self.results:
-            step4 = self.results['step4_extract_family']['result']
+            step4 = self.results['step4_extract_family'].get('result', {})
             stats['family_members'] = step4.get('family_members_created', 0)
 
         if 'step5_process_images' in self.results:
-            step5 = self.results['step5_process_images']['result']
-            stats['images'] = step5.get('images_created', 0)
-            stats['images_stored'] = step5.get('images_stored', 0)
-            stats['storage_size_mb'] = step5.get('storage_size_mb', 0)
+            step5 = self.results['step5_process_images'].get('result', {})
+            stats['images'] = step5.get('images_indexed_neo4j', 0)
+            stats['images_stored'] = step5.get('images_indexed_es', 0)
 
         if 'step6_extract_findings' in self.results:
-            step6 = self.results['step6_extract_findings']['result']
+            step6 = self.results['step6_extract_findings'].get('result', {})
             stats['cognitive_assessments'] = step6.get('cognitive_assessments', 0)
             stats['biomarkers'] = step6.get('biomarkers', 0)
             stats['diagnoses'] = step6.get('diagnoses', 0)
 
         if 'step8_create_relationships' in self.results:
-            step8 = self.results['step8_create_relationships']['result']
+            step8 = self.results['step8_create_relationships'].get('result', {})
             stats['relationships'] = step8.get('relationships_created', 0)
 
-        # Calculate totals
-        total_nodes = sum([stats[k] for k in stats.keys() if k not in ['relationships', 'storage_size_mb']])
-        total_relationships = stats['relationships']
+        # Log new items added (for incremental mode)
+        if self.incremental_mode:
+            self.logger.info("\n➕ NEW ITEMS ADDED:")
+        else:
+            self.logger.info("\n📋 ITEMS CREATED:")
 
-        # Log report
-        self.logger.info("\n📊 OVERALL STATISTICS:")
-        self.logger.info(f"Total Nodes Created: {total_nodes:,}")
-        self.logger.info(f"Total Relationships Created: {total_relationships:,}")
-
-        self.logger.info("\n📋 DETAILED BREAKDOWN:")
         self.logger.info(f"  Patients:              {stats['patients']:>10,}")
         self.logger.info(f"  Visits:                {stats['visits']:>10,}")
         self.logger.info(f"  Family Members:        {stats['family_members']:>10,}")
         self.logger.info(f"  Images:                {stats['images']:>10,}")
-
-        # Only show storage stats if using external storage
-        if stats['images_stored'] > 0:
-            self.logger.info(f"  Images Stored:         {stats['images_stored']:>10,}")
-            self.logger.info(f"  Storage Size:          {stats['storage_size_mb']:>10.2f} MB")
-
         self.logger.info(f"  Cognitive Assessments: {stats['cognitive_assessments']:>10,}")
         self.logger.info(f"  Biomarkers:            {stats['biomarkers']:>10,}")
         self.logger.info(f"  Diagnoses:             {stats['diagnoses']:>10,}")
+        self.logger.info(f"  Relationships:         {stats['relationships']:>10,}")
 
         # Step timings
         self.logger.info("\n⏱️  STEP TIMINGS:")
@@ -472,8 +473,7 @@ class ADNIPipeline:
 
         # Add summary to results
         self.results['summary'] = {
-            'total_nodes': total_nodes,
-            'total_relationships': total_relationships,
+            'mode': 'clear' if self.clear_mode else ('incremental' if self.incremental_mode else 'fresh'),
             'statistics': stats,
             'total_duration_seconds': total_time
         }
@@ -505,8 +505,9 @@ def load_config(config_file: Optional[str] = None) -> Dict[str, Any]:
         'base_path': 'inputs',
         'output_dir': 'outputs',
         'clear_database': False,
+        'incremental': False,  # New: incremental mode
         'store_image_blobs': False,
-        'use_external_storage': True,  # NEW: Default to external storage
+        'use_external_storage': True,
         'max_workers': 8,
         'log_level': 'INFO',
         'run_database_setup': True,
@@ -516,7 +517,11 @@ def load_config(config_file: Optional[str] = None) -> Dict[str, Any]:
         'run_image_processing': True,
         'run_findings_extraction': True,
         'run_batch_insertion': True,
-        'run_relationship_creation': True
+        'run_relationship_creation': True,
+        'elasticsearch': {
+            'host': 'localhost',
+            'port': 9200
+        }
     }
 
     if config_file and Path(config_file).exists():
@@ -546,13 +551,22 @@ def main():
     parser.add_argument('--base-path', type=str, help='Base path for ADNI data')
     parser.add_argument('--output-dir', type=str, help='Output directory for results')
 
-    # Pipeline control arguments
-    parser.add_argument('--clear-database', action='store_true', help='Clear database before loading')
-    parser.add_argument('--store-blobs', action='store_true', help='Store image blobs in database (not recommended)')
-    parser.add_argument('--use-external-storage', action='store_true', help='Use external storage for images (recommended)')
+    # Pipeline mode arguments (mutually exclusive)
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument('--clear-database', action='store_true',
+                          help='Clear all databases before loading (DESTRUCTIVE)')
+    mode_group.add_argument('--incremental', action='store_true',
+                          help='Run in incremental mode (preserve existing data)')
+
+    # Other pipeline control arguments
+    parser.add_argument('--store-blobs', action='store_true',
+                       help='Store image blobs in database (not recommended)')
+    parser.add_argument('--use-external-storage', action='store_true',
+                       help='Use external storage for images (recommended)')
     parser.add_argument('--max-workers', type=int, help='Maximum parallel workers')
-    parser.add_argument('--log-level', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-                        help='Logging level')
+    parser.add_argument('--log-level', type=str,
+                       choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+                       help='Logging level')
     parser.add_argument('--log-file', type=str, help='Log file path')
 
     # Step control arguments
@@ -581,14 +595,21 @@ def main():
         config['base_path'] = args.base_path
     if args.output_dir:
         config['output_dir'] = args.output_dir
+
+    # Handle mode arguments
     if args.clear_database:
         config['clear_database'] = True
+        config['incremental'] = False
+    elif args.incremental:
+        config['incremental'] = True
+        config['clear_database'] = False
+
     if args.store_blobs:
         config['store_image_blobs'] = True
-        config['use_external_storage'] = False  # Disable external storage if using blobs
+        config['use_external_storage'] = False
     if args.use_external_storage:
         config['use_external_storage'] = True
-        config['store_image_blobs'] = False  # Disable blobs if using external storage
+        config['store_image_blobs'] = False
     if args.max_workers:
         config['max_workers'] = args.max_workers
     if args.log_level:
@@ -620,18 +641,49 @@ def main():
     print("     ADNI KNOWLEDGE GRAPH PIPELINE     ")
     print("  Alzheimer's Disease Neuroimaging Initiative  ")
     print("=" * 70)
+
+    # Display mode
+    if config.get('clear_database'):
+        print("⚠️  MODE: CLEAR - All data will be deleted first!")
+        print("    Press Ctrl+C within 5 seconds to cancel...")
+        import time
+        time.sleep(5)
+    elif config.get('incremental'):
+        print("➕ MODE: INCREMENTAL - Adding to existing data")
+    else:
+        print("🆕 MODE: FRESH - Standard execution")
     print()
 
-    quality_pipeline = QualityAwarePipeline(config)
+    # Check if quality pipeline is available
+    try:
+        quality_pipeline = QualityAwarePipeline(config)
+        use_quality = True
+    except:
+        quality_pipeline = None
+        use_quality = False
 
     # Run pipeline
     try:
         pipeline = ADNIPipeline(config)
-        results = quality_pipeline.run_with_quality_checks(pipeline)
+
+        if use_quality:
+            results = quality_pipeline.run_with_quality_checks(pipeline)
+        else:
+            results = pipeline.run()
 
         print("\n✅ Pipeline completed successfully!")
-        print(f"   Total nodes: {results['summary']['total_nodes']:,}")
-        print(f"   Total relationships: {results['summary']['total_relationships']:,}")
+
+        # Show final stats
+        if 'summary' in results:
+            summary = results['summary']
+            print(f"   Mode: {summary.get('mode', 'unknown').upper()}")
+
+            if 'statistics' in summary:
+                stats = summary['statistics']
+                if config.get('incremental'):
+                    print(f"   New items added: {sum(stats.values()):,}")
+                else:
+                    print(f"   Total items created: {sum(stats.values()):,}")
 
         return 0
 
