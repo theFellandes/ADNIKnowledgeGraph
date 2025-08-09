@@ -23,7 +23,7 @@ from steps.step6_extract_findings_robust import execute_findings_extraction_fixe
 from steps.step7_batch_insert import execute_batch_insertion_fixed
 from steps.step8_create_relationships import execute_comprehensive_relationship_creation
 from steps.step9_knowledge_graph_enhancer import enhance_knowledge_graph
-from steps.step10_execute_queries import execute_analysis_queries
+from steps.step10_execute_queries import execute_adni_queries
 from utils.quality_aware_logger import QualityAwarePipeline
 
 LOG_FMT = "%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s"
@@ -370,14 +370,10 @@ class ADNIPipeline:
 
     def _execute_queries(self) -> Dict[str, Any]:
         """Execute analysis queries"""
-        queries_file = self.config.get('queries_file', 'queries.txt')
-
-        return execute_analysis_queries(
+        return execute_adni_queries(
             neo4j_uri=self.config['neo4j_uri'],
             neo4j_user=self.config['neo4j_user'],
-            neo4j_password=self.config['neo4j_password'],
-            queries_file=queries_file,
-            include_additional=self.config.get('include_additional_queries', True)
+            neo4j_password=self.config['neo4j_password']
         )
 
     def _generate_final_report(self):
