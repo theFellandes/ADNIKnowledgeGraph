@@ -46,6 +46,7 @@ class ADNIQueryExecutor:
         self._execute_analysis_queries()
         self._execute_visualization_prep_queries()
         self._execute_cohort_queries()
+        self._create_diagnosis_relationships()
 
         self.statistics['execution_time'] = (datetime.now() - start_time).total_seconds()
 
@@ -431,6 +432,61 @@ class ADNIQueryExecutor:
             logger.info("\nStored Results:")
             for key in self.results.keys():
                 logger.info(f"  - {key}")
+
+    def _create_diagnosis_relationships(self):
+        """Create comprehensive diagnosis relationships"""
+
+        queries = [
+            # Connect diagnoses to patients
+            """
+            MATCH (d:Diagnosis)
+            MATCH (p:Patient {ptid: d.patient_id})
+            MERGE (p)-[:HAS_DIAGNOSIS {
+                confidence: d.confidence,
+                source: d.source  // Fixed: changed from d.source_table to d.source
+            }]->(d)
+            """,
+
+            # Create disease progression paths
+            """
+            MATCH (p:Patient)-[:HAS_DIAGNOSIS]->(d1:Diagnosis)
+            MATCH (p)-[:HAS_DIAGNOSIS]->(d2:Diagnosis)
+            WHERE d1.visit_id < d2.visit_id 
+            AND d1.diagnosis_code <> d2.diagnosis_code
+            MERGE (d1)-[:PROGRESSED_TO {
+                patient_id: p.ptid
+            }]->(d2)
+            """,
+
+            # Link cognitive assessments to diagnoses - Fixed query
+            """
+            MATCH (v:Visit)-[:RESULTED_IN]->(d:Diagnosis)  // Changed from HAS_DIAGNOSIS
+            MATCH (v)-[:HAS_COGNITIVE_ASSESSMENT]->(ca:CognitiveAssessment)
+            MERGE (ca)-[:SUPPORTS_DIAGNOSIS {
+                diagnosis_code: d.diagnosis_code
+            }]->(d)
+            """,
+
+            # Create ATN profiles
+            """
+            MATCH (p:Patient)-[:HAS_BIOMARKER]->(b:Biomarker)
+            WHERE b.analyte IN ['Aβ42', 'p-Tau181', 'Total Tau']
+            WITH p, 
+                 MAX(CASE WHEN b.analyte = 'Aβ42' AND b.value < 600 THEN 1 ELSE 0 END) as A_pos,
+                 MAX(CASE WHEN b.analyte = 'p-Tau181' AND b.value > 80 THEN 1 ELSE 0 END) as T_pos,
+                 MAX(CASE WHEN b.analyte = 'Total Tau' AND b.value > 400 THEN 1 ELSE 0 END) as N_pos
+            MERGE (atn:ATNProfile {
+                patient_id: p.ptid,
+                A_status: CASE WHEN A_pos = 1 THEN 'A+' ELSE 'A-' END,
+                T_status: CASE WHEN T_pos = 1 THEN 'T+' ELSE 'T-' END,
+                N_status: CASE WHEN N_pos = 1 THEN 'N+' ELSE 'N-' END
+            })
+            MERGE (p)-[:HAS_ATN_PROFILE]->(atn)
+            """
+        ]
+
+        for query in queries:
+            self.connector.execute_write_transaction(query)
 
     def export_results(self, output_dir: str = "outputs"):
         """Export results to JSON file"""

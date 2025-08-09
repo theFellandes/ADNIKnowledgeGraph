@@ -1,0 +1,45 @@
+
+        ADNI DIAGNOSIS MAPPING GUIDE
+        ============================
+
+        Based on ADNI documentation, diagnosis extraction varies by study phase:
+
+        1. ADNI-1 Participants:
+           - Primary: DXCURREN (1=NL, 2=MCI, 3=AD)
+           - Conversion: DXCONV (0=No, 1=Conversion, 2=Reversion)
+           - Conversion Type: DXCONTYP (1=NL→MCI, 2=NL→AD, 3=MCI→AD)
+           - Reversion: DXREV (1=MCI→NL, 2=AD→MCI, 3=AD→NL)
+
+        2. ADNI-GO/2 Participants:
+           - Single variable: DXCHANGE
+             1 = Stable: NL to NL
+             2 = Stable: MCI to MCI
+             3 = Stable: AD to AD
+             4 = Conversion: NL to MCI
+             5 = Conversion: MCI to AD
+             6 = Conversion: NL to AD
+             7 = Reversion: MCI to NL
+             8 = Reversion: AD to MCI
+             9 = Reversion: AD to NL
+
+        3. ADNI-3 Participants:
+           - Primary: DIAGNOSIS variable in DXSUM
+           - Values: 1=CN, 2=MCI, 3=AD
+
+        4. Screening Diagnoses:
+           - ADNI-1/GO/2: Use ARM table, column 'ARM'
+           - ADNI-3: Use DXSUM table
+           - Look for: CN, EMCI, LMCI, SMC, AD
+
+        5. Special Classifications:
+           - EMCI: Early MCI (only at baseline/screening)
+           - LMCI: Late MCI (only at baseline/screening)
+           - SMC: Subjective Memory Concern
+           - These revert to generic 'MCI' at follow-up
+
+        RECOMMENDED EXTRACTION ORDER:
+        1. Check DXSUM for visit diagnoses
+        2. Check ARM for screening/baseline diagnoses
+        3. Check REGISTRY for enrollment diagnoses
+        4. Derive from CDR/MMSE scores if needed
+        

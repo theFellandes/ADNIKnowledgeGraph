@@ -1,6 +1,7 @@
 """
 Step 6: FIXED Clinical Findings Extraction for ADNI Data
-Now properly extracts diagnoses, biomarkers, and cognitive assessments
+Handles Novel Imaging Cohort Study table naming convention
+Extracts from DXSUM, ARM, BLCHANGE, and cognitive assessments
 """
 
 import logging
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class ADNIFindingsExtractor:
-    """Fixed ADNI findings extractor with proper table detection"""
+    """Fixed ADNI findings extractor with proper table name matching"""
 
     def __init__(self, connector: Neo4jConnector, table_data: Dict[str, pd.DataFrame]):
         self.connector = connector
@@ -43,142 +44,122 @@ class ADNIFindingsExtractor:
             'errors': []
         }
 
+        # Normalize table names for easier matching
+        self.normalized_tables = self._normalize_table_names()
+
         # Log available tables for debugging
         self._log_available_tables()
 
-    def _map_diagnosis_code(self, diagnosis_value) -> Optional[str]:
-        """Map ADNI diagnosis numeric codes to standard codes"""
-        if pd.isna(diagnosis_value):
-            return None
+    def _normalize_table_names(self) -> Dict[str, str]:
+        """Create a mapping of simplified names to actual table names"""
+        normalized = {}
+        for table_name in self.table_data.keys():
+            # Remove prefix and suffix to get core table name
+            core_name = table_name
+            if 'Novel_Imaging_Cohort_Study_' in core_name:
+                core_name = core_name.replace('Novel_Imaging_Cohort_Study_', '')
+            if '_05Aug2025' in core_name:
+                core_name = core_name.replace('_05Aug2025', '')
+            normalized[core_name] = table_name
+        return normalized
 
-        # Convert to int/float for comparison
-        try:
-            dx_val = float(diagnosis_value)
-        except (ValueError, TypeError):
-            # If it's a string, try string mapping
-            return self._map_adni_diagnosis(diagnosis_value)
+    def _get_table(self, table_pattern: str) -> Optional[pd.DataFrame]:
+        """Get table by pattern, handling the naming convention"""
+        # Direct match in normalized names
+        if table_pattern in self.normalized_tables:
+            actual_name = self.normalized_tables[table_pattern]
+            return self._preprocess_dataframe(self.table_data[actual_name])
 
-        # ADNI DXSUM uses numeric codes:
-        # 1 = Cognitively Normal (CN)
-        # 2 = Mild Cognitive Impairment (MCI)
-        # 3 = Alzheimer's Disease (AD)
-        if dx_val == 1 or dx_val == 1.0:
-            return 'CN'
-        elif dx_val == 2 or dx_val == 2.0:
-            return 'MCI'
-        elif dx_val == 3 or dx_val == 3.0:
-            return 'AD'
-        else:
-            return None
+        # Pattern matching
+        for norm_name, actual_name in self.normalized_tables.items():
+            if table_pattern.upper() in norm_name.upper():
+                return self._preprocess_dataframe(self.table_data[actual_name])
 
-    def _check_abnormal(self, analyte: str, value: float, threshold: Optional[float]) -> bool:
-        """Check if a biomarker value is abnormal based on threshold"""
-        if threshold is None:
-            return False
+        return None
 
-        # For Amyloid-beta markers, LOW values are abnormal
-        if 'Aβ' in analyte or 'ABETA' in analyte.upper():
-            return value < threshold
+    def _find_table(self, patterns: List[str]) -> Optional[Tuple[str, pd.DataFrame]]:
+        """Find a table by matching patterns (case-insensitive)"""
+        for pattern in patterns:
+            if pattern in self.normalized_tables:
+                actual_name = self.normalized_tables[pattern]
+                return actual_name, self._preprocess_dataframe(self.table_data[actual_name])
 
-        # For Tau markers, HIGH values are abnormal
-        elif 'Tau' in analyte or 'TAU' in analyte.upper():
-            return value > threshold
+            # Pattern matching
+            for norm_name, actual_name in self.normalized_tables.items():
+                if pattern.upper() in norm_name.upper():
+                    return actual_name, self._preprocess_dataframe(self.table_data[actual_name])
 
-        # For APOE risk score, HIGH values indicate risk
-        elif analyte == 'APOE Genotype':
-            return value > threshold
+        return None, None
 
-        # Default: higher than threshold is abnormal
-        else:
-            return value > threshold if threshold else False
+    def _preprocess_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Preprocess DataFrame to handle nullable dtypes safely"""
+        df_copy = df.copy()
+
+        # Convert problematic nullable integer columns to regular float
+        for col in df_copy.columns:
+            if df_copy[col].dtype.name in ['Int64', 'Int32', 'Int16', 'Int8']:
+                df_copy[col] = pd.to_numeric(df_copy[col], errors='coerce')
+
+        return df_copy
 
     def _log_available_tables(self):
-        """Log all available tables for debugging"""
+        """Log diagnosis-related tables found"""
         logger.info("\n" + "="*60)
-        logger.info("AVAILABLE TABLES IN TABLE_DATA:")
-        logger.info("="*60)
+        logger.info("DIAGNOSIS TABLES AVAILABLE:")
 
-        # Group tables by category
-        diagnosis_tables = []
-        cognitive_tables = []
-        biomarker_tables = []
-        imaging_tables = []
-        other_tables = []
+        diagnosis_tables = ['DXSUM', 'ARM', 'BLCHANGE', 'ADSXLIST']
+        for table in diagnosis_tables:
+            df = self._get_table(table)
+            if df is not None:
+                actual_name = self.normalized_tables.get(table, table)
+                logger.info(f"  ✅ {table} -> {actual_name}: {len(df)} rows")
 
-        for table_name in sorted(self.table_data.keys()):
-            table_upper = table_name.upper()
-            row_count = len(self.table_data[table_name])
-
-            if 'DXSUM' in table_upper or 'DIAGNOSIS' in table_upper:
-                diagnosis_tables.append(f"  - {table_name}: {row_count} rows")
-            elif any(test in table_upper for test in ['MMSE', 'CDR', 'ADAS', 'MOCA', 'FAQ', 'NEUROBAT']):
-                cognitive_tables.append(f"  - {table_name}: {row_count} rows")
-            elif any(marker in table_upper for marker in ['BIOMK', 'BIOMARK', 'CSF', 'ELECSYS', 'LABDATA', 'APOERES']):
-                biomarker_tables.append(f"  - {table_name}: {row_count} rows")
-            elif any(img in table_upper for img in ['UCSFFSX', 'UCBERKELEY', 'FOXLABBSI']):
-                imaging_tables.append(f"  - {table_name}: {row_count} rows")
+                # Log diagnosis-related columns
+                dx_cols = [col for col in df.columns if any(
+                    dx in col.upper() for dx in ['DX', 'DIAGNOSIS', 'ARM', 'PREDX']
+                )]
+                if dx_cols:
+                    logger.info(f"     Diagnosis columns: {dx_cols[:5]}")
             else:
-                other_tables.append(f"  - {table_name}: {row_count} rows")
-
-        if diagnosis_tables:
-            logger.info("Diagnosis Tables:")
-            for t in diagnosis_tables:
-                logger.info(t)
-
-        if cognitive_tables:
-            logger.info("\nCognitive Tables:")
-            for t in cognitive_tables:
-                logger.info(t)
-
-        if biomarker_tables:
-            logger.info("\nBiomarker Tables:")
-            for t in biomarker_tables:
-                logger.info(t)
-
-        if imaging_tables:
-            logger.info("\nImaging Tables:")
-            for t in imaging_tables:
-                logger.info(t)
-
-        logger.info(f"\nTotal tables available: {len(self.table_data)}")
+                logger.info(f"  ❌ {table}: NOT FOUND")
         logger.info("="*60 + "\n")
 
     def execute(self) -> Dict[str, Any]:
-        """Execute comprehensive extraction with fixed table detection"""
+        """Execute comprehensive extraction"""
         results = {
+            'diagnoses': 0,
             'cognitive_assessments': 0,
             'biomarkers': 0,
-            'diagnoses': 0,
             'volumetric_measures': 0,
             'pet_bindings': 0,
             'errors': []
         }
 
         logger.info("\n" + "=" * 60)
-        logger.info("ADNI CLINICAL FINDINGS EXTRACTION (FIXED)")
+        logger.info("ADNI CLINICAL FINDINGS EXTRACTION (COMPREHENSIVE)")
         logger.info("=" * 60)
 
-        # 1. Extract Diagnoses
-        logger.info("\n1. Extracting Diagnoses...")
-        dx_count = self._extract_diagnoses_fixed()
+        # 1. Extract Diagnoses from multiple sources
+        logger.info("\n1. Extracting Diagnoses from all sources...")
+        dx_count = self._extract_diagnoses_comprehensive()
         results['diagnoses'] = dx_count
-        logger.info(f"   ✅ Extracted {dx_count} diagnoses")
+        logger.info(f"   ✅ Total diagnoses extracted: {dx_count}")
 
         # 2. Extract Cognitive Assessments
         logger.info("\n2. Extracting Cognitive Assessments...")
-        cog_count = self._extract_cognitive_assessments_fixed()
+        cog_count = self._extract_cognitive_assessments()
         results['cognitive_assessments'] = cog_count
         logger.info(f"   ✅ Extracted {cog_count} cognitive assessments")
 
         # 3. Extract Biomarkers
         logger.info("\n3. Extracting Biomarkers...")
-        bio_count = self._extract_biomarkers_fixed()
+        bio_count = self._extract_biomarkers()
         results['biomarkers'] = bio_count
         logger.info(f"   ✅ Extracted {bio_count} biomarkers")
 
         # 4. Extract Imaging Measures
         logger.info("\n4. Extracting Imaging Measures...")
-        vol_count, pet_count = self._extract_imaging_measures_fixed()
+        vol_count, pet_count = self._extract_imaging_measures()
         results['volumetric_measures'] = vol_count
         results['pet_bindings'] = pet_count
         logger.info(f"   ✅ Extracted {vol_count} volumetric and {pet_count} PET measures")
@@ -186,176 +167,53 @@ class ADNIFindingsExtractor:
         # Log summary
         self._log_extraction_summary(results)
 
-        # Debug extraction
-        self._debug_extraction()
-
         return results
 
-    def _debug_extraction(self):
-        """Debug what's being extracted"""
-        logger.info("\n" + "=" * 60)
-        logger.info("DEBUG: Extraction Status")
-        logger.info("=" * 60)
-        logger.info(f"Diagnoses extracted: {len(self.diagnoses)}")
-        if self.diagnoses:
-            sample = self.diagnoses[:5]
-            for d in sample:
-                logger.info(f"  Sample: {d.patient_id} - {d.diagnosis_code} - {d.visit_id}")
+    def _extract_diagnoses_comprehensive(self) -> int:
+        """Extract diagnoses from all available sources"""
+        total_count = 0
+        diagnosed_patients = set()
 
-        logger.info(f"\nBiomarkers extracted: {len(self.biomarkers)}")
-        if self.biomarkers:
-            sample = self.biomarkers[:5]
-            for b in sample:
-                logger.info(f"  Sample: {b.patient_id} - {b.analyte}: {b.value} {b.unit}")
+        # 1. Extract from DXSUM (primary source)
+        dxsum_df = self._get_table('DXSUM')
+        if dxsum_df is not None:
+            count = self._extract_from_dxsum(dxsum_df)
+            total_count += count
+            logger.info(f"   - DXSUM: {count} diagnoses")
 
-        logger.info(f"\nCognitive assessments: {len(self.cognitive_assessments)}")
-        if self.cognitive_assessments:
-            sample = self.cognitive_assessments[:5]
-            for c in sample:
-                logger.info(f"  Sample: {c.patient_id} - {c.test_name}: {c.total_score}")
-        logger.info("=" * 60)
+        # 2. Extract from ARM (screening diagnoses)
+        arm_df = self._get_table('ARM')
+        if arm_df is not None:
+            count = self._extract_from_arm(arm_df)
+            total_count += count
+            logger.info(f"   - ARM: {count} diagnoses")
 
-    def _preprocess_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Preprocess DataFrame to handle nullable dtypes safely"""
-        # Create a copy to avoid modifying original
-        df_copy = df.copy()
+        # 3. Extract from BLCHANGE (baseline changes)
+        blchange_df = self._get_table('BLCHANGE')
+        if blchange_df is not None:
+            count = self._extract_from_blchange(blchange_df)
+            total_count += count
+            logger.info(f"   - BLCHANGE: {count} diagnoses")
 
-        # Convert problematic nullable integer columns to regular float
-        for col in df_copy.columns:
-            if df_copy[col].dtype.name in ['Int64', 'Int32', 'Int16', 'Int8']:
-                # Convert nullable integers to regular floats (NaN compatible)
-                df_copy[col] = pd.to_numeric(df_copy[col], errors='coerce')
+        # 4. Extract from CDR scores (derived diagnoses)
+        cdr_df = self._get_table('CDR')
+        if cdr_df is not None:
+            count = self._extract_from_cdr(cdr_df)
+            total_count += count
+            logger.info(f"   - CDR (derived): {count} diagnoses")
 
-        return df_copy
+        # 5. Extract from MMSE scores (derived diagnoses)
+        mmse_df = self._get_table('MMSE')
+        if mmse_df is not None:
+            count = self._extract_from_mmse(mmse_df)
+            total_count += count
+            logger.info(f"   - MMSE (derived): {count} diagnoses")
 
-    def _safe_equals(self, value, target) -> bool:
-        """Safely compare values that might be pd.NA"""
-        if pd.isna(value):
-            return False
-        try:
-            return value == target
-        except:
-            return False
+        return total_count
 
-    def _safe_get_numeric(self, value) -> Optional[float]:
-        """Safely convert to numeric, handling pd.NA"""
-        if pd.isna(value):
-            return None
-        try:
-            return float(value)
-        except (ValueError, TypeError):
-            return None
-
-    def _find_table(self, patterns: List[str]) -> Optional[Tuple[str, pd.DataFrame]]:
-        """Find a table by matching patterns (case-insensitive)"""
-        for table_name, df in self.table_data.items():
-            table_upper = table_name.upper()
-            for pattern in patterns:
-                if pattern.upper() in table_upper:
-                    logger.debug(f"Found table '{table_name}' matching pattern '{pattern}'")
-                    # Preprocess the dataframe to handle nullable dtypes
-                    df_processed = self._preprocess_dataframe(df)
-                    return table_name, df_processed
-        return None, None
-
-
-    def _extract_diagnoses_from_dxsum(self) -> int:
-        """Extract diagnoses specifically from DXSUM table"""
+    def _extract_from_dxsum(self, df: pd.DataFrame) -> int:
+        """Extract diagnoses from DXSUM table"""
         count = 0
-
-        # Look for DXSUM table
-        if 'DXSUM' in self.table_data:
-            df = self.table_data['DXSUM']
-            logger.info(f"Processing DXSUM table with {len(df)} rows")
-
-            for _, row in df.iterrows():
-                ptid = str(row.get('PTID', '')).strip()
-                viscode = str(row.get('VISCODE2', row.get('VISCODE', 'bl'))).strip()
-
-                # Get overall diagnosis
-                diagnosis_value = row.get('DIAGNOSIS')
-
-                # Map diagnosis codes
-                if pd.notna(diagnosis_value):
-                    dx_code = self._map_diagnosis_code(diagnosis_value)
-                else:
-                    # Check individual flags
-                    if row.get('DXAD') == 1:
-                        dx_code = 'AD'
-                    elif row.get('DXMCI') == 1:
-                        dx_code = 'MCI'
-                    elif row.get('DXNORM') == 1:
-                        dx_code = 'CN'
-                    else:
-                        continue
-
-                # Create diagnosis entity
-                diagnosis = Diagnosis(
-                    diagnosis_id=f"dx_{ptid}_{viscode}_{dx_code}",
-                    patient_id=ptid,
-                    visit_id=f"{ptid}_{viscode}",
-                    diagnosis_code=dx_code,
-                    confidence=row.get('DXCONFID', 0.95) / 100.0 if row.get('DXCONFID') else 0.95
-                )
-
-                self.diagnoses.append(diagnosis)
-                count += 1
-
-        return count
-
-    def _extract_biomarkers_from_elecsys(self) -> int:
-        """Extract biomarkers from UPENNBIOMK_ROCHE_ELECSYS table"""
-        count = 0
-
-        if 'UPENNBIOMK_ROCHE_ELECSYS' in self.table_data:
-            df = self.table_data['UPENNBIOMK_ROCHE_ELECSYS']
-            logger.info(f"Processing UPENNBIOMK_ROCHE_ELECSYS with {len(df)} rows")
-
-            for _, row in df.iterrows():
-                ptid = str(row.get('PTID', '')).strip()
-                viscode = str(row.get('VISCODE2', 'bl')).strip()
-                visit_id = f"{ptid}_{viscode}"
-
-                # Extract each biomarker
-                biomarkers = [
-                    ('ABETA40', 'Aβ40', None),
-                    ('ABETA42', 'Aβ42', 600),  # threshold
-                    ('TAU', 'Total Tau', 400),
-                    ('PTAU', 'p-Tau181', 80)
-                ]
-
-                for col, analyte, threshold in biomarkers:
-                    if col in row and pd.notna(row[col]):
-                        value = float(row[col])
-
-                        biomarker = Biomarker(
-                            biomarker_id=f"bio_{ptid}_{viscode}_{col}",
-                            patient_id=ptid,
-                            visit_id=visit_id,
-                            biomarker_type='CSF',
-                            analyte=analyte,
-                            value=value,
-                            unit='pg/mL',
-                            abnormal_flag=self._check_abnormal(analyte, value, threshold)
-                        )
-
-                        self.biomarkers.append(biomarker)
-                        count += 1
-
-        return count
-
-    def _extract_diagnoses_fixed(self) -> int:
-        """Extract diagnoses from DXSUM table - main method"""
-        count = 0
-
-        # Look for DXSUM table specifically
-        if 'DXSUM' not in self.table_data:
-            logger.warning("   ⚠️ DXSUM table not found!")
-            return 0
-
-        df = self._preprocess_dataframe(self.table_data['DXSUM'])
-        logger.info(f"   Processing DXSUM table with {len(df)} rows...")
-        logger.info(f"   Columns found: {list(df.columns)[:15]}...")
 
         for _, row in df.iterrows():
             ptid = str(row.get('PTID', '')).strip()
@@ -365,14 +223,16 @@ class ADNIFindingsExtractor:
             viscode = str(row.get('VISCODE2', row.get('VISCODE', 'bl'))).strip()
             visit_id = f"{ptid}_{viscode}"
 
-            # Extract diagnosis
+            # Get diagnosis from multiple columns
             dx_code = None
+            confidence = 0.95
 
-            # Method 1: Check DIAGNOSIS column (numeric code)
+            # Primary diagnosis column
             if 'DIAGNOSIS' in row and pd.notna(row['DIAGNOSIS']):
-                dx_code = self._map_diagnosis_code(row['DIAGNOSIS'])
+                dx_val = row['DIAGNOSIS']
+                dx_code = self._map_diagnosis_code(dx_val)
 
-            # Method 2: Check individual diagnosis flags
+            # Check individual diagnosis flags if primary not found
             if not dx_code:
                 if self._safe_equals(row.get('DXAD'), 1):
                     dx_code = 'AD'
@@ -389,18 +249,17 @@ class ADNIFindingsExtractor:
                     dx_code = 'CN'
 
             if dx_code:
-                diagnosis_id = f"dx_{ptid}_{viscode}_{dx_code}"
-
-                # Extract confidence
-                confidence = 0.95
+                # Extract confidence if available
                 if 'DXCONFID' in row and pd.notna(row['DXCONFID']):
-                    conf_val = float(row['DXCONFID'])
+                    conf_val = row['DXCONFID']
                     if conf_val == 1:
                         confidence = 0.95
                     elif conf_val == 2:
                         confidence = 0.75
                     elif conf_val == 3:
                         confidence = 0.50
+
+                diagnosis_id = f"dx_{ptid}_{viscode}_{dx_code}"
 
                 diagnosis = Diagnosis(
                     diagnosis_id=diagnosis_id,
@@ -418,116 +277,160 @@ class ADNIFindingsExtractor:
 
         return count
 
-    def _extract_biomarkers_fixed(self) -> int:
-        """Extract biomarkers from UPENNBIOMK_ROCHE_ELECSYS table - main method"""
+    def _extract_from_arm(self, df: pd.DataFrame) -> int:
+        """Extract screening diagnoses from ARM table"""
         count = 0
-
-        # Look for the specific Elecsys table
-        if 'UPENNBIOMK_ROCHE_ELECSYS' not in self.table_data:
-            logger.warning("   ⚠️ UPENNBIOMK_ROCHE_ELECSYS table not found!")
-            # Try alternative table name
-            if 'UPENNBIOMK' in self.table_data:
-                df = self._preprocess_dataframe(self.table_data['UPENNBIOMK'])
-                table_name = 'UPENNBIOMK'
-            else:
-                return 0
-        else:
-            df = self._preprocess_dataframe(self.table_data['UPENNBIOMK_ROCHE_ELECSYS'])
-            table_name = 'UPENNBIOMK_ROCHE_ELECSYS'
-
-        logger.info(f"   Processing {table_name} with {len(df)} rows...")
-        logger.info(f"   Columns: {list(df.columns)}")
 
         for _, row in df.iterrows():
             ptid = str(row.get('PTID', '')).strip()
             if not ptid:
                 continue
 
-            viscode = str(row.get('VISCODE2', 'bl')).strip()
-            visit_id = f"{ptid}_{viscode}"
+            arm_value = row.get('ARM')
+            if pd.notna(arm_value):
+                # Map ARM values to diagnosis codes
+                dx_code = self._map_arm_to_diagnosis(str(arm_value))
 
-            # Extract each biomarker
-            biomarkers_map = {
-                'ABETA42': ('Aβ42', 'pg/mL', 600),
-                'ABETA40': ('Aβ40', 'pg/mL', None),
-                'TAU': ('Total Tau', 'pg/mL', 400),
-                'PTAU': ('p-Tau181', 'pg/mL', 80)
-            }
+                if dx_code:
+                    diagnosis_id = f"dx_{ptid}_screening_{dx_code}"
 
-            for col, (analyte, unit, threshold) in biomarkers_map.items():
-                if col in row and pd.notna(row[col]):
-                    value = float(row[col])
-                    biomarker_id = f"bio_{ptid}_{viscode}_{col}"
-
-                    biomarker = Biomarker(
-                        biomarker_id=biomarker_id,
+                    diagnosis = Diagnosis(
+                        diagnosis_id=diagnosis_id,
                         patient_id=ptid,
-                        visit_id=visit_id,
-                        biomarker_type='CSF',
-                        analyte=analyte,
-                        value=value,
-                        unit=unit,
-                        specimen_type='CSF',
-                        abnormal_flag=self._check_abnormal(analyte, value, threshold),
-                        source_table=table_name
+                        visit_id=f"{ptid}_screening",
+                        diagnosis_code=dx_code,
+                        diagnosis_text=self._get_diagnosis_text(dx_code),
+                        confidence=1.0,
+                        criteria_used="ADNI Screening",
+                        source_table='ARM'
                     )
 
-                    self.biomarkers.append(biomarker)
+                    self.diagnoses.append(diagnosis)
                     count += 1
-
-        # Also process APOE genotype
-        if 'APOERES' in self.table_data:
-            apoe_count = self._extract_apoe_genotypes()
-            count += apoe_count
 
         return count
 
-    def _extract_apoe_genotypes(self) -> int:
-        """Extract APOE genotype data"""
+    def _extract_from_blchange(self, df: pd.DataFrame) -> int:
+        """Extract baseline diagnoses from BLCHANGE table"""
         count = 0
-        df = self._preprocess_dataframe(self.table_data['APOERES'])
-
-        logger.info(f"   Processing APOERES (APOE genotype) with {len(df)} rows...")
 
         for _, row in df.iterrows():
             ptid = str(row.get('PTID', '')).strip()
             if not ptid:
                 continue
 
-            if 'GENOTYPE' in row and pd.notna(row['GENOTYPE']):
-                genotype = str(row['GENOTYPE'])
-                viscode = str(row.get('VISCODE', 'bl')).strip()
+            # BCPREDX contains baseline predicted diagnosis
+            if 'BCPREDX' in row and pd.notna(row['BCPREDX']):
+                dx_value = row['BCPREDX']
+                dx_code = self._map_diagnosis_value(dx_value)
+
+                if dx_code:
+                    viscode = str(row.get('VISCODE2', row.get('VISCODE', 'bl'))).strip()
+                    visit_id = f"{ptid}_{viscode}"
+                    diagnosis_id = f"dx_{ptid}_{viscode}_{dx_code}_predicted"
+
+                    diagnosis = Diagnosis(
+                        diagnosis_id=diagnosis_id,
+                        patient_id=ptid,
+                        visit_id=visit_id,
+                        diagnosis_code=dx_code,
+                        diagnosis_text=self._get_diagnosis_text(dx_code),
+                        confidence=0.85,  # Predicted diagnosis
+                        criteria_used="ADNI Baseline Prediction",
+                        source_table='BLCHANGE'
+                    )
+
+                    self.diagnoses.append(diagnosis)
+                    count += 1
+
+        return count
+
+    def _extract_from_cdr(self, df: pd.DataFrame) -> int:
+        """Extract derived diagnoses from CDR scores"""
+        count = 0
+
+        for _, row in df.iterrows():
+            ptid = str(row.get('PTID', '')).strip()
+            if not ptid:
+                continue
+
+            cdr_global = row.get('CDGLOBAL')
+            if pd.notna(cdr_global):
+                # Map CDR score to diagnosis
+                if cdr_global == 0:
+                    dx_code = 'CN'
+                elif cdr_global <= 0.5:
+                    dx_code = 'MCI'
+                elif cdr_global >= 1:
+                    dx_code = 'AD'
+                else:
+                    continue
+
+                viscode = str(row.get('VISCODE2', row.get('VISCODE', 'bl'))).strip()
                 visit_id = f"{ptid}_{viscode}"
-                biomarker_id = f"bio_{ptid}_APOE_{viscode}"
+                diagnosis_id = f"dx_{ptid}_{viscode}_{dx_code}_CDR"
 
-                # Calculate risk score
-                risk_score = self._apoe_risk_score(genotype)
-
-                biomarker = Biomarker(
-                    biomarker_id=biomarker_id,
+                diagnosis = Diagnosis(
+                    diagnosis_id=diagnosis_id,
                     patient_id=ptid,
                     visit_id=visit_id,
-                    biomarker_type='Genetic',
-                    analyte='APOE Genotype',
-                    value=risk_score,
-                    unit='risk_score',
-                    specimen_type='Blood',
-                    abnormal_flag=risk_score > 2,
-                    source_table='APOERES',
-                    assay_info={'genotype': genotype}
+                    diagnosis_code=dx_code,
+                    diagnosis_text=self._get_diagnosis_text(dx_code),
+                    confidence=0.8,
+                    criteria_used="Derived from CDR",
+                    source_table='CDR'
                 )
 
-                self.biomarkers.append(biomarker)
+                self.diagnoses.append(diagnosis)
                 count += 1
 
         return count
 
-    def _extract_cognitive_assessments_fixed(self) -> int:
-        """Extract cognitive assessments with fixed table detection"""
+    def _extract_from_mmse(self, df: pd.DataFrame) -> int:
+        """Extract derived diagnoses from MMSE scores"""
         count = 0
 
-        # Process each cognitive test type
-        cognitive_tests = [
+        for _, row in df.iterrows():
+            ptid = str(row.get('PTID', '')).strip()
+            if not ptid:
+                continue
+
+            mmse_score = row.get('MMSCORE')
+            if pd.notna(mmse_score):
+                # Map MMSE score to diagnosis
+                if mmse_score >= 27:
+                    dx_code = 'CN'
+                elif mmse_score >= 21:
+                    dx_code = 'MCI'
+                else:
+                    dx_code = 'AD'
+
+                viscode = str(row.get('VISCODE2', row.get('VISCODE', 'bl'))).strip()
+                visit_id = f"{ptid}_{viscode}"
+                diagnosis_id = f"dx_{ptid}_{viscode}_{dx_code}_MMSE"
+
+                diagnosis = Diagnosis(
+                    diagnosis_id=diagnosis_id,
+                    patient_id=ptid,
+                    visit_id=visit_id,
+                    diagnosis_code=dx_code,
+                    diagnosis_text=self._get_diagnosis_text(dx_code),
+                    confidence=0.75,
+                    criteria_used="Derived from MMSE",
+                    source_table='MMSE'
+                )
+
+                self.diagnoses.append(diagnosis)
+                count += 1
+
+        return count
+
+    def _extract_cognitive_assessments(self) -> int:
+        """Extract cognitive assessments from available tables"""
+        count = 0
+
+        # Define test mappings
+        tests = [
             ('MMSE', 'MMSCORE', 'MMSE'),
             ('CDR', 'CDGLOBAL', 'CDR'),
             ('ADAS', 'TOTSCORE', 'ADAS-Cog'),
@@ -536,9 +439,8 @@ class ADNIFindingsExtractor:
             ('NEUROBAT', 'LIMMTOTAL', 'Logical Memory')
         ]
 
-        for table_pattern, score_col, test_name in cognitive_tests:
-            table_name, df = self._find_table([table_pattern])
-
+        for table_name, score_col, test_name in tests:
+            df = self._get_table(table_name)
             if df is not None:
                 logger.info(f"   Processing {table_name} ({test_name})...")
 
@@ -551,22 +453,26 @@ class ADNIFindingsExtractor:
                     score = row.get(score_col)
                     if pd.isna(score):
                         # Try alternative score columns
-                        if table_pattern == 'ADAS' and 'TOTAL13' in row:
+                        if table_name == 'ADAS' and 'TOTAL13' in row:
                             score = row.get('TOTAL13')
-                        elif table_pattern == 'CDR' and 'CDRSB' in row:
+                        elif table_name == 'CDR' and 'CDRSB' in row:
                             score = row.get('CDRSB')
 
                     if pd.notna(score):
-                        viscode = str(row.get('VISCODE', row.get('VISCODE2', 'bl'))).strip()
+                        viscode = str(row.get('VISCODE2', row.get('VISCODE', 'bl'))).strip()
                         visit_id = f"{ptid}_{viscode}"
                         assessment_id = f"cog_{ptid}_{viscode}_{test_name.replace(' ', '_')}"
 
                         # Extract subscores for CDR
                         subscores = {}
-                        if table_pattern == 'CDR':
+                        if table_name == 'CDR':
                             for sub in ['CDMEMORY', 'CDORIENT', 'CDJUDGE', 'CDCOMMUN', 'CDHOME', 'CDCARE']:
                                 if sub in row and pd.notna(row[sub]):
                                     subscores[sub.lower()] = float(row[sub])
+
+                            # Add CDR Sum of Boxes
+                            if 'CDRSB' in row and pd.notna(row['CDRSB']):
+                                subscores['cdr_sob'] = float(row['CDRSB'])
 
                         assessment = CognitiveAssessment(
                             assessment_id=assessment_id,
@@ -585,45 +491,35 @@ class ADNIFindingsExtractor:
 
         return count
 
-    def _extract_biomarkers_fixed(self) -> int:
-        """Extract biomarkers with fixed table detection"""
+    def _extract_biomarkers(self) -> int:
+        """Extract biomarkers from available tables"""
         count = 0
 
-        # Process UPENNBIOMK table
-        biomarker_patterns = ['UPENNBIOMK', 'ELECSYS', 'BIOMARK', 'CSF']
-        table_name, df = self._find_table(biomarker_patterns)
+        # Check for UPENNBIOMK_ROCHE_ELECSYS
+        elecsys_df = self._get_table('UPENNBIOMK_ROCHE_ELECSYS')
+        if elecsys_df is not None:
+            logger.info(f"   Processing UPENNBIOMK_ROCHE_ELECSYS...")
 
-        if df is not None:
-            logger.info(f"   Processing {table_name} biomarkers...")
-
-            for _, row in df.iterrows():
-                ptid = str(row.get('PTID', row.get('RID', ''))).strip()
+            for _, row in elecsys_df.iterrows():
+                ptid = str(row.get('PTID', '')).strip()
                 if not ptid:
                     continue
 
-                viscode = str(row.get('VISCODE2', row.get('VISCODE', 'bl'))).strip()
+                viscode = str(row.get('VISCODE2', 'bl')).strip()
                 visit_id = f"{ptid}_{viscode}"
 
-                # Extract each biomarker type
+                # Extract CSF biomarkers
                 biomarkers_map = {
-                    'ABETA42': ('Aβ42', 'pg/mL', 600),  # threshold
-                    'ABETA40': ('Aβ40', 'pg/mL', None),
-                    'TAU': ('Total Tau', 'pg/mL', 400),
-                    'PTAU': ('p-Tau181', 'pg/mL', 80)
+                    'ABETA42': ('Aβ42', 600),  # threshold
+                    'ABETA40': ('Aβ40', None),
+                    'TAU': ('Total Tau', 400),
+                    'PTAU': ('p-Tau181', 80)
                 }
 
-                for col, (analyte, unit, threshold) in biomarkers_map.items():
+                for col, (analyte, threshold) in biomarkers_map.items():
                     if col in row and pd.notna(row[col]):
                         value = float(row[col])
                         biomarker_id = f"bio_{ptid}_{viscode}_{col}"
-
-                        # Check if abnormal based on threshold
-                        abnormal = False
-                        if threshold:
-                            if 'ABETA' in col:
-                                abnormal = value < threshold
-                            else:
-                                abnormal = value > threshold
 
                         biomarker = Biomarker(
                             biomarker_id=biomarker_id,
@@ -632,24 +528,22 @@ class ADNIFindingsExtractor:
                             biomarker_type='CSF',
                             analyte=analyte,
                             value=value,
-                            unit=unit,
+                            unit='pg/mL',
                             specimen_type='CSF',
-                            abnormal_flag=abnormal,
-                            source_table=table_name
+                            abnormal_flag=self._check_abnormal(analyte, value, threshold),
+                            source_table='UPENNBIOMK_ROCHE_ELECSYS'
                         )
 
                         self.biomarkers.append(biomarker)
                         count += 1
 
-        # Process APOERES (genetic biomarker)
-        apoe_patterns = ['APOERES', 'APOE', 'GENETIC']
-        table_name, df = self._find_table(apoe_patterns)
+        # Extract APOE genotype
+        apoe_df = self._get_table('APOERES')
+        if apoe_df is not None:
+            logger.info(f"   Processing APOERES (APOE genotype)...")
 
-        if df is not None:
-            logger.info(f"   Processing {table_name} (APOE genotype)...")
-
-            for _, row in df.iterrows():
-                ptid = str(row.get('PTID', row.get('RID', ''))).strip()
+            for _, row in apoe_df.iterrows():
+                ptid = str(row.get('PTID', '')).strip()
                 if not ptid:
                     continue
 
@@ -657,7 +551,7 @@ class ADNIFindingsExtractor:
                 if pd.notna(genotype):
                     viscode = str(row.get('VISCODE', 'bl')).strip()
                     visit_id = f"{ptid}_{viscode}"
-                    biomarker_id = f"bio_{ptid}_APOE"
+                    biomarker_id = f"bio_{ptid}_APOE_{viscode}"
 
                     # Calculate risk score
                     risk_score = self._apoe_risk_score(genotype)
@@ -672,7 +566,7 @@ class ADNIFindingsExtractor:
                         unit='risk_score',
                         specimen_type='Blood',
                         abnormal_flag=risk_score > 2,
-                        source_table=table_name,
+                        source_table='APOERES',
                         assay_info={'genotype': str(genotype)}
                     )
 
@@ -681,39 +575,33 @@ class ADNIFindingsExtractor:
 
         return count
 
-    def _extract_imaging_measures_fixed(self) -> Tuple[int, int]:
-        """Extract volumetric and PET measures with fixed table detection"""
+    def _extract_imaging_measures(self) -> Tuple[int, int]:
+        """Extract volumetric and PET measures"""
         vol_count = 0
         pet_count = 0
 
         # Process FreeSurfer volumes
-        fs_patterns = ['UCSFFSX', 'FREESURFER', 'FOXLABBSI']
-        table_name, df = self._find_table(fs_patterns)
+        fs_df = self._get_table('UCSFFSX7')
+        if fs_df is not None:
+            logger.info(f"   Processing UCSFFSX7 volumes...")
 
-        if df is not None:
-            logger.info(f"   Processing {table_name} volumes...")
-
-            for _, row in df.iterrows():
+            for _, row in fs_df.iterrows():
                 ptid = str(row.get('PTID', row.get('RID', ''))).strip()
                 if not ptid:
                     continue
 
-                viscode = str(row.get('VISCODE', row.get('VISCODE2', 'bl'))).strip()
+                viscode = str(row.get('VISCODE2', row.get('VISCODE', 'bl'))).strip()
                 visit_id = f"{ptid}_{viscode}"
 
-                # Extract key volumes
-                volume_cols = {
-                    'ST29SV': ('Hippocampus_L', 'mm³'),
-                    'ST88SV': ('Hippocampus_R', 'mm³'),
-                    'ST11SV': ('Ventricles', 'mm³'),
-                    'HIPPOVOL_L': ('Hippocampus_L', 'mm³'),
-                    'HIPPOVOL_R': ('Hippocampus_R', 'mm³'),
-                    'VENTVOL': ('Ventricles', 'mm³')
+                # Extract hippocampal volumes
+                volumes = {
+                    'Hippocampus_L': row.get('ST29SV'),
+                    'Hippocampus_R': row.get('ST88SV'),
+                    'Ventricles': row.get('ST11SV')
                 }
 
-                for col, (region, unit) in volume_cols.items():
-                    if col in row and pd.notna(row[col]):
-                        value = float(row[col])
+                for region, value in volumes.items():
+                    if pd.notna(value):
                         measure_id = f"vol_{ptid}_{viscode}_{region}"
 
                         measure = VolumetricMeasure(
@@ -722,8 +610,8 @@ class ADNIFindingsExtractor:
                             patient_id=ptid,
                             visit_id=visit_id,
                             region=region,
-                            volume=value,
-                            unit=unit,
+                            volume=float(value),
+                            unit='mm³',
                             processing_method='FreeSurfer',
                             hemisphere='left' if '_L' in region else ('right' if '_R' in region else 'bilateral')
                         )
@@ -731,57 +619,76 @@ class ADNIFindingsExtractor:
                         self.volumetric_measures.append(measure)
                         vol_count += 1
 
-        # Process PET data
-        pet_patterns = ['UCBERKELEY_AMY', 'UCBERKELEY_TAU', 'AV45META']
+        # Process PET measures
+        amy_df = self._get_table('UCBERKELEY_AMY_6MM')
+        if amy_df is not None:
+            logger.info(f"   Processing UCBERKELEY_AMY_6MM PET data...")
 
-        for pattern in pet_patterns:
-            table_name, df = self._find_table([pattern])
+            for _, row in amy_df.iterrows():
+                ptid = str(row.get('PTID', row.get('RID', ''))).strip()
+                if not ptid:
+                    continue
 
-            if df is not None:
-                logger.info(f"   Processing {table_name} PET data...")
+                viscode = str(row.get('VISCODE2', row.get('VISCODE', 'bl'))).strip()
+                visit_id = f"{ptid}_{viscode}"
 
-                # Determine tracer type
-                tracer = 'Unknown'
-                if 'AMY' in pattern or 'AV45' in pattern:
-                    tracer = 'Amyloid'
-                elif 'TAU' in pattern:
-                    tracer = 'Tau'
+                if 'SUMMARY_SUVR' in row and pd.notna(row['SUMMARY_SUVR']):
+                    suvr = float(row['SUMMARY_SUVR'])
+                    binding_id = f"pet_{ptid}_{viscode}_amyloid"
 
-                for _, row in df.iterrows():
-                    ptid = str(row.get('PTID', row.get('RID', ''))).strip()
-                    if not ptid:
-                        continue
+                    binding = PETBinding(
+                        binding_id=binding_id,
+                        image_id=f"img_{ptid}_{viscode}_PET",
+                        patient_id=ptid,
+                        visit_id=visit_id,
+                        tracer='Amyloid',
+                        region='Global',
+                        suvr=suvr,
+                        reference_region='Cerebellum',
+                        abnormal_flag=suvr > 1.11  # Threshold for amyloid positivity
+                    )
 
-                    viscode = str(row.get('VISCODE2', row.get('VISCODE', 'bl'))).strip()
-                    visit_id = f"{ptid}_{viscode}"
-
-                    # Extract SUVR values
-                    suvr_col = 'SUMMARY_SUVR' if 'SUMMARY_SUVR' in row else 'META_TEMPORAL_SUVR'
-
-                    if suvr_col in row and pd.notna(row[suvr_col]):
-                        suvr = float(row[suvr_col])
-                        binding_id = f"pet_{ptid}_{viscode}_{tracer}_summary"
-
-                        binding = PETBinding(
-                            binding_id=binding_id,
-                            image_id=f"img_{ptid}_{viscode}_PET",
-                            patient_id=ptid,
-                            visit_id=visit_id,
-                            tracer=tracer,
-                            region='Global',
-                            suvr=suvr,
-                            reference_region='Cerebellum',
-                            abnormal_flag=suvr > 1.11 if tracer == 'Amyloid' else suvr > 1.3
-                        )
-
-                        self.pet_bindings.append(binding)
-                        pet_count += 1
+                    self.pet_bindings.append(binding)
+                    pet_count += 1
 
         return vol_count, pet_count
 
-    # Helper methods remain the same
+    # Helper methods
+    def _safe_equals(self, value, target) -> bool:
+        """Safely compare values that might be pd.NA"""
+        if pd.isna(value):
+            return False
+        try:
+            return value == target
+        except:
+            return False
+
+    def _map_diagnosis_code(self, diagnosis_value) -> Optional[str]:
+        """Map ADNI diagnosis numeric codes to standard codes"""
+        if pd.isna(diagnosis_value):
+            return None
+
+        # Convert to int/float for comparison
+        try:
+            dx_val = float(diagnosis_value)
+            # ADNI DXSUM uses numeric codes:
+            # 1 = Cognitively Normal (CN)
+            # 2 = Mild Cognitive Impairment (MCI)
+            # 3 = Alzheimer's Disease (AD)
+            if dx_val == 1 or dx_val == 1.0:
+                return 'CN'
+            elif dx_val == 2 or dx_val == 2.0:
+                return 'MCI'
+            elif dx_val == 3 or dx_val == 3.0:
+                return 'AD'
+        except (ValueError, TypeError):
+            # If it's a string, try string mapping
+            return self._map_adni_diagnosis(diagnosis_value)
+
+        return None
+
     def _map_adni_diagnosis(self, dx_value) -> Optional[str]:
-        """Map ADNI diagnosis values to standard codes"""
+        """Map ADNI diagnosis string values to standard codes"""
         if pd.isna(dx_value):
             return None
 
@@ -799,8 +706,67 @@ class ADNIFindingsExtractor:
 
         return diagnosis_map.get(dx_str)
 
+    def _map_arm_to_diagnosis(self, arm_value: str) -> Optional[str]:
+        """Map ARM study values to diagnosis codes"""
+        arm_upper = str(arm_value).upper()
+
+        if 'CN' in arm_upper or 'CONTROL' in arm_upper:
+            return 'CN'
+        elif 'EMCI' in arm_upper:
+            return 'EMCI'
+        elif 'LMCI' in arm_upper:
+            return 'LMCI'
+        elif 'SMC' in arm_upper:
+            return 'SMC'
+        elif 'MCI' in arm_upper:
+            return 'MCI'
+        elif 'AD' in arm_upper or 'ALZHEIMER' in arm_upper:
+            return 'AD'
+
+        # Numeric codes
+        try:
+            val = int(arm_value)
+            if val == 1:
+                return 'CN'
+            elif val == 2:
+                return 'MCI'
+            elif val == 3:
+                return 'AD'
+        except:
+            pass
+
+        return None
+
+    def _map_diagnosis_value(self, value) -> Optional[str]:
+        """Map various diagnosis values to standard codes"""
+        if pd.isna(value):
+            return None
+
+        # Handle numeric codes
+        try:
+            val = float(value)
+            if val == 1:
+                return 'CN'
+            elif val == 2:
+                return 'MCI'
+            elif val == 3:
+                return 'AD'
+        except:
+            pass
+
+        # Handle string values
+        str_val = str(value).upper()
+        if 'CN' in str_val or 'NORMAL' in str_val:
+            return 'CN'
+        elif 'MCI' in str_val:
+            return 'MCI'
+        elif 'AD' in str_val or 'ALZHEIMER' in str_val:
+            return 'AD'
+
+        return None
+
     def _get_diagnosis_text(self, code: str) -> str:
-        """Get full diagnosis text"""
+        """Get full diagnosis text from code"""
         texts = {
             'CN': 'Cognitively Normal',
             'SMC': 'Subjective Memory Concern',
@@ -810,6 +776,23 @@ class ADNIFindingsExtractor:
             'AD': "Alzheimer's Disease"
         }
         return texts.get(code, code)
+
+    def _check_abnormal(self, analyte: str, value: float, threshold: Optional[float]) -> bool:
+        """Check if biomarker value is abnormal"""
+        if threshold is None:
+            return False
+
+        # For Amyloid-beta markers, LOW values are abnormal
+        if 'Aβ' in analyte or 'ABETA' in analyte.upper():
+            return value < threshold
+        # For Tau markers, HIGH values are abnormal
+        elif 'Tau' in analyte or 'TAU' in analyte.upper():
+            return value > threshold
+        # For APOE risk score, HIGH values indicate risk
+        elif analyte == 'APOE Genotype':
+            return value > 2
+        else:
+            return value > threshold if threshold else False
 
     def _interpret_score(self, test_name: str, score: float) -> str:
         """Interpret cognitive test score"""
@@ -822,6 +805,7 @@ class ADNIFindingsExtractor:
                 return 'moderate_impairment'
             else:
                 return 'severe_impairment'
+
         elif test_name == 'ADAS-Cog':
             if score <= 10:
                 return 'normal'
@@ -831,6 +815,7 @@ class ADNIFindingsExtractor:
                 return 'moderate_impairment'
             else:
                 return 'severe_impairment'
+
         elif test_name == 'CDR':
             if score == 0:
                 return 'normal'
@@ -842,6 +827,7 @@ class ADNIFindingsExtractor:
                 return 'moderate'
             else:
                 return 'severe'
+
         elif test_name == 'MoCA':
             if score >= 26:
                 return 'normal'
@@ -849,6 +835,7 @@ class ADNIFindingsExtractor:
                 return 'mild_impairment'
             else:
                 return 'moderate_severe_impairment'
+
         elif test_name == 'FAQ':
             if score <= 3:
                 return 'normal'
@@ -856,31 +843,32 @@ class ADNIFindingsExtractor:
                 return 'mild_impairment'
             else:
                 return 'significant_impairment'
+
         else:
             return 'unknown'
 
     def _apoe_risk_score(self, genotype) -> float:
         """Calculate APOE risk score"""
         if pd.isna(genotype):
-            return 0
+            return 1.0
 
         try:
             genotype_str = str(genotype)
         except:
-            return 0
+            return 1.0
 
         if '4/4' in genotype_str or 'E4/E4' in genotype_str:
-            return 10  # Highest risk
+            return 12.0  # Highest risk
         elif '3/4' in genotype_str or 'E3/E4' in genotype_str:
-            return 5   # High risk
+            return 3.0   # High risk
         elif '2/4' in genotype_str or 'E2/E4' in genotype_str:
-            return 3   # Moderate risk
+            return 2.5   # Moderate risk
         elif '3/3' in genotype_str or 'E3/E3' in genotype_str:
-            return 1   # Normal risk
-        elif '2' in genotype_str:
-            return 0.5  # Protective
+            return 1.0   # Normal risk
+        elif '2/2' in genotype_str or '2/3' in genotype_str:
+            return 0.6   # Protective
         else:
-            return 1
+            return 1.0
 
     def _log_extraction_summary(self, results: Dict[str, Any]):
         """Log detailed extraction summary"""
@@ -902,12 +890,20 @@ class ADNIFindingsExtractor:
         # Diagnosis breakdown
         if self.diagnoses:
             dx_counts = {}
+            dx_sources = {}
             for d in self.diagnoses:
                 dx_counts[d.diagnosis_code] = dx_counts.get(d.diagnosis_code, 0) + 1
+                if hasattr(d, 'source_table'):
+                    source = d.source_table
+                    dx_sources[source] = dx_sources.get(source, 0) + 1
 
-            logger.info("\nDiagnosis breakdown:")
+            logger.info("\nDiagnosis breakdown by code:")
             for dx_code, count in sorted(dx_counts.items()):
                 logger.info(f"  {dx_code}: {count}")
+
+            logger.info("\nDiagnosis breakdown by source:")
+            for source, count in sorted(dx_sources.items()):
+                logger.info(f"  {source}: {count}")
 
         # Test breakdown
         if self.cognitive_assessments:
@@ -929,10 +925,12 @@ class ADNIFindingsExtractor:
             for analyte, count in sorted(bio_counts.items()):
                 logger.info(f"  {analyte}: {count}")
 
+        logger.info("="*60)
+
 
 def execute_findings_extraction_fixed(neo4j_uri: str, neo4j_user: str, neo4j_password: str,
                                      table_data: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
-    """Execute fixed findings extraction"""
+    """Execute fixed findings extraction with comprehensive diagnosis sources"""
     connector = Neo4jConnector(neo4j_uri, neo4j_user, neo4j_password)
 
     try:
