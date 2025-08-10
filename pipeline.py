@@ -24,6 +24,10 @@ from steps.step7_batch_insert import execute_batch_insertion_fixed
 from steps.step8_create_relationships import execute_comprehensive_relationship_creation
 from steps.step9_knowledge_graph_enhancer import enhance_knowledge_graph
 from steps.step10_execute_queries import execute_adni_queries
+from steps.step11_biomarker_analysis import execute_biomarker_analysis_fixed
+from steps.step12_complete_graph_enhancement import execute_complete_graph_enhancement
+from steps.step13_graph_eda import execute_graph_eda
+from steps.step14_test_queries import execute_research_queries
 from utils.quality_aware_logger import QualityAwarePipeline
 
 LOG_FMT = "%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s"
@@ -154,6 +158,22 @@ class ADNIPipeline:
             # Step 10: Execute Queries
             if self.config.get('run_query_execution', True):
                 self._run_step(10, "Execute Queries", self._execute_queries)
+
+            # Step 11: Comprehensive Biomarker Analysis
+            if self.config.get('run_biomarker_analysis', True):
+                self._run_step(11, "Biomarker Analysis", self._execute_biomarker_analysis)
+
+            # Step 12: Complete Graph Enhancement
+            if self.config.get('run_graph_enhancement', True):
+                self._run_step(12, "Complete Graph Enhancement", self._execute_graph_enhancement)
+
+            # Step 13: Graph Exploratory Data Analysis
+            if self.config.get('run_graph_eda', True):
+                self._run_step(13, "Graph EDA", self._execute_graph_eda)
+
+            # Step 14: Research Queries (optional, can be skipped)
+            if self.config.get('run_research_queries', True):
+                self._run_step(14, "Research Queries", self._execute_research_queries)
 
             # Generate final report
             self._generate_final_report()
@@ -376,6 +396,43 @@ class ADNIPipeline:
             neo4j_password=self.config['neo4j_password']
         )
 
+    def _execute_biomarker_analysis(self) -> Dict[str, Any]:
+        """Execute comprehensive biomarker analysis"""
+        if not hasattr(self, 'table_data'):
+            raise ValueError("Table data not loaded. Run table loading step first.")
+
+        return execute_biomarker_analysis_fixed(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password'],
+            table_data=self.table_data
+        )
+
+    def _execute_graph_enhancement(self) -> Dict[str, Any]:
+        """Execute complete graph enhancement"""
+        return execute_complete_graph_enhancement(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password'],
+            table_data=self.table_data if hasattr(self, 'table_data') else None
+        )
+
+    def _execute_graph_eda(self) -> Dict[str, Any]:
+        """Execute graph exploratory data analysis"""
+        return execute_graph_eda(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password']
+        )
+
+    def _execute_research_queries(self) -> Dict[str, Any]:
+        """Execute research queries"""
+        return execute_research_queries(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password']
+        )
+
     def _generate_final_report(self):
         """Generate comprehensive final report"""
         self.logger.info("\n" + "=" * 70)
@@ -574,6 +631,8 @@ def main():
     parser.add_argument('--skip-findings-extraction', action='store_true', help='Skip findings extraction')
     parser.add_argument('--skip-batch-insertion', action='store_true', help='Skip batch insertion')
     parser.add_argument('--skip-relationship-creation', action='store_true', help='Skip relationship creation')
+    parser.add_argument('--skip-biomarker-analysis', action='store_true',
+                        help='Skip comprehensive biomarker analysis')
 
     args = parser.parse_args()
 
@@ -628,6 +687,8 @@ def main():
         config['run_batch_insertion'] = False
     if args.skip_relationship_creation:
         config['run_relationship_creation'] = False
+    if args.skip_biomarker_analysis:
+        config['run_biomarker_analysis'] = False
 
     # Setup logging
     setup_logging(config['log_level'], args.log_file)

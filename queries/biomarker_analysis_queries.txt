@@ -1,0 +1,305 @@
+// COMPREHENSIVE BIOMARKER ANALYSIS QUERIES FOR ADNI KNOWLEDGE GRAPH
+
+// =====================================================
+// 1. RISK FACTOR ANALYSIS
+// =====================================================
+
+// 1.1 Get High-Risk Patients Based on Biomarker Profiles
+MATCH (p:Patient)-[:HAS_RISK_PROFILE]->(r:RiskProfile)
+WHERE r.risk_category IN ['high', 'very_high']
+OPTIONAL MATCH (p)-[:HAS_DIAGNOSIS]->(d:Diagnosis)
+RETURN p.ptid as patient_id,
+       p.age_at_baseline as age,
+       p.apoe_genotype as apoe,
+       r.risk_score as risk_score,
+       r.risk_category as risk_level,
+       r.atn_status as atn_status,
+       r.progression_risk as progression_probability,
+       collect(DISTINCT d.diagnosis_code) as diagnoses
+ORDER BY r.risk_score DESC
+LIMIT 100;
+
+// 1.2 Risk Factors Contributing to AD Progression
+MATCH (p:Patient)-[:HAS_RISK_PROFILE]->(r:RiskProfile)
+WHERE r.atn_status CONTAINS 'A+' OR r.atn_status CONTAINS 'T+'
+MATCH (p)-[:HAS_BIOMARKER]->(b:Biomarker)
+WHERE b.abnormal_flag = true
+WITH p, r, collect(DISTINCT {
+    analyte: b.analyte,
+    value: b.value,
+    type: b.biomarker_type
+}) as abnormal_biomarkers
+RETURN p.ptid as patient_id,
+       r.atn_status,
+       r.risk_category,
+       size(abnormal_biomarkers) as num_abnormal_biomarkers,
+       abnormal_biomarkers
+ORDER BY size(abnormal_biomarkers) DESC;
+
+// 1.3 Risk Stratification by ATN Framework
+MATCH (r:RiskProfile)
+WITH r.atn_status as atn_profile,
+     count(DISTINCT r.patient_id) as patient_count,
+     avg(r.progression_risk) as avg_progression_risk,
+     collect(DISTINCT r.risk_category) as risk_categories
+RETURN atn_profile,
+       patient_count,
+       round(avg_progression_risk * 100, 2) as avg_progression_risk_pct,
+       risk_categories
+ORDER BY avg_progression_risk DESC;
+
+// =====================================================
+// 2. SURVIVAL ANALYSIS
+// =====================================================
+
+// 2.1 Time to Progression Analysis
+MATCH (p:Patient)-[:HAS_DIAGNOSIS]->(d1:Diagnosis {diagnosis_code: 'MCI'})
+MATCH (p)-[:HAS_DIAGNOSIS]->(d2:Diagnosis {diagnosis_code: 'AD'})
+MATCH (p)-[:HAS_VISIT]->(v1:Visit)-[:HAS_DIAGNOSIS]->(d1)
+MATCH (p)-[:HAS_VISIT]->(v2:Visit)-[:HAS_DIAGNOSIS]->(d2)
+WHERE v1.months_from_baseline < v2.months_from_baseline
+WITH p,
+     min(v1.months_from_baseline) as mci_onset,
+     min(v2.months_from_baseline) as ad_onset,
+     min(v2.months_from_baseline) - min(v1.months_from_baseline) as time_to_ad
+MATCH (p)-[:HAS_RISK_PROFILE]->(r:RiskProfile)
+RETURN p.ptid as patient_id,
+       p.apoe_genotype as apoe,
+       r.atn_status,
+       mci_onset as months_to_mci,
+       ad_onset as months_to_ad,
+       time_to_ad as mci_to_ad_duration,
+       r.risk_score
+ORDER BY time_to_ad;
+
+// 2.2 Biomarker-Based Survival Groups
+MATCH (p:Patient)-[:HAS_BIOMARKER]->(b:Biomarker {analyte: 'Aβ42'})
+WHERE b.viscode = 'bl'  // Baseline
+WITH p, b.value as baseline_abeta42,
+     CASE
+       WHEN b.value < 600 THEN 'Aβ+'
+       ELSE 'Aβ-'
+     END as amyloid_status
+OPTIONAL MATCH (p)-[:HAS_DIAGNOSIS]->(d:Diagnosis)
+WHERE d.diagnosis_code = 'AD'
+WITH amyloid_status,
+     count(DISTINCT p) as total_patients,
+     count(DISTINCT CASE WHEN d IS NOT NULL THEN p END) as progressed_to_ad,
+     avg(CASE WHEN d IS NOT NULL THEN 1 ELSE 0 END) as progression_rate
+RETURN amyloid_status,
+       total_patients,
+       progressed_to_ad,
+       round(progression_rate * 100, 2) as progression_rate_pct;
+
+// 2.3 Kaplan-Meier Survival Data Preparation
+MATCH (p:Patient)
+OPTIONAL MATCH (p)-[:HAS_DIAGNOSIS]->(d:Diagnosis {diagnosis_code: 'AD'})
+OPTIONAL MATCH (p)-[:HAS_VISIT]->(v:Visit)-[:HAS_DIAGNOSIS]->(d)
+WITH p, d IS NOT NULL as has_ad, min(v.months_from_baseline) as time_to_event
+MATCH (p)-[:HAS_RISK_PROFILE]->(r:RiskProfile)
+RETURN p.ptid as patient_id,
+       r.risk_category,
+       has_ad as event_occurred,
+       COALESCE(time_to_event, 120) as follow_up_months,  // Assume 10 years max follow-up
+       r.atn_status
+ORDER BY follow_up_months;
+
+// =====================================================
+// 3. INDIVIDUAL PATIENT TRAJECTORIES
+// =====================================================
+
+// 3.1 Complete Patient Biomarker Timeline
+MATCH (p:Patient {ptid: $patient_id})
+MATCH (p)-[:HAS_TRAJECTORY]->(t:BiomarkerTrajectory)
+RETURN p.ptid as patient,
+       t.analyte,
+       t.biomarker_type,
+       t.baseline_value,
+       t.final_value,
+       t.rate_of_change,
+       t.trajectory_pattern,
+       t.duration_months
+ORDER BY t.biomarker_type, t.analyte;
+
+// 3.2 Longitudinal Biomarker Values for Individual
+MATCH (p:Patient {ptid: $patient_id})
+MATCH (p)-[:HAS_BIOMARKER]->(b:Biomarker)
+MATCH (p)-[:HAS_VISIT]->(v:Visit)
+WHERE b.visit_id = v.visit_id
+RETURN b.analyte,
+       b.biomarker_type,
+       v.months_from_baseline as months,
+       b.value,
+       b.unit,
+       b.abnormal_flag
+ORDER BY b.analyte, v.months_from_baseline;
+
+// 3.3 Patient Journey with Biomarkers and Diagnoses
+MATCH (p:Patient {ptid: $patient_id})
+MATCH (p)-[:HAS_VISIT]->(v:Visit)
+OPTIONAL MATCH (v)-[:HAS_BIOMARKER]->(b:Biomarker)
+OPTIONAL MATCH (v)-[:HAS_DIAGNOSIS]->(d:Diagnosis)
+OPTIONAL MATCH (v)-[:HAS_COGNITIVE_ASSESSMENT]->(ca:CognitiveAssessment)
+WITH v,
+     collect(DISTINCT {analyte: b.analyte, value: b.value, abnormal: b.abnormal_flag}) as biomarkers,
+     collect(DISTINCT d.diagnosis_code) as diagnoses,
+     collect(DISTINCT {test: ca.test_name, score: ca.total_score}) as cognitive_scores
+RETURN v.visit_id,
+       v.months_from_baseline as months,
+       diagnoses,
+       biomarkers,
+       cognitive_scores
+ORDER BY v.months_from_baseline;
+
+// 3.4 Trajectory Clustering for Similar Patients
+MATCH (p:Patient {ptid: $patient_id})-[:HAS_TRAJECTORY]->(t1:BiomarkerTrajectory)
+WHERE t1.analyte = 'Aβ42'
+WITH p, t1.trajectory_pattern as pattern, t1.rate_of_change as rate
+MATCH (p2:Patient)-[:HAS_TRAJECTORY]->(t2:BiomarkerTrajectory)
+WHERE p2.ptid <> p.ptid
+  AND t2.analyte = 'Aβ42'
+  AND t2.trajectory_pattern = pattern
+  AND abs(t2.rate_of_change - rate) < 0.1
+RETURN p2.ptid as similar_patient,
+       p2.apoe_genotype as apoe,
+       t2.trajectory_pattern as pattern,
+       t2.rate_of_change as rate_of_change,
+       t2.baseline_value,
+       t2.final_value
+LIMIT 20;
+
+// =====================================================
+// 4. BIOMARKER CORRELATION ANALYSIS
+// =====================================================
+
+// 4.1 Biomarker Correlation Network
+MATCH (c:BiomarkerCorrelation)
+WHERE abs(c.correlation_coefficient) > 0.5
+RETURN c.analyte1,
+       c.analyte2,
+       c.correlation_coefficient as correlation,
+       c.p_value,
+       c.strength,
+       c.n_samples
+ORDER BY abs(c.correlation_coefficient) DESC;
+
+// 4.2 CSF Biomarker Relationships at Baseline
+MATCH (p:Patient)-[:HAS_BIOMARKER]->(b1:Biomarker {biomarker_type: 'CSF'})
+MATCH (p)-[:HAS_BIOMARKER]->(b2:Biomarker {biomarker_type: 'CSF'})
+WHERE b1.viscode = 'bl' AND b2.viscode = 'bl'
+  AND b1.analyte = 'Aβ42' AND b2.analyte = 'Total Tau'
+WITH p, b1.value as abeta42, b2.value as tau,
+     b1.value / b2.value as ratio
+WHERE abeta42 IS NOT NULL AND tau IS NOT NULL
+RETURN avg(abeta42) as avg_abeta42,
+       avg(tau) as avg_tau,
+       avg(ratio) as avg_ratio,
+       stDev(abeta42) as sd_abeta42,
+       stDev(tau) as sd_tau,
+       count(p) as n_patients;
+
+// 4.3 Biomarker Changes Correlated with Cognitive Decline
+MATCH (p:Patient)-[:HAS_TRAJECTORY]->(bt:BiomarkerTrajectory)
+WHERE bt.trajectory_pattern IN ['increasing', 'decreasing']
+MATCH (p)-[:HAS_COGNITIVE_ASSESSMENT]->(ca1:CognitiveAssessment {test_name: 'MMSE'})
+MATCH (p)-[:HAS_COGNITIVE_ASSESSMENT]->(ca2:CognitiveAssessment {test_name: 'MMSE'})
+MATCH (p)-[:HAS_VISIT]->(v1:Visit)-[:HAS_COGNITIVE_ASSESSMENT]->(ca1)
+MATCH (p)-[:HAS_VISIT]->(v2:Visit)-[:HAS_COGNITIVE_ASSESSMENT]->(ca2)
+WHERE v1.months_from_baseline = 0 AND v2.months_from_baseline > 0
+WITH p, bt,
+     ca1.total_score as baseline_mmse,
+     ca2.total_score as followup_mmse,
+     ca2.total_score - ca1.total_score as mmse_change
+WHERE mmse_change < -3  // Significant decline
+RETURN bt.analyte,
+       bt.biomarker_type,
+       avg(bt.rate_of_change) as avg_biomarker_change_rate,
+       avg(mmse_change) as avg_mmse_decline,
+       count(DISTINCT p) as n_patients
+ORDER BY count(DISTINCT p) DESC;
+
+// 4.4 Multi-Modal Biomarker Integration
+MATCH (p:Patient)
+OPTIONAL MATCH (p)-[:HAS_BIOMARKER]->(csf:Biomarker {biomarker_type: 'CSF', analyte: 'Aβ42'})
+WHERE csf.viscode = 'bl'
+OPTIONAL MATCH (p)-[:HAS_BIOMARKER]->(plasma:Biomarker {biomarker_type: 'Plasma', analyte: 'p-Tau217'})
+WHERE plasma.viscode = 'bl'
+OPTIONAL MATCH (p)-[:HAS_BIOMARKER]->(genetic:Biomarker {biomarker_type: 'Genetic', analyte: 'APOE Genotype'})
+WITH p,
+     csf.value as csf_abeta42,
+     csf.abnormal_flag as csf_abnormal,
+     plasma.value as plasma_ptau217,
+     plasma.abnormal_flag as plasma_abnormal,
+     genetic.value as apoe_risk_score
+WHERE csf IS NOT NULL OR plasma IS NOT NULL OR genetic IS NOT NULL
+RETURN count(DISTINCT p) as total_patients,
+       count(DISTINCT CASE WHEN csf IS NOT NULL THEN p END) as with_csf,
+       count(DISTINCT CASE WHEN plasma IS NOT NULL THEN p END) as with_plasma,
+       count(DISTINCT CASE WHEN genetic IS NOT NULL THEN p END) as with_genetic,
+       count(DISTINCT CASE WHEN csf IS NOT NULL AND plasma IS NOT NULL THEN p END) as with_both_fluid,
+       avg(CASE WHEN csf_abnormal = true THEN 1 ELSE 0 END) as csf_abnormal_rate,
+       avg(CASE WHEN plasma_abnormal = true THEN 1 ELSE 0 END) as plasma_abnormal_rate;
+
+// =====================================================
+// 5. ADVANCED ANALYSES
+// =====================================================
+
+// 5.1 Biomarker-Based Patient Stratification
+MATCH (p:Patient)-[:HAS_RISK_PROFILE]->(r:RiskProfile)
+MATCH (p)-[:HAS_TRAJECTORY]->(t:BiomarkerTrajectory)
+WHERE t.analyte IN ['Aβ42', 'Total Tau', 'p-Tau181']
+WITH p, r.atn_status as atn,
+     collect(DISTINCT {
+       analyte: t.analyte,
+       pattern: t.trajectory_pattern,
+       rate: t.rate_of_change
+     }) as trajectories
+RETURN atn,
+       count(DISTINCT p) as n_patients,
+       trajectories[0..3] as sample_trajectories
+ORDER BY n_patients DESC;
+
+// 5.2 Predictive Biomarker Combinations
+MATCH (p:Patient)-[:HAS_BIOMARKER]->(b:Biomarker)
+WHERE b.viscode = 'bl' AND b.abnormal_flag = true
+WITH p, collect(DISTINCT b.analyte) as abnormal_biomarkers
+MATCH (p)-[:HAS_DIAGNOSIS]->(d:Diagnosis {diagnosis_code: 'AD'})
+MATCH (p)-[:HAS_VISIT]->(v:Visit)-[:HAS_DIAGNOSIS]->(d)
+WITH abnormal_biomarkers,
+     avg(v.months_from_baseline) as avg_time_to_ad,
+     count(DISTINCT p) as n_patients
+WHERE n_patients >= 5
+RETURN abnormal_biomarkers,
+       n_patients,
+       round(avg_time_to_ad, 1) as avg_months_to_ad
+ORDER BY avg_time_to_ad ASC;
+
+// 5.3 Biomarker Trajectory Phenotypes
+MATCH (t:BiomarkerTrajectory)
+WITH t.trajectory_pattern as pattern,
+     t.analyte as biomarker,
+     count(DISTINCT t.patient_id) as n_patients,
+     avg(t.rate_of_change) as avg_rate,
+     avg(t.duration_months) as avg_duration
+WHERE n_patients >= 10
+RETURN pattern + '_' + biomarker as phenotype,
+       n_patients,
+       round(avg_rate, 4) as avg_change_rate,
+       round(avg_duration, 1) as avg_duration_months
+ORDER BY n_patients DESC;
+
+// 5.4 Early Detection Biomarker Signature
+MATCH (p:Patient)-[:HAS_DIAGNOSIS]->(d:Diagnosis {diagnosis_code: 'AD'})
+MATCH (p)-[:HAS_VISIT]->(v:Visit)-[:HAS_DIAGNOSIS]->(d)
+WHERE v.months_from_baseline <= 36  // Early converters
+MATCH (p)-[:HAS_BIOMARKER]->(b:Biomarker)
+WHERE b.viscode = 'bl' AND b.abnormal_flag = true
+WITH b.analyte as biomarker,
+     b.biomarker_type as type,
+     count(DISTINCT p) as n_early_converters,
+     avg(b.value) as avg_baseline_value
+RETURN biomarker,
+       type,
+       n_early_converters,
+       round(avg_baseline_value, 2) as avg_baseline_value
+ORDER BY n_early_converters DESC;

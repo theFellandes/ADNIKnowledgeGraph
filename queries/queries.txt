@@ -171,3 +171,54 @@ WITH p,
 MERGE (c:Cohort {name: cohort_name})
 MERGE (p)-[:BELONGS_TO_COHORT]->(c)
 RETURN cohort_name, count(p) as patients_in_cohort;
+
+-- Query 1: Find patients with complete ATN profiles
+MATCH (p:Patient)-[:HAS_ATN_PROFILE]->(atn:ATNProfile)
+WHERE atn.profile IS NOT NULL
+RETURN p.ptid as patient,
+       atn.profile as atn_status,
+       atn.a_status as amyloid,
+       atn.t_status as tau,
+       atn.n_status as neurodegeneration
+LIMIT 20
+
+-- Query 2: Analyze disease progression pathways
+MATCH path = (d1:DiagnosisStage)-[:CAN_PROGRESS_TO*]->(d2:DiagnosisStage)
+WHERE d1.stage_id = 'CN' AND d2.stage_id = 'AD'
+RETURN [n in nodes(path) | n.name] as progression_path,
+       reduce(months = 0, r in relationships(path) | months + r.typical_months) as total_months
+
+-- Query 3: Find high-risk patients
+MATCH (p:Patient)-[:HAS_RISK_FACTOR]->(rf:RiskFactor)
+WITH p, collect(rf.name) as risk_factors, count(rf) as risk_count
+WHERE risk_count >= 2
+MATCH (p)-[:HAS_ATN_PROFILE]->(atn:ATNProfile)
+RETURN p.ptid as patient,
+       risk_factors,
+       atn.profile as atn_status
+ORDER BY risk_count DESC
+LIMIT 10
+
+-- Query 4: Multi-modal assessment completeness
+MATCH (v:Visit)-[:HAS_MULTIMODAL_ASSESSMENT]->(mm:MultiModalAssessment)
+WHERE mm.modality_count >= 3
+MATCH (v)<-[:HAS_VISIT]-(p:Patient)
+RETURN p.ptid as patient,
+       v.visit_id as visit,
+       mm.cognitive_count as cognitive_tests,
+       mm.biomarker_count as biomarkers,
+       mm.diagnosis_count as diagnoses
+LIMIT 20
+
+-- Query 5: Biomarker trajectory analysis
+MATCH (p:Patient)-[:HAS_BIOMARKER]->(b:Biomarker)
+WHERE b.analyte = 'ABETA42'
+WITH p, b ORDER BY b.visit_id
+WITH p, collect({visit: b.visit_id, value: b.value, abnormal: b.abnormal_flag}) as trajectory
+WHERE size(trajectory) >= 3
+RETURN p.ptid as patient,
+       trajectory[0].value as baseline_value,
+       trajectory[-1].value as latest_value,
+       trajectory[-1].value - trajectory[0].value as change
+ORDER BY change
+LIMIT 20

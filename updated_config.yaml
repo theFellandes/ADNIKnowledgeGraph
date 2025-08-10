@@ -96,16 +96,20 @@ batch_processing:
 # ============================================================================
 # Enable/disable individual pipeline steps
 
-run_database_setup: true      # Step 1: Setup Neo4j and Elasticsearch
-run_table_loading: true       # Step 2: Load CSV tables
-run_patient_creation: true    # Step 3: Create patient nodes
-run_family_extraction: true   # Step 4: Extract family relationships
-run_image_processing: true    # Step 5: Process medical images
-run_findings_extraction: true # Step 6: Extract clinical findings
-run_batch_insertion: true     # Step 7: Batch insert remaining data
-run_relationship_creation: true # Step 8: Create all relationships
-run_knowledge_enhancement: true # Step 9: Enhance knowledge graph with additional data
-run_query_execution: true  # Step 10: Execute queries and generate reports
+run_database_setup: true          # Step 1: Setup Neo4j and Elasticsearch
+run_table_loading: true           # Step 2: Load CSV tables
+run_patient_creation: true        # Step 3: Create patient nodes
+run_family_extraction: true       # Step 4: Extract family relationships
+run_image_processing: true        # Step 5: Process medical images
+run_findings_extraction: true     # Step 6: Extract clinical findings
+run_batch_insertion: true         # Step 7: Batch insert remaining data
+run_relationship_creation: true   # Step 8: Create all relationships
+run_knowledge_enhancement: true   # Step 9: Enhance knowledge graph with additional data
+run_query_execution: true         # Step 10: Execute queries and generate reports
+run_biomarker_analysis: true      # Step 11: Analyze biomarkers and generate reports
+run_graph_enhancement: true       # Step 12: Enhance graph with external data
+run_graph_eda: true               # Step 13: Export data to external formats
+run_research_queries: true        # Step 14: Execute research queries and generate insights
 
 # ============================================================================
 # ERROR HANDLING
@@ -113,13 +117,13 @@ run_query_execution: true  # Step 10: Execute queries and generate reports
 
 error_handling:
   continue_on_error: true  # Continue processing even if some items fail
-  max_retries: 3          # Retry failed operations
-  retry_delay: 5          # Seconds between retries
+  max_retries: 3           # Retry failed operations
+  retry_delay: 5           # Seconds between retries
 
   # Validation
-  validate_data: true     # Check data integrity
-  skip_invalid: true      # Skip invalid records instead of failing
-  log_invalid: true       # Log invalid records for review
+  validate_data: true      # Check data integrity
+  skip_invalid: true       # Skip invalid records instead of failing
+  log_invalid: true        # Log invalid records for review
 
 # ============================================================================
 # LOGGING

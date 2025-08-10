@@ -1,0 +1,615 @@
+// =====================================================================
+// ADNI KNOWLEDGE GRAPH EXPLORATORY QUERIES
+// A comprehensive collection of queries to explore and understand the graph
+// =====================================================================
+
+// =====================================================================
+// SECTION 1: BASIC GRAPH EXPLORATION - Understanding the Structure
+// =====================================================================
+
+// 1.1 What types of nodes exist in our graph?
+// This fundamental query shows all node labels and their counts
+MATCH (n)
+RETURN DISTINCT labels(n) as NodeType,
+       count(n) as Count
+ORDER BY Count DESC;
+
+// 1.2 What types of relationships exist?
+// Understanding the relationship types helps us see how data connects
+MATCH ()-[r]->()
+RETURN DISTINCT type(r) as RelationshipType,
+       count(r) as Count
+ORDER BY Count DESC;
+
+// 1.3 What is the graph's overall size and complexity?
+// This gives us a sense of the data volume we're working with
+MATCH (n)
+WITH count(n) as nodeCount
+MATCH ()-[r]->()
+WITH nodeCount, count(r) as relCount
+RETURN nodeCount as TotalNodes,
+       relCount as TotalRelationships,
+       round(toFloat(relCount) / nodeCount, 2) as AvgRelationshipsPerNode;
+
+// 1.4 Schema exploration - What properties does each node type have?
+// This helps understand what data is available for analysis
+MATCH (n:Patient)
+WITH keys(n) as properties
+UNWIND properties as property
+RETURN 'Patient' as NodeType,
+       collect(DISTINCT property) as Properties
+UNION
+MATCH (n:Visit)
+WITH keys(n) as properties
+UNWIND properties as property
+RETURN 'Visit' as NodeType,
+       collect(DISTINCT property) as Properties
+UNION
+MATCH (n:Biomarker)
+WITH keys(n) as properties
+UNWIND properties as property
+RETURN 'Biomarker' as NodeType,
+       collect(DISTINCT property) as Properties;
+
+// =====================================================================
+// SECTION 2: PATIENT POPULATION ANALYSIS
+// =====================================================================
+
+// 2.1 Basic demographic distribution
+// Understanding our patient population is the foundation of any analysis
+MATCH (p:Patient)
+RETURN p.gender as Gender,
+       count(*) as Count,
+       avg(p.age_at_baseline) as AvgAge,
+       min(p.age_at_baseline) as MinAge,
+       max(p.age_at_baseline) as MaxAge,
+       stDev(p.age_at_baseline) as StdDevAge
+ORDER BY Count DESC;
+
+// 2.2 APOE genotype distribution with risk assessment
+// APOE is the strongest genetic risk factor for AD
+MATCH (p:Patient)
+WHERE p.apoe_genotype IS NOT NULL
+WITH p.apoe_genotype as genotype,
+     CASE
+       WHEN p.apoe_genotype CONTAINS '4/4' THEN 'ε4/ε4 (Highest Risk)'
+       WHEN p.apoe_genotype CONTAINS '3/4' THEN 'ε3/ε4 (High Risk)'
+       WHEN p.apoe_genotype CONTAINS '2/4' THEN 'ε2/ε4 (Moderate Risk)'
+       WHEN p.apoe_genotype CONTAINS '3/3' THEN 'ε3/ε3 (Average Risk)'
+       WHEN p.apoe_genotype CONTAINS '2' THEN 'ε2 carrier (Protective)'
+       ELSE 'Other'
+     END as risk_category
+RETURN risk_category as APOERiskCategory,
+       count(*) as PatientCount,
+       round(100.0 * count(*) /
+         (MATCH (p2:Patient) WHERE p2.apoe_genotype IS NOT NULL RETURN count(p2)), 2) as PercentageOfTotal
+ORDER BY PatientCount DESC;
+
+// 2.3 Patient participation patterns - How many visits per patient?
+// This shows engagement and data completeness
+MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)
+WITH p, count(v) as visitCount
+RETURN visitCount as NumberOfVisits,
+       count(p) as NumberOfPatients,
+       round(100.0 * count(p) / (MATCH (p2:Patient) RETURN count(p2)), 2) as PercentageOfPatients
+ORDER BY visitCount DESC;
+
+// 2.4 Longitudinal coverage - How long were patients followed?
+// Understanding follow-up duration is crucial for longitudinal analyses
+MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)
+WITH p, max(v.months_from_baseline) as maxFollowUp
+WHERE maxFollowUp > 0
+RETURN CASE
+         WHEN maxFollowUp <= 12 THEN '0-1 year'
+         WHEN maxFollowUp <= 24 THEN '1-2 years'
+         WHEN maxFollowUp <= 36 THEN '2-3 years'
+         WHEN maxFollowUp <= 60 THEN '3-5 years'
+         WHEN maxFollowUp <= 84 THEN '5-7 years'
+         ELSE '7+ years'
+       END as FollowUpDuration,
+       count(p) as PatientCount,
+       avg(maxFollowUp) as AvgMonthsFollowUp
+ORDER BY avg(maxFollowUp);
+
+// =====================================================================
+// SECTION 3: DIAGNOSTIC LANDSCAPE EXPLORATION
+// =====================================================================
+
+// 3.1 Distribution of diagnoses across the cohort
+// What conditions are we studying?
+MATCH (d:Diagnosis)
+RETURN d.diagnosis_code as DiagnosisCode,
+       d.diagnosis_text as DiagnosisText,
+       count(DISTINCT d.patient_id) as UniquePatients,
+       count(d) as TotalDiagnosisRecords
+ORDER BY UniquePatients DESC;
+
+// 3.2 Diagnostic trajectories - How do patients progress?
+// This query finds common progression patterns
+MATCH (p:Patient)-[:HAS_DIAGNOSIS]->(d1:Diagnosis)
+MATCH (p)-[:HAS_DIAGNOSIS]->(d2:Diagnosis)
+WHERE d1.diagnosis_code <> d2.diagnosis_code
+WITH p, d1.diagnosis_code as from_dx, d2.diagnosis_code as to_dx
+WHERE from_dx <> to_dx
+RETURN from_dx as FromDiagnosis,
+       to_dx as ToDiagnosis,
+       count(DISTINCT p) as PatientCount
+ORDER BY PatientCount DESC
+LIMIT 20;
+
+// 3.3 Time to progression analysis
+// How quickly do patients progress between disease stages?
+MATCH (p:Patient)-[:HAS_VISIT]->(v1:Visit)-[:HAS_DIAGNOSIS]->(d1:Diagnosis {diagnosis_code: 'MCI'})
+MATCH (p)-[:HAS_VISIT]->(v2:Visit)-[:HAS_DIAGNOSIS]->(d2:Diagnosis {diagnosis_code: 'AD'})
+WHERE v1.months_from_baseline < v2.months_from_baseline
+WITH p, min(v2.months_from_baseline - v1.months_from_baseline) as progressionTime
+RETURN CASE
+         WHEN progressionTime <= 12 THEN '0-1 year'
+         WHEN progressionTime <= 24 THEN '1-2 years'
+         WHEN progressionTime <= 36 THEN '2-3 years'
+         WHEN progressionTime <= 48 THEN '3-4 years'
+         ELSE '4+ years'
+       END as TimeToProgression,
+       count(p) as PatientCount,
+       round(avg(progressionTime), 1) as AvgMonths
+ORDER BY avg(progressionTime);
+
+// 3.4 Diagnostic confidence and agreement
+// How confident are the diagnoses?
+MATCH (d:Diagnosis)
+WHERE d.confidence IS NOT NULL
+RETURN d.diagnosis_code as Diagnosis,
+       avg(d.confidence) as AvgConfidence,
+       min(d.confidence) as MinConfidence,
+       max(d.confidence) as MaxConfidence,
+       count(*) as DiagnosisCount
+ORDER BY AvgConfidence DESC;
+
+// =====================================================================
+// SECTION 4: BIOMARKER EXPLORATION
+// =====================================================================
+
+// 4.1 Biomarker availability across the cohort
+// What biomarkers do we have and how complete is the data?
+MATCH (b:Biomarker)
+RETURN b.biomarker_type as BiomarkerType,
+       b.analyte as Analyte,
+       count(DISTINCT b.patient_id) as PatientsWithBiomarker,
+       count(b) as TotalMeasurements,
+       avg(b.value) as AvgValue,
+       min(b.value) as MinValue,
+       max(b.value) as MaxValue
+ORDER BY PatientsWithBiomarker DESC;
+
+// 4.2 CSF biomarker profile distribution (ATN framework)
+// How are patients distributed across the ATN categories?
+MATCH (p:Patient)-[:HAS_RISK_PROFILE]->(r:RiskProfile)
+WHERE r.atn_status IS NOT NULL
+WITH split(r.atn_status, '/') as atn_parts,
+     r.atn_status as full_status,
+     p
+RETURN full_status as ATNStatus,
+       count(DISTINCT p) as PatientCount,
+       CASE
+         WHEN full_status = 'A+/T+/N+' THEN 'Alzheimer pathologic change'
+         WHEN full_status = 'A+/T-/N-' THEN 'Alzheimer pathologic change'
+         WHEN full_status = 'A+/T+/N-' THEN 'Alzheimer pathologic change'
+         WHEN full_status = 'A+/T-/N+' THEN 'Alzheimer and concomitant suspected non-AD pathology'
+         WHEN full_status = 'A-/T+/N-' THEN 'Non-AD pathologic change'
+         WHEN full_status = 'A-/T-/N+' THEN 'Non-AD pathologic change'
+         WHEN full_status = 'A-/T+/N+' THEN 'Non-AD pathologic change'
+         WHEN full_status = 'A-/T-/N-' THEN 'Normal biomarkers'
+         ELSE 'Unclassified'
+       END as BiologicalCategory
+ORDER BY PatientCount DESC;
+
+// 4.3 Biomarker trajectory patterns
+// How do biomarkers change over time?
+MATCH (t:BiomarkerTrajectory)
+RETURN t.analyte as Biomarker,
+       t.trajectory_pattern as Pattern,
+       count(DISTINCT t.patient_id) as PatientCount,
+       avg(t.rate_of_change) as AvgRateOfChange,
+       avg(t.duration_months) as AvgDurationMonths
+ORDER BY Biomarker, PatientCount DESC;
+
+// 4.4 Abnormal biomarker combinations
+// What combinations of abnormal biomarkers are most common?
+MATCH (p:Patient)-[:HAS_BIOMARKER]->(b:Biomarker)
+WHERE b.abnormal_flag = true AND b.viscode = 'bl'
+WITH p, collect(DISTINCT b.analyte) as abnormalBiomarkers
+WHERE size(abnormalBiomarkers) >= 2
+RETURN abnormalBiomarkers as AbnormalBiomarkerCombination,
+       count(p) as PatientCount
+ORDER BY PatientCount DESC
+LIMIT 20;
+
+// 4.5 Biomarker correlations
+// Which biomarkers tend to be abnormal together?
+MATCH (c:BiomarkerCorrelation)
+WHERE abs(c.correlation_coefficient) > 0.5 AND c.p_value < 0.05
+RETURN c.analyte1 as Biomarker1,
+       c.analyte2 as Biomarker2,
+       round(c.correlation_coefficient, 3) as Correlation,
+       c.p_value as PValue,
+       c.strength as Strength,
+       c.n_samples as SampleSize
+ORDER BY abs(c.correlation_coefficient) DESC;
+
+// =====================================================================
+// SECTION 5: COGNITIVE ASSESSMENT PATTERNS
+// =====================================================================
+
+// 5.1 Cognitive test utilization
+// Which cognitive tests are most commonly used?
+MATCH (ca:CognitiveAssessment)
+RETURN ca.test_name as TestName,
+       count(DISTINCT ca.patient_id) as UniquePatients,
+       count(ca) as TotalAssessments,
+       avg(ca.total_score) as AvgScore,
+       min(ca.total_score) as MinScore,
+       max(ca.total_score) as MaxScore
+ORDER BY TotalAssessments DESC;
+
+// 5.2 Cognitive decline patterns
+// How do cognitive scores change over time?
+MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)-[:HAS_COGNITIVE_ASSESSMENT]->(ca:CognitiveAssessment)
+WHERE ca.test_name = 'MMSE'
+WITH p, v.months_from_baseline as months, ca.total_score as score
+ORDER BY p.ptid, months
+WITH p, collect({months: months, score: score}) as scores
+WHERE size(scores) >= 3
+WITH p, scores,
+     scores[0].score as baseline_score,
+     scores[-1].score as final_score,
+     scores[-1].months - scores[0].months as duration
+RETURN CASE
+         WHEN (baseline_score - final_score) >= 5 THEN 'Significant Decline (≥5 points)'
+         WHEN (baseline_score - final_score) >= 3 THEN 'Moderate Decline (3-4 points)'
+         WHEN (baseline_score - final_score) >= 1 THEN 'Mild Decline (1-2 points)'
+         WHEN (baseline_score - final_score) >= -1 THEN 'Stable (±1 point)'
+         ELSE 'Improvement'
+       END as CognitiveTrajectory,
+       count(p) as PatientCount,
+       avg(baseline_score) as AvgBaselineScore,
+       avg(final_score) as AvgFinalScore
+ORDER BY PatientCount DESC;
+
+// 5.3 Cognitive scores by diagnostic group
+// How do cognitive scores differ across diagnoses?
+MATCH (d:Diagnosis)<-[:HAS_DIAGNOSIS]-(v:Visit)-[:HAS_COGNITIVE_ASSESSMENT]->(ca:CognitiveAssessment)
+WHERE ca.test_name = 'MMSE'
+RETURN d.diagnosis_code as Diagnosis,
+       count(ca) as NumberOfAssessments,
+       avg(ca.total_score) as AvgMMSE,
+       min(ca.total_score) as MinMMSE,
+       max(ca.total_score) as MaxMMSE,
+       stDev(ca.total_score) as StdDevMMSE
+ORDER BY avg(ca.total_score) DESC;
+
+// =====================================================================
+// SECTION 6: FAMILY HISTORY AND GENETIC RISK
+// =====================================================================
+
+// 6.1 Family history prevalence
+// How many patients have family members with dementia?
+MATCH (fm:FamilyMember)
+WHERE fm.has_dementia = true
+WITH fm.patient_id as patient_id,
+     fm.relationship_type as relationship,
+     count(fm) as affected_count
+RETURN relationship as RelationshipType,
+       count(DISTINCT patient_id) as PatientsWithAffectedRelative,
+       sum(affected_count) as TotalAffectedRelatives
+ORDER BY PatientsWithAffectedRelative DESC;
+
+// 6.2 Genetic and family risk combination
+// Do APOE carriers have more family history?
+MATCH (p:Patient)
+WHERE p.apoe_genotype IS NOT NULL
+OPTIONAL MATCH (p)-[:HAS_FAMILY_MEMBER]->(fm:FamilyMember {has_dementia: true})
+WITH p,
+     CASE
+       WHEN p.apoe_genotype CONTAINS '4' THEN 'ε4 carrier'
+       ELSE 'non-ε4 carrier'
+     END as apoe_status,
+     count(fm) as affected_family_members
+RETURN apoe_status as APOEStatus,
+       avg(affected_family_members) as AvgAffectedFamilyMembers,
+       count(CASE WHEN affected_family_members > 0 THEN 1 END) as PatientsWithFamilyHistory,
+       count(p) as TotalPatients,
+       round(100.0 * count(CASE WHEN affected_family_members > 0 THEN 1 END) / count(p), 2) as PercentWithFamilyHistory
+ORDER BY AvgAffectedFamilyMembers DESC;
+
+// =====================================================================
+// SECTION 7: IMAGING DATA EXPLORATION
+// =====================================================================
+
+// 7.1 Imaging modality distribution
+// What types of imaging do we have?
+MATCH (i:ImagingStudy)
+RETURN i.modality as Modality,
+       count(DISTINCT i.patient_id) as UniquePatients,
+       count(i) as TotalStudies,
+       count(DISTINCT i.study_date) as UniqueScanDates
+ORDER BY TotalStudies DESC;
+
+// 7.2 Longitudinal imaging coverage
+// How many patients have multiple scans?
+MATCH (p:Patient)-[:HAS_IMAGING_STUDY]->(i:ImagingStudy)
+WITH p, count(DISTINCT i.study_date) as scanCount
+RETURN scanCount as NumberOfScans,
+       count(p) as PatientCount,
+       round(100.0 * count(p) / (MATCH (p2:Patient) RETURN count(p2)), 2) as PercentageOfAllPatients
+ORDER BY scanCount DESC;
+
+// 7.3 PET tracer utilization
+// What PET tracers are used and for how many patients?
+MATCH (i:ImageNode)
+WHERE i.pet_tracer IS NOT NULL
+RETURN i.pet_tracer as PETTracer,
+       count(DISTINCT i.patient_id) as UniquePatients,
+       count(i) as TotalScans
+ORDER BY UniquePatients DESC;
+
+// =====================================================================
+// SECTION 8: RISK STRATIFICATION ANALYSIS
+// =====================================================================
+
+// 8.1 Risk profile distribution
+// How are patients stratified by risk?
+MATCH (r:RiskProfile)
+RETURN r.risk_category as RiskCategory,
+       count(DISTINCT r.patient_id) as PatientCount,
+       avg(r.risk_score) as AvgRiskScore,
+       avg(r.progression_risk) as AvgProgressionProbability
+ORDER BY avg(r.risk_score) DESC;
+
+// 8.2 Risk factors and outcomes
+// Do high-risk patients progress more?
+MATCH (p:Patient)-[:HAS_RISK_PROFILE]->(r:RiskProfile)
+OPTIONAL MATCH (p)-[:HAS_DIAGNOSIS]->(d:Diagnosis {diagnosis_code: 'AD'})
+WITH r.risk_category as risk,
+     count(DISTINCT p) as total_patients,
+     count(DISTINCT CASE WHEN d IS NOT NULL THEN p END) as progressed_to_ad
+RETURN risk as RiskCategory,
+       total_patients as TotalPatients,
+       progressed_to_ad as ProgressedToAD,
+       round(100.0 * progressed_to_ad / total_patients, 2) as ProgressionRate
+ORDER BY ProgressionRate DESC;
+
+// 8.3 Contributing risk factors
+// What factors contribute most to high risk?
+MATCH (p:Patient)-[:HAS_RISK_PROFILE]->(r:RiskProfile)
+WHERE r.risk_category IN ['high', 'very_high']
+MATCH (p)-[:HAS_BIOMARKER]->(b:Biomarker)
+WHERE b.abnormal_flag = true
+RETURN b.analyte as RiskFactor,
+       b.biomarker_type as Type,
+       count(DISTINCT p) as HighRiskPatientsWithFactor,
+       round(100.0 * count(DISTINCT p) /
+         (MATCH (p2:Patient)-[:HAS_RISK_PROFILE]->(r2:RiskProfile)
+          WHERE r2.risk_category IN ['high', 'very_high']
+          RETURN count(DISTINCT p2)), 2) as PercentageOfHighRisk
+ORDER BY HighRiskPatientsWithFactor DESC;
+
+// =====================================================================
+// SECTION 9: COMPLEX PATTERN DISCOVERY
+// =====================================================================
+
+// 9.1 Multi-modal data completeness
+// Which patients have the most comprehensive data?
+MATCH (p:Patient)
+OPTIONAL MATCH (p)-[:HAS_DIAGNOSIS]->(d:Diagnosis)
+OPTIONAL MATCH (p)-[:HAS_BIOMARKER]->(b:Biomarker)
+OPTIONAL MATCH (p)-[:HAS_COGNITIVE_ASSESSMENT]->(ca:CognitiveAssessment)
+OPTIONAL MATCH (p)-[:HAS_IMAGING_STUDY]->(i:ImagingStudy)
+OPTIONAL MATCH (p)-[:HAS_FAMILY_MEMBER]->(fm:FamilyMember)
+WITH p,
+     count(DISTINCT d) > 0 as hasDiagnosis,
+     count(DISTINCT b) > 0 as hasBiomarkers,
+     count(DISTINCT ca) > 0 as hasCognitive,
+     count(DISTINCT i) > 0 as hasImaging,
+     count(DISTINCT fm) > 0 as hasFamily,
+     count(DISTINCT d) +
+     (CASE WHEN count(DISTINCT b) > 0 THEN 1 ELSE 0 END) +
+     (CASE WHEN count(DISTINCT ca) > 0 THEN 1 ELSE 0 END) +
+     (CASE WHEN count(DISTINCT i) > 0 THEN 1 ELSE 0 END) +
+     (CASE WHEN count(DISTINCT fm) > 0 THEN 1 ELSE 0 END) as dataCompleteness
+RETURN dataCompleteness as DataTypes,
+       count(p) as PatientCount,
+       round(100.0 * count(p) / (MATCH (p2:Patient) RETURN count(p2)), 2) as PercentageOfPatients
+ORDER BY dataCompleteness DESC;
+
+// 9.2 Rapid progressors identification
+// Who progresses fastest from normal to AD?
+MATCH (p:Patient)-[:HAS_VISIT]->(v1:Visit)-[:HAS_DIAGNOSIS]->(d1:Diagnosis {diagnosis_code: 'CN'})
+MATCH (p)-[:HAS_VISIT]->(v2:Visit)-[:HAS_DIAGNOSIS]->(d2:Diagnosis {diagnosis_code: 'AD'})
+WHERE v1.months_from_baseline < v2.months_from_baseline
+WITH p, min(v2.months_from_baseline - v1.months_from_baseline) as progressionTime
+WHERE progressionTime <= 36  // Rapid progression defined as ≤3 years
+MATCH (p)-[:HAS_RISK_PROFILE]->(r:RiskProfile)
+RETURN p.ptid as PatientID,
+       p.apoe_genotype as APOE,
+       progressionTime as MonthsToAD,
+       r.risk_score as RiskScore,
+       r.atn_status as ATNStatus
+ORDER BY progressionTime
+LIMIT 20;
+
+// 9.3 Protective factors exploration
+// What characterizes patients who don't progress?
+MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)
+WHERE v.months_from_baseline >= 60  // At least 5 years follow-up
+MATCH (p)-[:HAS_DIAGNOSIS]->(d:Diagnosis)
+WITH p, collect(DISTINCT d.diagnosis_code) as allDiagnoses
+WHERE 'CN' IN allDiagnoses AND NOT 'MCI' IN allDiagnoses AND NOT 'AD' IN allDiagnoses
+OPTIONAL MATCH (p)-[:HAS_BIOMARKER]->(b:Biomarker {viscode: 'bl'})
+OPTIONAL MATCH (p)-[:HAS_RISK_PROFILE]->(r:RiskProfile)
+RETURN p.apoe_genotype as APOE,
+       r.risk_category as RiskCategory,
+       count(DISTINCT p) as StablePatients,
+       collect(DISTINCT b.analyte)[0..5] as SampleBiomarkers
+ORDER BY StablePatients DESC;
+
+// 9.4 Biomarker cascade analysis
+// What is the typical sequence of biomarker abnormalities?
+MATCH (p:Patient)-[:HAS_BIOMARKER]->(b:Biomarker)
+WHERE b.abnormal_flag = true
+WITH p, b.analyte as biomarker, min(b.viscode) as first_abnormal
+ORDER BY p.ptid, first_abnormal
+WITH p, collect(biomarker) as biomarker_sequence
+WHERE size(biomarker_sequence) >= 3
+RETURN biomarker_sequence[0..3] as FirstThreeAbnormal,
+       count(p) as PatientCount
+ORDER BY PatientCount DESC
+LIMIT 20;
+
+// =====================================================================
+// SECTION 10: DATA QUALITY AND COMPLETENESS CHECKS
+// =====================================================================
+
+// 10.1 Missing data assessment
+// Where are the gaps in our data?
+MATCH (p:Patient)
+OPTIONAL MATCH (p)-[:HAS_VISIT]->(v:Visit)
+OPTIONAL MATCH (p)-[:HAS_DIAGNOSIS]->(d:Diagnosis)
+OPTIONAL MATCH (p)-[:HAS_BIOMARKER]->(b:Biomarker)
+WITH
+  count(DISTINCT p) as totalPatients,
+  count(DISTINCT CASE WHEN p.age_at_baseline IS NULL THEN p END) as missingAge,
+  count(DISTINCT CASE WHEN p.gender IS NULL THEN p END) as missingGender,
+  count(DISTINCT CASE WHEN p.apoe_genotype IS NULL THEN p END) as missingAPOE,
+  count(DISTINCT CASE WHEN v IS NULL THEN p END) as noVisits,
+  count(DISTINCT CASE WHEN d IS NULL THEN p END) as noDiagnosis,
+  count(DISTINCT CASE WHEN b IS NULL THEN p END) as noBiomarkers
+RETURN
+  totalPatients,
+  missingAge,
+  round(100.0 * missingAge / totalPatients, 2) as pctMissingAge,
+  missingGender,
+  round(100.0 * missingGender / totalPatients, 2) as pctMissingGender,
+  missingAPOE,
+  round(100.0 * missingAPOE / totalPatients, 2) as pctMissingAPOE,
+  noVisits,
+  round(100.0 * noVisits / totalPatients, 2) as pctNoVisits,
+  noDiagnosis,
+  round(100.0 * noDiagnosis / totalPatients, 2) as pctNoDiagnosis,
+  noBiomarkers,
+  round(100.0 * noBiomarkers / totalPatients, 2) as pctNoBiomarkers;
+
+// 10.2 Data consistency check
+// Are there any logical inconsistencies?
+// Example: Patients with AD diagnosis but perfect cognitive scores
+MATCH (p:Patient)-[:HAS_DIAGNOSIS]->(d:Diagnosis {diagnosis_code: 'AD'})
+MATCH (p)-[:HAS_COGNITIVE_ASSESSMENT]->(ca:CognitiveAssessment {test_name: 'MMSE'})
+WHERE ca.total_score >= 28  // Near perfect MMSE
+RETURN p.ptid as PatientID,
+       d.diagnosis_code as Diagnosis,
+       ca.total_score as MMSEScore,
+       'Potential inconsistency: AD with high MMSE' as Issue
+LIMIT 20;
+
+// 10.3 Temporal consistency check
+// Are visit dates properly ordered?
+MATCH (p:Patient)-[:HAS_VISIT]->(v1:Visit)
+MATCH (p)-[:HAS_VISIT]->(v2:Visit)
+WHERE v1.visit_id < v2.visit_id
+  AND v1.months_from_baseline > v2.months_from_baseline
+RETURN p.ptid as PatientID,
+       v1.visit_id as EarlierVisitID,
+       v1.months_from_baseline as EarlierVisitMonths,
+       v2.visit_id as LaterVisitID,
+       v2.months_from_baseline as LaterVisitMonths,
+       'Temporal inconsistency' as Issue
+LIMIT 20;
+
+// =====================================================================
+// SECTION 11: RESEARCH-READY COHORT QUERIES
+// =====================================================================
+
+// 11.1 Clinical trial eligible cohort
+// Find patients meeting typical AD trial criteria
+MATCH (p:Patient)-[:HAS_DIAGNOSIS]->(d:Diagnosis {diagnosis_code: 'MCI'})
+MATCH (p)-[:HAS_BIOMARKER]->(b:Biomarker {analyte: 'Aβ42'})
+WHERE b.abnormal_flag = true
+  AND p.age_at_baseline >= 60
+  AND p.age_at_baseline <= 85
+MATCH (p)-[:HAS_COGNITIVE_ASSESSMENT]->(ca:CognitiveAssessment {test_name: 'MMSE'})
+WHERE ca.total_score >= 20 AND ca.total_score <= 27
+RETURN count(DISTINCT p) as EligiblePatients,
+       collect(DISTINCT p.ptid)[0..10] as SamplePatientIDs;
+
+// 11.2 Matched control identification
+// Find controls matched to AD patients
+MATCH (ad_patient:Patient)-[:HAS_DIAGNOSIS]->(d:Diagnosis {diagnosis_code: 'AD'})
+WITH ad_patient, ad_patient.age_at_baseline as ad_age, ad_patient.gender as ad_gender
+MATCH (control:Patient)-[:HAS_DIAGNOSIS]->(d2:Diagnosis {diagnosis_code: 'CN'})
+WHERE control.gender = ad_gender
+  AND abs(control.age_at_baseline - ad_age) <= 5
+WITH ad_patient, control, abs(control.age_at_baseline - ad_age) as age_diff
+ORDER BY ad_patient.ptid, age_diff
+WITH ad_patient, collect(control)[0] as matched_control
+RETURN count(ad_patient) as ADPatientsWithMatch,
+       count(matched_control) as MatchedControls;
+
+// 11.3 Biomarker positive, cognitively normal cohort
+// Preclinical AD population for prevention trials
+MATCH (p:Patient)-[:HAS_DIAGNOSIS]->(d:Diagnosis {diagnosis_code: 'CN'})
+MATCH (p)-[:HAS_BIOMARKER]->(b:Biomarker)
+WHERE b.analyte IN ['Aβ42', 'p-Tau181', 'Total Tau']
+  AND b.abnormal_flag = true
+WITH p, collect(DISTINCT b.analyte) as abnormalBiomarkers
+WHERE size(abnormalBiomarkers) >= 1
+RETURN size(abnormalBiomarkers) as NumberOfAbnormalBiomarkers,
+       count(DISTINCT p) as PatientCount,
+       collect(DISTINCT p.ptid)[0..5] as SamplePatientIDs
+ORDER BY NumberOfAbnormalBiomarkers DESC;
+
+// =====================================================================
+// SECTION 12: ADVANCED NETWORK ANALYSIS
+// =====================================================================
+
+// 12.1 Patient similarity network based on progression patterns
+// Find patients with similar disease trajectories
+MATCH (p1:Patient)-[:HAS_TRAJECTORY]->(t1:BiomarkerTrajectory {analyte: 'Aβ42'})
+MATCH (p2:Patient)-[:HAS_TRAJECTORY]->(t2:BiomarkerTrajectory {analyte: 'Aβ42'})
+WHERE p1.ptid < p2.ptid  // Avoid duplicates
+  AND t1.trajectory_pattern = t2.trajectory_pattern
+  AND abs(t1.rate_of_change - t2.rate_of_change) < 0.1
+WITH p1, p2,
+     t1.trajectory_pattern as pattern,
+     abs(t1.rate_of_change - t2.rate_of_change) as rate_similarity
+RETURN pattern as SharedPattern,
+       count(*) as SimilarPairs,
+       avg(rate_similarity) as AvgRateDifference
+ORDER BY SimilarPairs DESC;
+
+// 12.2 Biomarker influence network
+// Which biomarkers predict others?
+MATCH (p:Patient)-[:HAS_BIOMARKER]->(b1:Biomarker {viscode: 'bl'})
+MATCH (p)-[:HAS_BIOMARKER]->(b2:Biomarker)
+WHERE b1.analyte <> b2.analyte
+  AND b1.abnormal_flag = true
+  AND b2.abnormal_flag = true
+  AND b2.viscode <> 'bl'  // Later timepoint
+WITH b1.analyte as predictor,
+     b2.analyte as outcome,
+     count(DISTINCT p) as cooccurrence
+WHERE cooccurrence >= 10
+RETURN predictor as PredictorBiomarker,
+       outcome as OutcomeBiomarker,
+       cooccurrence as PatientCount
+ORDER BY cooccurrence DESC
+LIMIT 30;
+
+// 12.3 Disease progression pathways
+// What are the common paths through disease stages?
+MATCH path = (p:Patient)-[:HAS_DIAGNOSIS*1..4]->(d:Diagnosis)
+WITH p,
+     [node in nodes(path) WHERE node:Diagnosis | node.diagnosis_code] as diagnosis_sequence
+WHERE size(diagnosis_sequence) >= 3
+RETURN diagnosis_sequence as ProgressionPath,
+       count(DISTINCT p) as PatientCount
+ORDER BY PatientCount DESC
+LIMIT 20;
