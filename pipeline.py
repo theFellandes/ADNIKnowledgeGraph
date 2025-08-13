@@ -18,7 +18,9 @@ from steps.step1_database_setup import execute_database_setup
 from steps.step2_load_tables import execute_table_loading
 from steps.step3_create_patients import execute_patient_creation
 from steps.step4_extract_family import execute_family_extraction_fixed
-from steps.step5_process_images_optimized import execute_image_processing_optimized
+#from steps.step5_process_images_optimized import execute_image_processing_optimized
+#from steps.step5_improved_process_images import execute_image_processing_optimized
+from steps.step5_improved_process_images_with_tiff import execute_enhanced_image_processing
 from steps.step6_extract_findings_robust import execute_findings_extraction_fixed
 from steps.step7_batch_insert import execute_batch_insertion_fixed
 from steps.step8_create_relationships import execute_comprehensive_relationship_creation
@@ -28,6 +30,7 @@ from steps.step11_biomarker_analysis import execute_biomarker_analysis_fixed
 from steps.step12_complete_graph_enhancement import execute_complete_graph_enhancement
 from steps.step13_graph_eda import execute_graph_eda
 from steps.step14_test_queries import execute_research_queries
+from steps.step15_event_based_model import execute_event_based_model
 from utils.quality_aware_logger import QualityAwarePipeline
 
 LOG_FMT = "%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s"
@@ -175,6 +178,10 @@ class ADNIPipeline:
             if self.config.get('run_research_queries', True):
                 self._run_step(14, "Research Queries", self._execute_research_queries)
 
+            # Step 15: Event based graph
+            if self.config.get('run_complete_graph_enhancement', True):
+                self._run_step(15, "Event Based Model", self._execute_event_based_model)
+
             # Generate final report
             self._generate_final_report()
 
@@ -310,7 +317,7 @@ class ADNIPipeline:
 
 
             # Use optimized processing
-            result = execute_image_processing_optimized(
+            result = execute_enhanced_image_processing(
                 neo4j_uri=self.config['neo4j_uri'],
                 neo4j_user=self.config['neo4j_user'],
                 neo4j_password=self.config['neo4j_password'],
@@ -428,6 +435,14 @@ class ADNIPipeline:
     def _execute_research_queries(self) -> Dict[str, Any]:
         """Execute research queries"""
         return execute_research_queries(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password']
+        )
+
+    def _execute_event_based_model(self) -> Dict[str, Any]:
+        """Execute event based model"""
+        return execute_event_based_model(
             neo4j_uri=self.config['neo4j_uri'],
             neo4j_user=self.config['neo4j_user'],
             neo4j_password=self.config['neo4j_password']

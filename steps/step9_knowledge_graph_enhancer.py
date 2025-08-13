@@ -1,11 +1,11 @@
 """
 Step 9: Knowledge Graph Enhancement Module (FIXED)
 Creates semantic relationships based on ADNI domain knowledge
-Fixed Cypher syntax errors with proper aggregation
+Fixed null property issues and improved error handling
 """
 
 import logging
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from utils.neo4j_connector import Neo4jConnector
 
 logger = logging.getLogger(__name__)
@@ -21,42 +21,48 @@ class KnowledgeGraphEnhancer:
         """Create all semantic relationships for a proper knowledge graph"""
         results = {}
 
-        # 1. Create AD Stage Progression Network
-        logger.info("Creating AD stage progression network...")
-        results['stage_progression'] = self._create_stage_progression()
+        try:
+            # 1. Create AD Stage Progression Network
+            logger.info("Creating AD stage progression network...")
+            results['stage_progression'] = self._create_stage_progression()
 
-        # 2. Create Biomarker-Diagnosis Associations
-        logger.info("Creating biomarker-diagnosis associations...")
-        results['biomarker_diagnosis'] = self._create_biomarker_diagnosis_associations()
+            # 2. Create Biomarker-Diagnosis Associations
+            logger.info("Creating biomarker-diagnosis associations...")
+            results['biomarker_diagnosis'] = self._create_biomarker_diagnosis_associations()
 
-        # 3. Create Cognitive Decline Trajectories
-        logger.info("Creating cognitive decline trajectories...")
-        results['cognitive_trajectories'] = self._create_cognitive_trajectories()
+            # 3. Create Cognitive Decline Trajectories
+            logger.info("Creating cognitive decline trajectories...")
+            results['cognitive_trajectories'] = self._create_cognitive_trajectories()
 
-        # 4. Create Risk Factor Network
-        logger.info("Creating risk factor network...")
-        results['risk_factors'] = self._create_risk_factor_network()
+            # 4. Create Risk Factor Network
+            logger.info("Creating risk factor network...")
+            results['risk_factors'] = self._create_risk_factor_network()
 
-        # 5. Create Temporal Disease Network
-        logger.info("Creating temporal disease network...")
-        results['temporal_network'] = self._create_temporal_disease_network()
+            # 5. Create Temporal Disease Network
+            logger.info("Creating temporal disease network...")
+            results['temporal_network'] = self._create_temporal_disease_network()
 
-        # 6. Create Amyloid-Tau-Neurodegeneration (ATN) Framework
-        logger.info("Creating ATN framework...")
-        results['atn_framework'] = self._create_atn_framework()
+            # 6. Create Amyloid-Tau-Neurodegeneration (ATN) Framework
+            logger.info("Creating ATN framework...")
+            results['atn_framework'] = self._create_atn_framework()
 
-        # 7. Create Clinical Phenotypes
-        logger.info("Creating clinical phenotypes...")
-        results['phenotypes'] = self._create_clinical_phenotypes()
+            # 7. Create Clinical Phenotypes
+            logger.info("Creating clinical phenotypes...")
+            results['phenotypes'] = self._create_clinical_phenotypes()
 
-        # 8. Create Progression Pathways
-        logger.info("Creating progression pathways...")
-        results['progression_pathways'] = self._create_progression_pathways()
+            # 8. Create Progression Pathways
+            logger.info("Creating progression pathways...")
+            results['progression_pathways'] = self._create_progression_pathways()
+
+        except Exception as e:
+            logger.error(f"Error creating semantic relationships: {e}")
+            # Continue with partial results rather than failing completely
+            results['error'] = str(e)
 
         return results
 
     def _create_stage_progression(self) -> int:
-        """Create disease stage progression relationships"""
+        """Create disease stage progression relationships - FIXED NULL HANDLING"""
 
         # Create disease stage nodes
         create_stages_query = """
@@ -90,7 +96,7 @@ class KnowledgeGraphEnhancer:
 
         self.connector.execute_write_transaction(progressions_query)
 
-        # Link patients to disease stages
+        # FIXED: Link patients to disease stages with proper null handling
         patient_stage_query = """
         MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)-[:HAS_DIAGNOSIS]->(d:Diagnosis)
         WITH p, d, v
@@ -102,15 +108,60 @@ class KnowledgeGraphEnhancer:
             WHEN latest.diagnosis.diagnosis_code = 'MCI' THEN 'LMCI'
             ELSE latest.diagnosis.diagnosis_code
         END
-        MERGE (p)-[:AT_STAGE {since: latest.visit.visit_date, months_from_baseline: latest.visit.months_from_baseline}]->(ds)
+        
+        // Only create relationship if we have valid date
+        WITH p, ds, latest, 
+             COALESCE(latest.visit.visit_date, 'unknown') as visit_date,
+             COALESCE(latest.visit.months_from_baseline, 0) as months
+        
+        MERGE (p)-[r:AT_STAGE]->(ds)
+        SET r.since = visit_date,
+            r.months_from_baseline = months,
+            r.diagnosis_code = latest.diagnosis.diagnosis_code
+        
         RETURN count(p) as count
         """
 
-        result = self.connector.run_query(patient_stage_query)
-        return result[0]['count'] if result else 0
+        try:
+            result = self.connector.run_query(patient_stage_query)
+            return result[0]['count'] if result else 0
+        except Exception as e:
+            logger.warning(f"Could not link all patients to disease stages: {e}")
+            # Try alternative without date properties
+            return self._create_stage_progression_simple()
+
+    def _create_stage_progression_simple(self) -> int:
+        """Simplified version without date properties"""
+        simple_query = """
+        MATCH (p:Patient)-[:HAS_DIAGNOSIS]->(d:Diagnosis)
+        WHERE d.diagnosis_code IN ['CN', 'SMC', 'EMCI', 'LMCI', 'MCI', 'AD']
+        WITH p, d.diagnosis_code as dx_code
+        WITH p, COLLECT(DISTINCT dx_code) as diagnoses
+        WITH p, 
+             CASE 
+                WHEN 'AD' IN diagnoses THEN 'AD'
+                WHEN 'LMCI' IN diagnoses THEN 'LMCI'
+                WHEN 'MCI' IN diagnoses THEN 'LMCI'
+                WHEN 'EMCI' IN diagnoses THEN 'EMCI'
+                WHEN 'SMC' IN diagnoses THEN 'SMC'
+                WHEN 'CN' IN diagnoses THEN 'CN'
+                ELSE NULL
+             END as current_stage
+        WHERE current_stage IS NOT NULL
+        MATCH (ds:DiseaseStage {stage_id: current_stage})
+        MERGE (p)-[:AT_STAGE {inferred: true}]->(ds)
+        RETURN count(p) as count
+        """
+
+        try:
+            result = self.connector.run_query(simple_query)
+            return result[0]['count'] if result else 0
+        except Exception as e:
+            logger.error(f"Failed to create stage progression: {e}")
+            return 0
 
     def _create_biomarker_diagnosis_associations(self) -> int:
-        """Create associations between biomarkers and diagnoses - FIXED AGGREGATION"""
+        """Create associations between biomarkers and diagnoses"""
 
         # Create biomarker patterns
         biomarker_patterns_query = """
@@ -152,25 +203,31 @@ class KnowledgeGraphEnhancer:
 
         self.connector.execute_write_transaction(biomarker_patterns_query)
 
-        # FIXED: Link actual biomarkers to patterns with proper aggregation
+        # Link actual biomarkers to patterns
         link_biomarkers_query = """
         // Count Aβ42 biomarkers
         MATCH (b:Biomarker)
-        WHERE b.analyte IN ['Aβ42', 'ABETA42', 'AB42'] AND b.value < 600
+        WHERE b.analyte IN ['Aβ42', 'ABETA42', 'AB42', 'Abeta42'] 
+        AND b.value IS NOT NULL 
+        AND b.value < 600
         MATCH (pattern:BiomarkerPattern {pattern_id: 'abeta_low'})
         MERGE (b)-[:MATCHES_PATTERN]->(pattern)
         WITH count(*) as count_abeta
         
         // Count Tau biomarkers
         MATCH (b:Biomarker)
-        WHERE b.analyte IN ['Total Tau', 'TAU', 'TTAU', 'T-TAU'] AND b.value > 400
+        WHERE b.analyte IN ['Total Tau', 'TAU', 'TTAU', 'T-TAU', 't-tau'] 
+        AND b.value IS NOT NULL 
+        AND b.value > 400
         MATCH (pattern:BiomarkerPattern {pattern_id: 'tau_high'})
         MERGE (b)-[:MATCHES_PATTERN]->(pattern)
         WITH count_abeta, count(*) as count_tau
         
         // Count p-Tau biomarkers
         MATCH (b:Biomarker)
-        WHERE b.analyte IN ['p-Tau181', 'PTAU', 'P-TAU', 'PTAU181'] AND b.value > 80
+        WHERE b.analyte IN ['p-Tau181', 'PTAU', 'P-TAU', 'PTAU181', 'p-tau'] 
+        AND b.value IS NOT NULL 
+        AND b.value > 80
         MATCH (pattern:BiomarkerPattern {pattern_id: 'ptau_high'})
         MERGE (b)-[:MATCHES_PATTERN]->(pattern)
         WITH count_abeta, count_tau, count(*) as count_ptau
@@ -179,15 +236,22 @@ class KnowledgeGraphEnhancer:
         RETURN count_abeta + count_tau + count_ptau as total
         """
 
-        result = self.connector.run_query(link_biomarkers_query)
-        return result[0]['total'] if result else 0
+        try:
+            result = self.connector.run_query(link_biomarkers_query)
+            return result[0]['total'] if result else 0
+        except Exception as e:
+            logger.warning(f"Could not link all biomarkers to patterns: {e}")
+            return 0
 
     def _create_cognitive_trajectories(self) -> int:
-        """Create cognitive decline trajectories"""
+        """Create cognitive decline trajectories with better null handling"""
 
         # First create trajectories
         trajectory_query = """
         MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)-[:HAS_COGNITIVE_ASSESSMENT]->(ca:CognitiveAssessment)
+        WHERE ca.total_score IS NOT NULL 
+        AND v.months_from_baseline IS NOT NULL
+        
         WITH p, ca.test_name as test, 
              COLLECT({
                 score: ca.total_score, 
@@ -200,7 +264,9 @@ class KnowledgeGraphEnhancer:
              scores[0].score as baseline_score,
              scores[-1].score as final_score,
              scores[-1].months - scores[0].months as duration_months
-        WHERE duration_months > 0
+        WHERE duration_months > 0 
+        AND baseline_score IS NOT NULL 
+        AND final_score IS NOT NULL
         
         WITH p, test, baseline_score, final_score, duration_months,
              (final_score - baseline_score) / duration_months as change_rate,
@@ -211,13 +277,13 @@ class KnowledgeGraphEnhancer:
                         WHEN (baseline_score - final_score) <= -2 THEN 'improving'
                         ELSE 'stable'
                     END
-                WHEN test IN ['ADAS-Cog', 'ADAS-Cog13'] THEN
+                WHEN test IN ['ADAS-Cog', 'ADAS-Cog13', 'ADAS13'] THEN
                     CASE 
                         WHEN (final_score - baseline_score) >= 4 THEN 'declining'
                         WHEN (final_score - baseline_score) <= -3 THEN 'improving'
                         ELSE 'stable'
                     END
-                ELSE 'unknown'
+                ELSE 'stable'
              END as trajectory_type
         
         MERGE (traj:CognitiveTrajectory {
@@ -236,31 +302,36 @@ class KnowledgeGraphEnhancer:
         RETURN count(DISTINCT traj) as count
         """
 
-        result = self.connector.run_query(trajectory_query)
-        trajectory_count = result[0]['count'] if result else 0
-
-        # Then link trajectories to stages where they exist (separately to avoid errors)
-        link_query = """
-        MATCH (traj:CognitiveTrajectory)
-        MATCH (p:Patient {ptid: traj.patient_id})
-        OPTIONAL MATCH (p)-[:AT_STAGE]->(stage:DiseaseStage)
-        WHERE stage IS NOT NULL
-        WITH traj, stage
-        WHERE stage IS NOT NULL
-        MERGE (traj)-[:ASSOCIATED_WITH_STAGE]->(stage)
-        RETURN count(*) as count
-        """
-
         try:
-            result = self.connector.run_query(link_query)
-            logger.info(f"Linked {result[0]['count'] if result else 0} trajectories to disease stages")
+            result = self.connector.run_query(trajectory_query)
+            trajectory_count = result[0]['count'] if result else 0
         except Exception as e:
-            logger.warning(f"Could not link trajectories to stages: {e}")
+            logger.warning(f"Could not create all cognitive trajectories: {e}")
+            trajectory_count = 0
+
+        # Link trajectories to stages
+        if trajectory_count > 0:
+            link_query = """
+            MATCH (traj:CognitiveTrajectory)
+            MATCH (p:Patient {ptid: traj.patient_id})
+            OPTIONAL MATCH (p)-[:AT_STAGE]->(stage:DiseaseStage)
+            WHERE stage IS NOT NULL
+            WITH traj, stage
+            WHERE stage IS NOT NULL
+            MERGE (traj)-[:ASSOCIATED_WITH_STAGE]->(stage)
+            RETURN count(*) as count
+            """
+
+            try:
+                result = self.connector.run_query(link_query)
+                logger.info(f"Linked {result[0]['count'] if result else 0} trajectories to disease stages")
+            except Exception as e:
+                logger.warning(f"Could not link trajectories to stages: {e}")
 
         return trajectory_count
 
     def _create_risk_factor_network(self) -> int:
-        """Create risk factor relationships"""
+        """Create risk factor relationships with null safety"""
 
         # Create risk factor nodes
         create_factors_query = """
@@ -293,7 +364,7 @@ class KnowledgeGraphEnhancer:
         # Link APOE4 carriers
         apoe_query = """
         MATCH (p:Patient)
-        WHERE p.apoe_genotype CONTAINS '4'
+        WHERE p.apoe_genotype IS NOT NULL AND p.apoe_genotype CONTAINS '4'
         MATCH (apoe4:RiskFactor {factor_id: 'APOE4'})
         MERGE (p)-[:HAS_RISK_FACTOR {
             level: CASE 
@@ -305,20 +376,26 @@ class KnowledgeGraphEnhancer:
         RETURN count(p) as count
         """
 
-        result = self.connector.run_query(apoe_query)
-        total += result[0]['count'] if result else 0
+        try:
+            result = self.connector.run_query(apoe_query)
+            total += result[0]['count'] if result else 0
+        except Exception as e:
+            logger.warning(f"Could not link APOE4 risk factors: {e}")
 
         # Link age risk
         age_query = """
         MATCH (p:Patient)
-        WHERE p.age_at_baseline > 75
+        WHERE p.age_at_baseline IS NOT NULL AND p.age_at_baseline > 75
         MATCH (age:RiskFactor {factor_id: 'AGE'})
         MERGE (p)-[:HAS_RISK_FACTOR {level: 'moderate'}]->(age)
         RETURN count(p) as count
         """
 
-        result = self.connector.run_query(age_query)
-        total += result[0]['count'] if result else 0
+        try:
+            result = self.connector.run_query(age_query)
+            total += result[0]['count'] if result else 0
+        except Exception as e:
+            logger.warning(f"Could not link age risk factors: {e}")
 
         # Link family history
         family_query = """
@@ -329,55 +406,82 @@ class KnowledgeGraphEnhancer:
         RETURN count(DISTINCT p) as count
         """
 
-        result = self.connector.run_query(family_query)
-        total += result[0]['count'] if result else 0
+        try:
+            result = self.connector.run_query(family_query)
+            total += result[0]['count'] if result else 0
+        except Exception as e:
+            logger.warning(f"Could not link family history risk factors: {e}")
 
         return total
 
     def _create_temporal_disease_network(self) -> int:
-        """Create temporal relationships showing disease evolution"""
+        """Create temporal relationships in small batches"""
 
-        # Create progression events
-        progression_query = """
-        MATCH (p:Patient)-[:HAS_VISIT]->(v1:Visit)-[:HAS_DIAGNOSIS]->(d1:Diagnosis)
-        MATCH (p)-[:HAS_VISIT]->(v2:Visit)-[:HAS_DIAGNOSIS]->(d2:Diagnosis)
-        WHERE v1.months_from_baseline < v2.months_from_baseline
-        AND d1.diagnosis_code <> d2.diagnosis_code
-        WITH p, d1, d2, v1, v2
-        ORDER BY p.ptid, v1.months_from_baseline
-        WITH p, COLLECT(DISTINCT {
-            from: d1.diagnosis_code, 
-            to: d2.diagnosis_code,
-            from_visit: v1.visit_id,
-            to_visit: v2.visit_id,
-            duration: v2.months_from_baseline - v1.months_from_baseline
-        })[0..1] as progressions
-        UNWIND progressions as prog
-        
-        MERGE (pe:ProgressionEvent {
-            event_id: p.ptid + '_' + prog.from + '_to_' + prog.to,
-            patient_id: p.ptid,
-            from_diagnosis: prog.from,
-            to_diagnosis: prog.to,
-            duration_months: prog.duration
-        })
-        
-        MERGE (p)-[:EXPERIENCED_PROGRESSION]->(pe)
-        
-        WITH pe, prog
-        MATCH (d1:Diagnosis {diagnosis_code: prog.from})
-        MATCH (d2:Diagnosis {diagnosis_code: prog.to})
-        MERGE (d1)-[:PROGRESSED_TO_EVENT]->(pe)
-        MERGE (pe)-[:RESULTED_IN]->(d2)
-        
-        RETURN count(DISTINCT pe) as count
+        total_created = 0
+        batch_size = 50
+
+        # Get patients to process
+        patient_query = """
+        MATCH (p:Patient)-[:HAS_VISIT]->(:Visit)-[:HAS_DIAGNOSIS]->(:Diagnosis)
+        RETURN DISTINCT p.ptid as patient_id
+        ORDER BY patient_id
         """
 
-        result = self.connector.run_query(progression_query)
-        return result[0]['count'] if result else 0
+        patients = self.connector.run_query(patient_query)
+        if not patients:
+            return 0
 
-    def _create_atn_framework_old(self) -> int:
-        """Create ATN (Amyloid-Tau-Neurodegeneration) framework"""
+        logger.info(f"Processing temporal network for {len(patients)} patients in batches...")
+
+        for i in range(0, len(patients), batch_size):
+            batch_ids = [p['patient_id'] for p in patients[i:i + batch_size]]
+
+            batch_query = """
+            UNWIND $patient_ids as pid
+            MATCH (p:Patient {ptid: pid})
+            MATCH (p)-[:HAS_VISIT]->(v:Visit)-[:HAS_DIAGNOSIS]->(d:Diagnosis)
+            WHERE v.months_from_baseline IS NOT NULL
+            WITH p, v, d
+            ORDER BY p.ptid, v.months_from_baseline
+
+            WITH p, COLLECT({
+                months: v.months_from_baseline,
+                diagnosis: d.diagnosis_code
+            }) as visits
+            WHERE SIZE(visits) >= 2
+
+            WITH p, visits[0] as first, visits[-1] as last
+            WHERE first.diagnosis <> last.diagnosis
+
+            MERGE (pe:ProgressionEvent {
+                event_id: p.ptid + '_' + first.diagnosis + '_to_' + last.diagnosis,
+                patient_id: p.ptid,
+                from_diagnosis: first.diagnosis,
+                to_diagnosis: last.diagnosis,
+                duration_months: last.months - first.months
+            })
+
+            MERGE (p)-[:EXPERIENCED_PROGRESSION]->(pe)
+
+            RETURN count(DISTINCT pe) as count
+            """
+
+            try:
+                result = self.connector.run_query(batch_query, {'patient_ids': batch_ids})
+                if result:
+                    total_created += result[0]['count']
+
+                if i % 200 == 0:
+                    logger.info(f"  Processed {i + batch_size}/{len(patients)} patients...")
+
+            except Exception as e:
+                logger.warning(f"Batch {i // batch_size} failed: {e}")
+                continue
+
+        return total_created
+
+    def _create_atn_framework(self) -> int:
+        """Create ATN (Amyloid-Tau-Neurodegeneration) framework with improved handling"""
 
         # Create ATN categories
         categories_query = """
@@ -393,11 +497,28 @@ class KnowledgeGraphEnhancer:
 
         # Classify patients based on biomarkers
         atn_profile_query = """
-        MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)-[:HAS_BIOMARKER]->(b:Biomarker)
+        MATCH (p:Patient)
+        OPTIONAL MATCH (p)-[:HAS_VISIT]->(v:Visit)-[:HAS_BIOMARKER]->(b:Biomarker)
+        WHERE b.value IS NOT NULL
+        
         WITH p, 
-             MAX(CASE WHEN b.analyte IN ['Aβ42', 'ABETA42', 'AB42'] AND b.value < 600 THEN 1 ELSE 0 END) as amyloid_pos,
-             MAX(CASE WHEN b.analyte IN ['p-Tau181', 'PTAU', 'P-TAU'] AND b.value > 80 THEN 1 ELSE 0 END) as tau_pos,
-             MAX(CASE WHEN b.analyte IN ['Total Tau', 'TAU', 'T-TAU'] AND b.value > 400 THEN 1 ELSE 0 END) as neuro_pos
+             MAX(CASE 
+                WHEN b.analyte IN ['Aβ42', 'ABETA42', 'AB42', 'Abeta42'] 
+                AND b.value < 600 THEN 1 
+                ELSE 0 
+             END) as amyloid_pos,
+             MAX(CASE 
+                WHEN b.analyte IN ['p-Tau181', 'PTAU', 'P-TAU', 'p-tau'] 
+                AND b.value > 80 THEN 1 
+                ELSE 0 
+             END) as tau_pos,
+             MAX(CASE 
+                WHEN b.analyte IN ['Total Tau', 'TAU', 'T-TAU', 't-tau'] 
+                AND b.value > 400 THEN 1 
+                ELSE 0 
+             END) as neuro_pos
+        
+        WHERE amyloid_pos IS NOT NULL OR tau_pos IS NOT NULL OR neuro_pos IS NOT NULL
         
         WITH p,
              CASE WHEN amyloid_pos = 1 THEN 'A+' ELSE 'A-' END as a_status,
@@ -414,79 +535,28 @@ class KnowledgeGraphEnhancer:
             profile.classification = a_status + '/' + t_status + '/' + n_status
         
         MERGE (p)-[:HAS_ATN_PROFILE]->(profile)
+        
+        // Link to ATN categories
+        WITH profile, a_status, t_status, n_status
+        MATCH (a_cat:ATNCategory {category: a_status})
+        MATCH (t_cat:ATNCategory {category: t_status})
+        MATCH (n_cat:ATNCategory {category: n_status})
+        MERGE (profile)-[:HAS_AMYLOID_STATUS]->(a_cat)
+        MERGE (profile)-[:HAS_TAU_STATUS]->(t_cat)
+        MERGE (profile)-[:HAS_NEURODEGENERATION_STATUS]->(n_cat)
+        
         RETURN count(DISTINCT profile) as count
         """
 
-        result = self.connector.run_query(atn_profile_query)
-        return result[0]['count'] if result else 0
-
-    def _create_atn_framework(self) -> int:
-        """Create ATN (Amyloid-Tau-Neurodegeneration) framework - key for AD research"""
-
-        # Create ATN profiles based on biomarkers
-        query = """
-        MATCH (p:Patient)
-        OPTIONAL MATCH (p)-[:HAS_BIOMARKER]->(ab:Biomarker {analyte: 'Aβ42'})
-        OPTIONAL MATCH (p)-[:HAS_BIOMARKER]->(tau:Biomarker {analyte: 'p-Tau181'})
-        OPTIONAL MATCH (p)-[:HAS_BIOMARKER]->(ttau:Biomarker {analyte: 'Total Tau'})
-
-        WITH p, 
-             CASE WHEN ab.value < 600 THEN 'A+' ELSE 'A-' END as amyloid_status,
-             CASE WHEN tau.value > 80 THEN 'T+' ELSE 'T-' END as tau_status,
-             CASE WHEN ttau.value > 400 THEN 'N+' ELSE 'N-' END as neuro_status
-
-        WHERE amyloid_status IS NOT NULL OR tau_status IS NOT NULL
-
-        MERGE (atn:ATNProfile {
-            profile_id: p.ptid + '_atn',
-            patient_id: p.ptid
-        })
-        SET atn.amyloid_status = amyloid_status,
-            atn.tau_status = tau_status,
-            atn.neurodegeneration_status = neuro_status,
-            atn.profile = amyloid_status + '/' + tau_status + '/' + neuro_status
-
-        MERGE (p)-[:HAS_ATN_PROFILE]->(atn)
-
-        // Link to AD risk
-        WITH atn
-        WHERE atn.profile IN ['A+/T+/N+', 'A+/T+/N-']
-        MERGE (risk:ADRisk {risk_level: 'high'})
-        MERGE (atn)-[:INDICATES_RISK]->(risk)
-
-        RETURN count(DISTINCT atn) as count
-        """
-
-        result = self.connector.run_query(query)
-        return result[0]['count'] if result else 0
-
-    def _create_progression_pathways(self) -> int:
-        """Create AD progression pathways based on longitudinal data"""
-
-        query = """
-        // Find patients who progressed from CN to MCI to AD
-        MATCH (p:Patient)-[:HAS_DIAGNOSIS]->(d1:Diagnosis {diagnosis_code: 'CN'})
-        MATCH (p)-[:HAS_DIAGNOSIS]->(d2:Diagnosis {diagnosis_code: 'MCI'})
-        WHERE d1.visit_id < d2.visit_id
-
-        MERGE (prog:ProgressionPattern {
-            pattern_id: p.ptid + '_cn_to_mci',
-            patient_id: p.ptid,
-            from_stage: 'CN',
-            to_stage: 'MCI'
-        })
-
-        MERGE (d1)-[:PROGRESSED_TO]->(d2)
-        MERGE (p)-[:FOLLOWS_PROGRESSION]->(prog)
-
-        RETURN count(DISTINCT prog) as count
-        """
-
-        result = self.connector.run_query(query)
-        return result[0]['count'] if result else 0
+        try:
+            result = self.connector.run_query(atn_profile_query)
+            return result[0]['count'] if result else 0
+        except Exception as e:
+            logger.warning(f"Could not create all ATN profiles: {e}")
+            return 0
 
     def _create_clinical_phenotypes(self) -> int:
-        """Create clinical phenotype clusters"""
+        """Create clinical phenotype clusters with better null handling"""
 
         phenotype_query = """
         MATCH (p:Patient)
@@ -506,24 +576,94 @@ class KnowledgeGraphEnhancer:
                 WHEN stage_id IN ['EMCI', 'LMCI'] AND traj_type = 'declining' THEN 'progressive_mci'
                 WHEN stage_id IN ['EMCI', 'LMCI'] AND traj_type = 'stable' THEN 'stable_mci'
                 WHEN stage_id = 'CN' AND a_status = 'A+' THEN 'preclinical_ad'
+                WHEN stage_id = 'AD' THEN 'ad_unspecified'
+                WHEN stage_id IN ['EMCI', 'LMCI'] THEN 'mci_unspecified'
+                WHEN stage_id = 'CN' THEN 'control'
                 ELSE 'unclassified'
              END as phenotype_type
+        
+        WHERE phenotype_type <> 'unclassified'
         
         MERGE (phenotype:ClinicalPhenotype {
             phenotype_id: p.ptid + '_phenotype',
             patient_id: p.ptid
         })
-        SET phenotype.phenotype_type = phenotype_type
+        SET phenotype.phenotype_type = phenotype_type,
+            phenotype.has_trajectory = traj_type IS NOT NULL,
+            phenotype.has_atn = a_status IS NOT NULL,
+            phenotype.has_stage = stage_id IS NOT NULL
         
         MERGE (p)-[:HAS_PHENOTYPE]->(phenotype)
         
         RETURN count(DISTINCT phenotype) as count
         """
 
-        result = self.connector.run_query(phenotype_query)
-        return result[0]['count'] if result else 0
+        try:
+            result = self.connector.run_query(phenotype_query)
+            return result[0]['count'] if result else 0
+        except Exception as e:
+            logger.warning(f"Could not create all clinical phenotypes: {e}")
+            return 0
 
+    def _create_progression_pathways(self) -> int:
+        """Create AD progression pathways based on longitudinal data"""
 
+        query = """
+        // Find patients who progressed between stages
+        MATCH (p:Patient)-[:HAS_VISIT]->(v1:Visit)-[:HAS_DIAGNOSIS]->(d1:Diagnosis)
+        MATCH (p)-[:HAS_VISIT]->(v2:Visit)-[:HAS_DIAGNOSIS]->(d2:Diagnosis)
+        WHERE d1.diagnosis_code IN ['CN', 'SMC', 'EMCI', 'LMCI', 'MCI', 'AD']
+        AND d2.diagnosis_code IN ['CN', 'SMC', 'EMCI', 'LMCI', 'MCI', 'AD']
+        AND d1.diagnosis_code <> d2.diagnosis_code
+        AND v1.visit_id < v2.visit_id
+        
+        // Map diagnosis codes to progression severity
+        WITH p, d1, d2,
+             CASE d1.diagnosis_code
+                WHEN 'CN' THEN 1
+                WHEN 'SMC' THEN 2
+                WHEN 'EMCI' THEN 3
+                WHEN 'LMCI' THEN 4
+                WHEN 'MCI' THEN 4
+                WHEN 'AD' THEN 5
+                ELSE 0
+             END as stage1,
+             CASE d2.diagnosis_code
+                WHEN 'CN' THEN 1
+                WHEN 'SMC' THEN 2
+                WHEN 'EMCI' THEN 3
+                WHEN 'LMCI' THEN 4
+                WHEN 'MCI' THEN 4
+                WHEN 'AD' THEN 5
+                ELSE 0
+             END as stage2
+        
+        WHERE stage2 > stage1  // Only progression, not regression
+        
+        MERGE (prog:ProgressionPattern {
+            pattern_id: p.ptid + '_' + d1.diagnosis_code + '_to_' + d2.diagnosis_code,
+            patient_id: p.ptid,
+            from_stage: d1.diagnosis_code,
+            to_stage: d2.diagnosis_code
+        })
+        SET prog.progression_type = CASE
+            WHEN stage2 - stage1 = 1 THEN 'gradual'
+            WHEN stage2 - stage1 > 1 THEN 'rapid'
+            ELSE 'unknown'
+        END
+        
+        MERGE (p)-[:FOLLOWS_PROGRESSION]->(prog)
+        MERGE (d1)-[:PROGRESSED_TO {patient_id: p.ptid}]->(d2)
+        
+        RETURN count(DISTINCT prog) as count
+        """
+
+        try:
+            result = self.connector.run_query(query)
+            return result[0]['count'] if result else 0
+        except Exception as e:
+            logger.warning(f"Could not create all progression pathways: {e}")
+            return 0
 
 
 def enhance_knowledge_graph(neo4j_uri: str, neo4j_user: str, neo4j_password: str) -> Dict[str, Any]:
@@ -540,7 +680,10 @@ def enhance_knowledge_graph(neo4j_uri: str, neo4j_user: str, neo4j_password: str
         logger.info("="*60)
 
         for relationship_type, count in results.items():
-            logger.info(f"{relationship_type}: {count} created")
+            if relationship_type != 'error':
+                logger.info(f"{relationship_type}: {count} created")
+            else:
+                logger.warning(f"Some operations had errors: {count}")
 
         return results
 

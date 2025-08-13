@@ -1,70 +1,108 @@
-# ADNI Knowledge Graph Pipeline Configuration
+# Add this section to your updated_config.yaml under the image_storage section
 
-# Neo4j Database Settings
-neo4j_uri: "bolt://localhost:7687"
-neo4j_user: "neo4j"
-neo4j_password: "your_password"
+# ============================================================================
+# IMAGE PROCESSING SETTINGS (ENHANCED WITH ZIP SUPPORT)
+# ============================================================================
 
-# Data Paths
-base_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs"
+# External storage for images (recommended)
+use_external_storage: true
+store_image_blobs: false  # Not recommended - uses too much Neo4j storage
 
-# Tables directory (CSV files)
-tables_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs/Tables"
+# Image Storage Configuration
+image_storage:
+  storage_path: "D:/Programming/Python/ADNIKnowledgeGraph/outputs/image_store"
 
-# Image directories
-mri_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs/Updated"
-pet_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs/Updated_PET"
+  # ============================================================================
+  # ZIP PROCESSING CONFIGURATION (NEW)
+  # ============================================================================
+  zip_processing:
+    # Processing mode - Choose one:
+    # - 'extracted': Process from already extracted directories (traditional)
+    # - 'zip_direct': Process directly from ZIP files without extraction
+    # - 'mixed': Support both modes (check extracted first, then ZIPs)
+    mode: 'extracted'  # Recommended for storage efficiency
 
-# Original DICOM paths (if available)
-mri_dicom_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs/Images"
-pet_dicom_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs/PET"
+    # Directory containing ZIP files (for zip_direct mode)
+    zip_directory: "D:/Programming/Python/ADNIKnowledgeGraph/inputs"
 
-# Output Settings
-output_dir: "D:/Programming/Python/ADNIKnowledgeGraph/outputs"
+    # Directory with extracted files (for extracted mode)
+    extracted_directory: "D:/Programming/Python/ADNIKnowledgeGraph/inputs/extracted"
 
-# Pipeline Control
-clear_database: true  # Set to true to clear database before loading
-store_image_blobs: false  # Set to true to store image data in Neo4j (requires more memory)
-max_workers: 8  # Number of parallel workers for processing
+    # ============================================================================
+    # SELECTIVE ZIP PROCESSING
+    # ============================================================================
+    # Option 1: Specify exact ZIP numbers to process
+    # Use this when you have numbered ZIPs like mri_1.zip, pet_2.zip, etc.
+    zip_numbers: [1, 2, 3]  # Process only ZIPs 1, 2, and 3
 
-# Logging
-log_level: "INFO"
-log_file: "D:/Programming/Python/ADNIKnowledgeGraph/outputs/pipeline.log"
+    # Alternative formats for zip_numbers:
+    # zip_numbers: "1-3"        # Range: process ZIPs 1 through 3
+    # zip_numbers: "1,3,5-7"    # Mixed: process 1, 3, and 5 through 7
+    # zip_numbers: [1, 4, 7, 9] # List: process specific ZIPs
 
-# Step Control - set to false to skip specific steps
-run_database_setup: true
-run_table_loading: true
-run_patient_creation: true
-run_family_extraction: true
-run_image_processing: true
-run_findings_extraction: true
-run_batch_insertion: true
-run_relationship_creation: true
+    # Option 2: Process first N ZIPs (alternative to zip_numbers)
+    # max_zips: 3  # Process only the first 3 ZIPs found
 
-# Image Processing Settings
-image_settings:
-  max_image_size: [512, 512]
-  thumbnail_size: [128, 128]
-  jpeg_quality: 85
-  process_dicoms: true
+    # ZIP file name patterns to match
+    # Used to discover available ZIPs
+    zip_patterns:
+      - "mri_*.zip"     # MRI scans
+      - "pet_*.zip"     # PET scans
+      - "*_scan_*.zip"  # Generic pattern
 
-# Batch Processing Settings
-batch_settings:
-  patients: 1000
-  visits: 2000
-  family_members: 2000
-  imaging_studies: 1000
-  images: 500
-  cognitive: 5000
-  biomarkers: 5000
-  diagnoses: 3000
-  volumetric: 5000
-  pet_bindings: 5000
+    # ============================================================================
+    # DICOM SERVING CONFIGURATION
+    # ============================================================================
+    # Extract files for DICOM serving/viewing
+    # Required if you need to serve DICOM files to viewers like OHIF, Weasis, etc.
+    extract_for_serving: true
 
-# Memory Management
-memory_threshold: 0.8  # Trigger garbage collection at 80% memory usage
+    # Directory to cache extracted files for serving
+    # Files are extracted here for web-based DICOM viewers
+    serving_cache_dir: "D:/Programming/Python/ADNIKnowledgeGraph/outputs/serving_cache"
 
-# Database Connection Pool
-connection_pool_size: 50
-connection_timeout: 60
-retry_time: 30
+    # Serving cache management
+    serving_cache_max_size_gb: 100  # Maximum cache size in GB
+    serving_cache_cleanup_days: 30  # Remove files older than N days
+
+    # ============================================================================
+    # PERFORMANCE SETTINGS FOR ZIP PROCESSING
+    # ============================================================================
+    # Use temporary extraction (for very large files that don't fit in memory)
+    use_temp_extraction: false  # false = process in memory (faster)
+
+    # Parallel processing for ZIP contents
+    zip_parallel_workers: 4  # Number of parallel workers per ZIP
+
+    # Memory threshold for switching to temp extraction (GB)
+    memory_threshold_gb: 8  # Switch to temp extraction if file > 8GB
+
+  # ============================================================================
+  # CONVERSION SETTINGS (applies to both extracted and ZIP modes)
+  # ============================================================================
+  prefer_dicom: true
+  create_thumbnails: true
+  thumbnail_size: [256, 256]
+  lossless_compression: true
+
+  # Output formats
+  output_formats:
+    png: true        # 16-bit lossless PNG
+    tiff: true       # 32-bit float TIFF with metadata
+    thumbnail: true  # JPEG thumbnails for preview
+
+  # Elasticsearch indexing for images
+  es_host: "localhost"
+  es_port: 9200
+  batch_size: 500  # Images indexed per batch
+
+  # DICOM processing
+  dicom:
+    extract_full_metadata: true
+    preserve_original: false  # Don't copy originals when processing from ZIP
+    skip_if_exists: true     # Skip if already processed
+
+  # NIfTI processing
+  nifti:
+    extract_slice: "middle"  # Which slice to extract for 2D representation
+    preserve_3d: false       # Store full 3D volume (uses more space)

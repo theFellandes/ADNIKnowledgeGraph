@@ -65,7 +65,7 @@ image_storage:
   # Elasticsearch indexing for images
   es_host: "localhost"
   es_port: 9200
-  batch_size: 50  # Images indexed per batch
+  batch_size: 500  # Images indexed per batch
 
   # DICOM processing
   dicom:
@@ -82,34 +82,35 @@ max_workers: 8
 
 # Batch Processing
 batch_processing:
-  image_batch_size: 50      # Images per batch
+  image_batch_size: 500      # Images per batch
   data_batch_size: 1000     # Other data items per batch
   enable_progress_tracking: true
-  checkpoint_interval: 100   # Save progress every N items
+  checkpoint_interval: 200   # Save progress every N items
 
   # Memory management
   memory_threshold: 0.8
-  garbage_collection_interval: 500
+  garbage_collection_interval: 1000
 
 # ============================================================================
 # PIPELINE STEP CONTROL
 # ============================================================================
 # Enable/disable individual pipeline steps
 
-run_database_setup: true          # Step 1: Setup Neo4j and Elasticsearch
-run_table_loading: true           # Step 2: Load CSV tables
-run_patient_creation: true        # Step 3: Create patient nodes
-run_family_extraction: true       # Step 4: Extract family relationships
-run_image_processing: true        # Step 5: Process medical images
-run_findings_extraction: true     # Step 6: Extract clinical findings
-run_batch_insertion: true         # Step 7: Batch insert remaining data
-run_relationship_creation: true   # Step 8: Create all relationships
-run_knowledge_enhancement: true   # Step 9: Enhance knowledge graph with additional data
-run_query_execution: true         # Step 10: Execute queries and generate reports
-run_biomarker_analysis: true      # Step 11: Analyze biomarkers and generate reports
-run_graph_enhancement: true       # Step 12: Enhance graph with external data
-run_graph_eda: true               # Step 13: Export data to external formats
-run_research_queries: true        # Step 14: Execute research queries and generate insights
+run_database_setup: true              # Step 1: Setup Neo4j and Elasticsearch
+run_table_loading: true               # Step 2: Load CSV tables
+run_patient_creation: true            # Step 3: Create patient nodes
+run_family_extraction: true           # Step 4: Extract family relationships
+run_image_processing: true            # Step 5: Process medical images
+run_findings_extraction: true         # Step 6: Extract clinical findings
+run_batch_insertion: true             # Step 7: Batch insert remaining data
+run_relationship_creation: true       # Step 8: Create all relationships
+run_knowledge_enhancement: true       # Step 9: Enhance knowledge graph with additional data
+run_query_execution: true             # Step 10: Execute queries and generate reports
+run_biomarker_analysis: true          # Step 11: Analyze biomarkers and generate reports
+run_graph_enhancement: true           # Step 12: Enhance graph with external data
+run_graph_eda: true                   # Step 13: Export data to external formats
+run_research_queries: true            # Step 14: Execute research queries and generate insights
+run_complete_graph_enhancement: true  # Step 15: Event based graph
 
 # ============================================================================
 # ERROR HANDLING
