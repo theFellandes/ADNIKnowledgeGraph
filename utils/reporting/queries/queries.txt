@@ -1,0 +1,416 @@
+"""
+ADNI KNOWLEDGE GRAPH - METRICS COLLECTION QUERIES
+==================================================
+Complete set of queries used for IEEE paper performance analysis
+"""
+
+# ============================================================================
+# SECTION 1: PERFORMANCE TEST QUERIES (Q1-Q10)
+# ============================================================================
+
+# -----------------------------
+# Q1: Simple Lookup (C1)
+# -----------------------------
+# Basic patient lookup by ID
+MATCH (p:Patient {ptid: $patient_id})
+RETURN p
+
+# -----------------------------
+# Q2: Simple Count (C1)
+# -----------------------------
+# Count all diagnosis nodes
+MATCH (d:Diagnosis)
+RETURN count(d) as count
+
+# -----------------------------
+# Q3: Patient Visits (C2)
+# -----------------------------
+# Get all visits for a specific patient
+MATCH (p:Patient {ptid: $patient_id})-[:HAS_VISIT]->(v:Visit)
+RETURN p, v
+ORDER BY v.months_from_baseline
+
+# -----------------------------
+# Q4: Cognitive Assessments (C2)
+# -----------------------------
+# Find cognitive assessments by test type
+MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)-[:HAS_COGNITIVE_ASSESSMENT]->(ca:CognitiveAssessment)
+WHERE ca.test_name = $test_name
+RETURN p.ptid, v.months_from_baseline, ca.total_score
+LIMIT 100
+
+# -----------------------------
+# Q5: Cognitive Trajectories (C3)
+# -----------------------------
+# Track MMSE scores over time for patients with 3+ assessments
+MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)-[:HAS_COGNITIVE_ASSESSMENT]->(ca:CognitiveAssessment)
+WHERE ca.test_name = 'MMSE'
+WITH p.ptid as patient,
+     v.months_from_baseline as months,
+     ca.total_score as score
+ORDER BY patient, months
+WITH patient, collect({months: months, score: score}) as trajectory
+WHERE size(trajectory) >= 3
+RETURN patient, trajectory
+LIMIT 10
+
+# -----------------------------
+# Q6: Disease Progression (C3)
+# -----------------------------
+# Analyze diagnosis changes over time
+MATCH (p:Patient)-[:HAS_VISIT]->(v1:Visit)-[:RESULTED_IN]->(d1:Diagnosis)
+MATCH (p)-[:HAS_VISIT]->(v2:Visit)-[:RESULTED_IN]->(d2:Diagnosis)
+WHERE v1.months_from_baseline < v2.months_from_baseline
+  AND d1.diagnosis_code <> d2.diagnosis_code
+WITH p, d1, d2, v1, v2
+ORDER BY p.ptid, v1.months_from_baseline, v2.months_from_baseline
+RETURN p.ptid,
+       d1.diagnosis_code,
+       d2.diagnosis_code,
+       v2.months_from_baseline - v1.months_from_baseline as duration
+LIMIT 50
+
+# -----------------------------
+# Q7: ATN Biomarker Profile (C4)
+# -----------------------------
+# Analyze ATN profiles with diagnosis correlation
+MATCH (p:Patient)-[:HAS_ATN_PROFILE]->(atn:ATNProfile)
+OPTIONAL MATCH (p)-[:HAS_DIAGNOSIS]->(d:Diagnosis)
+WITH atn.profile as atn_profile,
+     collect(DISTINCT d.diagnosis_code) as diagnoses,
+     count(DISTINCT p) as patient_count
+RETURN atn_profile, patient_count, diagnoses
+ORDER BY patient_count DESC
+
+# -----------------------------
+# Q8: Multimodal Integration (C4)
+# -----------------------------
+# Integrate cognitive, biomarker, and diagnosis data
+MATCH (p:Patient)
+OPTIONAL MATCH (p)-[:UNDERWENT_ASSESSMENT]->(ca:CognitiveAssessment)
+OPTIONAL MATCH (p)-[:HAS_BIOMARKER]->(b:Biomarker)
+OPTIONAL MATCH (p)-[:HAS_DIAGNOSIS]->(d:Diagnosis)
+WITH p.ptid as patient_id,
+     count(DISTINCT ca) as cognitive_count,
+     count(DISTINCT b) as biomarker_count,
+     count(DISTINCT d) as diagnosis_count
+WHERE (cognitive_count + biomarker_count + diagnosis_count) > 0
+RETURN patient_id, cognitive_count, biomarker_count, diagnosis_count
+ORDER BY (cognitive_count + biomarker_count + diagnosis_count) DESC
+LIMIT 20
+
+# -----------------------------
+# Q9: Biomarker Correlations (C5)
+# -----------------------------
+# Complex biomarker correlation analysis
+MATCH (p:Patient)-[:HAS_BIOMARKER]->(b1:Biomarker {biomarker_type: 'CSF'})
+MATCH (p)-[:HAS_BIOMARKER]->(b2:Biomarker {biomarker_type: 'CSF'})
+WHERE b1.analyte < b2.analyte AND b1.viscode = b2.viscode
+WITH b1.analyte as biomarker1,
+     b2.analyte as biomarker2,
+     count(*) as pair_count,
+     avg(b1.value) as avg_value1,
+     avg(b2.value) as avg_value2,
+     stdev(b1.value) as std_value1,
+     stdev(b2.value) as std_value2
+WHERE pair_count >= 10
+RETURN biomarker1, biomarker2, pair_count,
+       round(avg_value1, 2) as avg1,
+       round(avg_value2, 2) as avg2,
+       round(std_value1, 2) as std1,
+       round(std_value2, 2) as std2
+ORDER BY pair_count DESC
+
+# -----------------------------
+# Q10: Temporal Network Analysis (C5)
+# -----------------------------
+# Analyze visit paths and temporal patterns
+MATCH path = (p:Patient)-[:HAS_VISIT]->(v1:Visit)-[:FOLLOWED_BY*1..5]->(v2:Visit)
+WHERE v1.months_from_baseline = 0
+WITH p, length(path) as path_length, v2.months_from_baseline as final_month
+RETURN avg(path_length) as avg_path_length,
+       max(path_length) as max_path_length,
+       avg(final_month) as avg_duration,
+       count(DISTINCT p) as patient_count
+
+
+# ============================================================================
+# SECTION 2: METRICS EXTRACTION QUERIES
+# ============================================================================
+
+# -----------------------------
+# Get Query Execution Plan
+# -----------------------------
+# Use EXPLAIN to get query planning metrics
+EXPLAIN [ANY_QUERY_FROM_ABOVE]
+
+# Example output fields:
+# - Estimated Rows
+# - Cost
+# - Ordered
+# - Index Usage
+
+# -----------------------------
+# Get Query Profile Statistics
+# -----------------------------
+# Use PROFILE to get detailed execution metrics
+PROFILE [ANY_QUERY_FROM_ABOVE]
+
+# Example output fields:
+# - db hits (actual database accesses)
+# - rows (actual rows processed)
+# - time (execution time in ms)
+# - memory (memory usage)
+# - page cache hits
+# - page cache misses
+
+
+# ============================================================================
+# SECTION 3: INDEX ANALYSIS QUERIES
+# ============================================================================
+
+# -----------------------------
+# List All Indexes
+# -----------------------------
+CALL db.indexes()
+YIELD name, labelsOrTypes, properties, type, state,
+      populationPercent, uniqueness
+RETURN name, labelsOrTypes, properties, type, state
+
+# -----------------------------
+# Show Index Details
+# -----------------------------
+SHOW INDEXES
+YIELD name, type, state, populationPercent,
+      uniqueness, owningConstraint, properties
+
+# -----------------------------
+# Get Constraint Information
+# -----------------------------
+SHOW CONSTRAINTS
+YIELD name, type, entityType, labelsOrTypes,
+      properties, ownedIndex
+
+# -----------------------------
+# Index Usage Statistics
+# -----------------------------
+# Get index usage for a specific query
+EXPLAIN [QUERY]
+// Look for "NodeIndexSeek" or "NodeUniqueIndexSeek" in the plan
+
+
+# ============================================================================
+# SECTION 4: DATABASE STATISTICS QUERIES
+# ============================================================================
+
+# -----------------------------
+# Database Store Sizes
+# -----------------------------
+CALL apoc.meta.stats()
+YIELD nodeCount, relCount, labelCount, relTypeCount,
+      propertyKeyCount, nodePropertyCount, relPropertyCount
+
+# -----------------------------
+# Memory Configuration
+# -----------------------------
+CALL dbms.listConfig()
+WHERE name IN [
+    'dbms.memory.heap.initial_size',
+    'dbms.memory.heap.max_size',
+    'dbms.memory.pagecache.size'
+]
+RETURN name, value
+
+# -----------------------------
+# Query Cache Statistics
+# -----------------------------
+CALL db.stats.retrieve('QUERY')
+YIELD data
+RETURN data.queryCache as cache_stats
+
+# -----------------------------
+# Transaction Metrics
+# -----------------------------
+CALL dbms.listTransactions()
+YIELD transactionId, username, currentQuery,
+      startTime, status, elapsedTime
+
+# -----------------------------
+# Connection Pool Status
+# -----------------------------
+CALL dbms.listConnections()
+YIELD connectionId, connector, userAgent, serverAddress
+
+
+# ============================================================================
+# SECTION 5: SCALABILITY TEST QUERIES
+# ============================================================================
+
+# -----------------------------
+# Variable Size Dataset Query
+# -----------------------------
+# Limit results based on test size parameter
+MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)
+WITH p, v
+LIMIT $dataset_size
+RETURN count(p) as patients, count(v) as visits
+
+# -----------------------------
+# Concurrent Load Test Query
+# -----------------------------
+# Simple query for concurrent execution
+MATCH (p:Patient)
+WHERE p.ptid = $random_patient_id
+RETURN p.ptid, p.age, p.gender
+// Execute this with multiple threads simultaneously
+
+
+# ============================================================================
+# SECTION 6: PERFORMANCE MONITORING QUERIES
+# ============================================================================
+
+# -----------------------------
+# Top Slow Queries
+# -----------------------------
+CALL dbms.listQueries()
+YIELD query, username, elapsedTimeMillis, cpuTimeMillis,
+      waitTimeMillis, idleTimeMillis, allocatedBytes
+WHERE elapsedTimeMillis > 1000
+RETURN query, elapsedTimeMillis
+ORDER BY elapsedTimeMillis DESC
+LIMIT 10
+
+# -----------------------------
+# Lock Information
+# -----------------------------
+CALL dbms.listLocks()
+YIELD mode, resourceType, resourceId
+RETURN mode, resourceType, count(*) as lock_count
+ORDER BY lock_count DESC
+
+# -----------------------------
+# Page Cache Hit Ratio
+# -----------------------------
+CALL db.stats.retrieve('CACHE')
+YIELD data
+WITH data.pageCacheHits as hits,
+     data.pageCacheMisses as misses
+RETURN hits, misses,
+       100.0 * hits / (hits + misses) as hit_ratio
+
+
+# ============================================================================
+# SECTION 7: QUERY OPTIMIZATION CHECKS
+# ============================================================================
+
+# -----------------------------
+# Check if Index is Used
+# -----------------------------
+PROFILE MATCH (p:Patient {ptid: '001_S_0001'})
+RETURN p
+// Look for "NodeIndexSeek" in execution plan
+
+# -----------------------------
+# Check Cartesian Products
+# -----------------------------
+EXPLAIN MATCH (p:Patient), (v:Visit)
+WHERE p.ptid = v.patient_id
+RETURN p, v
+// Warning if you see "CartesianProduct" in plan
+
+# -----------------------------
+# Check Filter Placement
+# -----------------------------
+PROFILE MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)
+WHERE v.months_from_baseline > 12
+AND p.age > 65
+RETURN p, v
+// Filters should be pushed down early in plan
+
+
+# ============================================================================
+# SECTION 8: SAMPLE PARAMETERS FOR TESTING
+# ============================================================================
+
+// Parameters used in the queries above:
+{
+  "patient_id": "001_S_0001",
+  "test_name": "MMSE",
+  "dataset_size": 1000,
+  "random_patient_id": "002_S_0295"
+}
+
+
+# ============================================================================
+# SECTION 9: CREATING TEST DATA (If Needed)
+# ============================================================================
+
+# -----------------------------
+# Create Sample Patients
+# -----------------------------
+UNWIND range(1, 1000) as id
+CREATE (p:Patient {
+    ptid: 'TEST_' + toString(id),
+    age: 65 + toInteger(rand() * 20),
+    gender: CASE WHEN rand() > 0.5 THEN 'M' ELSE 'F' END,
+    education: toInteger(rand() * 20)
+})
+
+# -----------------------------
+# Create Sample Visits
+# -----------------------------
+MATCH (p:Patient)
+WITH p
+UNWIND range(0, toInteger(rand() * 10)) as visit_num
+CREATE (p)-[:HAS_VISIT]->(v:Visit {
+    viscode: 'V' + toString(visit_num),
+    months_from_baseline: visit_num * 6,
+    visit_date: date() - duration({months: visit_num * 6})
+})
+
+# -----------------------------
+# Create Sample Cognitive Assessments
+# -----------------------------
+MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)
+WHERE rand() > 0.3
+CREATE (v)-[:HAS_COGNITIVE_ASSESSMENT]->(ca:CognitiveAssessment {
+    test_name: CASE toInteger(rand() * 3)
+        WHEN 0 THEN 'MMSE'
+        WHEN 1 THEN 'CDR'
+        ELSE 'ADAS'
+    END,
+    total_score: 20 + toInteger(rand() * 10),
+    test_date: v.visit_date
+})
+
+
+# ============================================================================
+# SECTION 10: NEO4J CONFIGURATION FOR METRICS
+# ============================================================================
+
+# -----------------------------
+# Enable Query Logging
+# -----------------------------
+// In neo4j.conf:
+dbms.logs.query.enabled=true
+dbms.logs.query.threshold=0ms
+dbms.logs.query.parameter_logging_enabled=true
+
+# -----------------------------
+# Enable Metrics Collection
+# -----------------------------
+// In neo4j.conf:
+metrics.enabled=true
+metrics.neo4j.enabled=true
+metrics.neo4j.tx.enabled=true
+metrics.neo4j.pagecache.enabled=true
+metrics.neo4j.checkpoint.enabled=true
+
+# -----------------------------
+# JVM Metrics
+# -----------------------------
+// In neo4j.conf:
+metrics.jvm.enabled=true
+metrics.jvm.gc.enabled=true
+metrics.jvm.memory.enabled=true
+metrics.jvm.threads.enabled=true
