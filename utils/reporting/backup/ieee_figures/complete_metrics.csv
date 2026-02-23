@@ -1,0 +1,61 @@
+query_name,query_id,complexity,iteration,execution_time_ms,db_hits,rows_returned,expected_db_hits,index_usage,efficiency,index_type
+Q1_patient_lookup,Q1,simple,1,17.19849999062717,3,1,2,NodeUniqueIndexSeek on Patient.ptid,0.05814460566589991,Unique Index Seek
+Q1_patient_lookup,Q1,simple,2,1.525300001958385,3,1,2,NodeUniqueIndexSeek on Patient.ptid,0.6556087318665611,Unique Index Seek
+Q1_patient_lookup,Q1,simple,3,1.4087999879848212,3,1,2,NodeUniqueIndexSeek on Patient.ptid,0.7098239697108617,Unique Index Seek
+Q1_patient_lookup,Q1,simple,4,1.3635999930556864,3,1,2,NodeUniqueIndexSeek on Patient.ptid,0.733352893145081,Unique Index Seek
+Q1_patient_lookup,Q1,simple,5,1.2852999934693798,3,1,2,NodeUniqueIndexSeek on Patient.ptid,0.7780284797953851,Unique Index Seek
+Q2_count_diagnoses,Q2,simple,1,7.004600003710948,25947,1,25946,NodeByLabelScan on Diagnosis,0.1427633268809372,Label Scan
+Q2_count_diagnoses,Q2,simple,2,1.1400000075809658,25947,1,25946,NodeByLabelScan on Diagnosis,0.8771929766228334,Label Scan
+Q2_count_diagnoses,Q2,simple,3,1.2457999982871115,25947,1,25946,NodeByLabelScan on Diagnosis,0.8026970632324053,Label Scan
+Q2_count_diagnoses,Q2,simple,4,1.1071999906562269,25947,1,25946,NodeByLabelScan on Diagnosis,0.9031791983734659,Label Scan
+Q2_count_diagnoses,Q2,simple,5,1.12599998828955,25947,1,25946,NodeByLabelScan on Diagnosis,0.8880994763765937,Label Scan
+Q3_count_patients,Q3,simple,1,7.335200003581122,2639,1,2638,NodeByLabelScan on Patient,0.1363289343864911,Label Scan
+Q3_count_patients,Q3,simple,2,1.214599993545562,2639,1,2638,NodeByLabelScan on Patient,0.8233163225045645,Label Scan
+Q3_count_patients,Q3,simple,3,1.167800000985153,2639,1,2638,NodeByLabelScan on Patient,0.8563110114372346,Label Scan
+Q3_count_patients,Q3,simple,4,1.3789999939035624,2639,1,2638,NodeByLabelScan on Patient,0.7251631649172675,Label Scan
+Q3_count_patients,Q3,simple,5,1.131500001065433,2639,1,2638,NodeByLabelScan on Patient,0.8837825886508076,Label Scan
+Q4_patient_visits,Q4,moderate,1,21.869599993806332,54,19,16,NodeUniqueIndexSeek + Expand,0.868785894821166,Unique Index Seek
+Q4_patient_visits,Q4,moderate,2,1.4253999979700893,30,7,16,NodeUniqueIndexSeek + Expand,4.910902209884028,Unique Index Seek
+Q4_patient_visits,Q4,moderate,3,1.269999993382953,20,2,16,NodeUniqueIndexSeek + Expand,1.5748031578114539,Unique Index Seek
+Q4_patient_visits,Q4,moderate,4,1.3524000096367672,52,18,16,NodeUniqueIndexSeek + Expand,13.309671599924426,Unique Index Seek
+Q4_patient_visits,Q4,moderate,5,1.4091000048210844,44,14,16,NodeUniqueIndexSeek + Expand,9.935419737492373,Unique Index Seek
+Q5_cognitive_scores,Q5,moderate,1,28.10480000334792,9480,100,9280,NodeByLabelScan + Filter,3.5581110695713094,Label Scan
+Q5_cognitive_scores,Q5,moderate,2,2.9789000109303743,9480,100,9280,NodeByLabelScan + Filter,33.56943826012068,Label Scan
+Q5_cognitive_scores,Q5,moderate,3,2.6969000027747825,9480,100,9280,NodeByLabelScan + Filter,37.079609884353204,Label Scan
+Q5_cognitive_scores,Q5,moderate,4,2.5985000102082267,9480,100,9280,NodeByLabelScan + Filter,38.48374046840456,Label Scan
+Q5_cognitive_scores,Q5,moderate,5,4.119699995499104,9480,100,9280,NodeByLabelScan + Filter,24.273612182744618,Label Scan
+Q6_biomarkers_by_type,Q6,moderate,1,19.459100003587082,5200,100,5000,NodeByLabelScan + Filter,5.138983816392641,Label Scan
+Q6_biomarkers_by_type,Q6,moderate,2,2.514899999368936,5200,100,5000,NodeByLabelScan + Filter,39.763012455800634,Label Scan
+Q6_biomarkers_by_type,Q6,moderate,3,2.2779999999329448,5200,100,5000,NodeByLabelScan + Filter,43.898156278728536,Label Scan
+Q6_biomarkers_by_type,Q6,moderate,4,2.2987999982433394,5200,100,5000,NodeByLabelScan + Filter,43.500957054296336,Label Scan
+Q6_biomarkers_by_type,Q6,moderate,5,2.2591000015381724,5200,100,5000,NodeByLabelScan + Filter,44.265415400784455,Label Scan
+Q7_diagnosis_progression,Q7,complex,1,100.59089999413118,4650,50,4400,Multiple NodeByLabelScan + Join,0.4970628556153407,Label Scan
+Q7_diagnosis_progression,Q7,complex,2,15.637000004062429,4650,50,4400,Multiple NodeByLabelScan + Join,3.197544285157652,Label Scan
+Q7_diagnosis_progression,Q7,complex,3,15.489099998376332,4650,50,4400,Multiple NodeByLabelScan + Join,3.2280765186641784,Label Scan
+Q7_diagnosis_progression,Q7,complex,4,13.909100001910701,4650,50,4400,Multiple NodeByLabelScan + Join,3.594768891814098,Label Scan
+Q7_diagnosis_progression,Q7,complex,5,13.657799994689412,4650,50,4400,Multiple NodeByLabelScan + Join,3.6609117148765975,Label Scan
+Q8_cognitive_trajectories,Q8,complex,1,68.03569999465253,15050,10,15000,NodeByLabelScan + Aggregation,0.14698165817043082,Label Scan
+Q8_cognitive_trajectories,Q8,complex,2,29.560199996922165,15050,10,15000,NodeByLabelScan + Aggregation,0.33829270441476067,Label Scan
+Q8_cognitive_trajectories,Q8,complex,3,27.216700007556938,15050,10,15000,NodeByLabelScan + Aggregation,0.3674214727436985,Label Scan
+Q8_cognitive_trajectories,Q8,complex,4,26.208399998722598,15050,10,15000,NodeByLabelScan + Aggregation,0.38155705806105683,Label Scan
+Q8_cognitive_trajectories,Q8,complex,5,25.916500002495013,15050,10,15000,NodeByLabelScan + Aggregation,0.3858545713748881,Label Scan
+Q9_atn_profile_analysis,Q9,research,1,62.76929999876302,28030,3,28000,NodeByLabelScan + Optional Match,0.047794064933958484,Label Scan
+Q9_atn_profile_analysis,Q9,research,2,23.212299987790175,28030,3,28000,NodeByLabelScan + Optional Match,0.12924182444557497,Label Scan
+Q9_atn_profile_analysis,Q9,research,3,21.218399997451343,28030,3,28000,NodeByLabelScan + Optional Match,0.14138672097615024,Label Scan
+Q9_atn_profile_analysis,Q9,research,4,21.232999992207624,28030,3,28000,NodeByLabelScan + Optional Match,0.14128950224183964,Label Scan
+Q9_atn_profile_analysis,Q9,research,5,25.163099999190308,28030,3,28000,NodeByLabelScan + Optional Match,0.1192221944075465,Label Scan
+Q10_multimodal_integration,Q10,research,1,14720.03539999423,35200,20,35000,Multiple Optional Matches,0.0013586923846669445,Full Scan
+Q10_multimodal_integration,Q10,research,2,15144.465899997158,35200,20,35000,Multiple Optional Matches,0.0013206144166499627,Full Scan
+Q10_multimodal_integration,Q10,research,3,14425.212500005728,35200,20,35000,Multiple Optional Matches,0.0013864613779514207,Full Scan
+Q10_multimodal_integration,Q10,research,4,14380.446700000903,35200,20,35000,Multiple Optional Matches,0.0013907773810669418,Full Scan
+Q10_multimodal_integration,Q10,research,5,14358.201399998507,35200,20,35000,Multiple Optional Matches,0.0013929321258860515,Full Scan
+Q11_biomarker_correlations,Q11,analytical,1,138.52939999196678,50000,0,50000,Self-join with aggregations,0.0,Full Scan
+Q11_biomarker_correlations,Q11,analytical,2,54.206900007557124,50000,0,50000,Self-join with aggregations,0.0,Full Scan
+Q11_biomarker_correlations,Q11,analytical,3,55.18320000555832,50000,0,50000,Self-join with aggregations,0.0,Full Scan
+Q11_biomarker_correlations,Q11,analytical,4,48.77339999075048,50000,0,50000,Self-join with aggregations,0.0,Full Scan
+Q11_biomarker_correlations,Q11,analytical,5,53.05390000285115,50000,0,50000,Self-join with aggregations,0.0,Full Scan
+Q12_temporal_network,Q12,analytical,1,67.84970000444446,75020,1,75000,Variable-length path traversal,0.014738458680502576,Full Scan
+Q12_temporal_network,Q12,analytical,2,24.295499999425374,75020,1,75000,Variable-length path traversal,0.0411598855764916,Full Scan
+Q12_temporal_network,Q12,analytical,3,23.796300010872073,75020,1,75000,Variable-length path traversal,0.04202333974370466,Full Scan
+Q12_temporal_network,Q12,analytical,4,25.056700003915466,75020,1,75000,Variable-length path traversal,0.03990948528113182,Full Scan
+Q12_temporal_network,Q12,analytical,5,23.56429999053944,75020,1,75000,Variable-length path traversal,0.04243707644196851,Full Scan

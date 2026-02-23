@@ -1,0 +1,16 @@
+query_name,complexity,iteration,execution_time_ms,db_hits,rows_returned,operators_count,index_seeks,index_scans,label_scans,full_scans,cache_hits,cache_misses
+Q1_patient_lookup,simple,1,106.70920000120532,0,1,1,0,0,0,0,0,0
+Q1_patient_lookup,simple,2,7.158199994591996,0,1,1,0,0,0,0,0,0
+Q1_patient_lookup,simple,3,5.651100000250153,0,1,1,0,0,0,0,0,0
+Q2_count_diagnoses,simple,1,5.29380000079982,0,1,1,0,0,0,0,0,0
+Q2_count_diagnoses,simple,2,6.516900000860915,0,1,1,0,0,0,0,0,0
+Q2_count_diagnoses,simple,3,6.506699995952658,0,1,1,0,0,0,0,0,0
+Q3_patient_visits,moderate,1,18.058999994536862,0,4,1,0,0,0,0,0,0
+Q3_patient_visits,moderate,2,7.320499993511476,0,4,1,0,0,0,0,0,0
+Q3_patient_visits,moderate,3,6.178199997521006,0,4,1,0,0,0,0,0,0
+Q4_cognitive_scores,moderate,1,16.90120001148898,0,100,1,0,0,0,0,0,0
+Q4_cognitive_scores,moderate,2,10.850499995285645,0,100,1,0,0,0,0,0,0
+Q4_cognitive_scores,moderate,3,10.061799999675713,0,100,1,0,0,0,0,0,0
+Q5_diagnosis_progression,complex,1,17.359800011035986,0,50,1,0,0,0,0,0,0
+Q5_diagnosis_progression,complex,2,10.683700005756691,0,50,1,0,0,0,0,0,0
+Q5_diagnosis_progression,complex,3,10.762899997644126,0,50,1,0,0,0,0,0,0

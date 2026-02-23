@@ -1,0 +1,17 @@
+
+\begin{table}[htbp]
+\centering
+\caption{Query Complexity Classification}
+\label{tab:query_classification}
+\begin{tabular}{|c|l|c|c|c|}
+\hline
+\textbf{Class} & \textbf{Description} & \textbf{Depth} & \textbf{Joins} & \textbf{Aggregations} \\
+\hline
+C1 & Simple lookups & 1 & 0 & 0 \\
+C2 & Moderate traversals & 2-3 & 1-2 & 0-1 \\
+C3 & Complex queries & 3-5 & 2-4 & 1-3 \\
+C4 & Research queries & 4-6 & 3-5 & 2-4 \\
+C5 & Analytical queries & 5+ & 5+ & 4+ \\
+\hline
+\end{tabular}
+\end{table}

@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-08-16T20:10:54.477692",
+  "config_path": "D:\\Programming\\Python\\ADNIKnowledgeGraph\\config.yaml",
+  "storage_path": "D:\\Programming\\Python\\ADNIKnowledgeGraph\\outputs\\image_store",
+  "total_images_validated": 100,
+  "total_images_passed": 100,
+  "total_images_failed": 0,
+  "total_images_with_warnings": 0,
+  "metadata_generation_rate": 100.0,
+  "diagnostic_tiff_generation_rate": 100.0,
+  "diagnostic_png_generation_rate": 100.0,
+  "thumbnail_generation_rate": 100.0,
+  "sharpened_tiff_generation_rate": 100.0,
+  "smooth_tiff_generation_rate": 0.0,
+  "pixel_preservation_rate": 100.0,
+  "upscaling_accuracy_rate": 100.0,
+  "metadata_completeness_rate": 100.0,
+  "average_validation_time": 0.012032766342163086,
+  "total_validation_time": 3.1768860816955566,
+  "results_by_modality": {
+    "PT": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "warnings": 0
+    },
+    "MR": {
+      "total": 62,
+      "passed": 62,
+      "failed": 0,
+      "warnings": 0
+    }
+  },
+  "results_by_patient": {},
+  "critical_issues": [],
+  "warnings": [],
+  "validation_summary": {
+    "total_validated": 100,
+    "with_errors": 0,
+    "with_warnings": 0,
+    "fully_passed": 100
+  }
+}

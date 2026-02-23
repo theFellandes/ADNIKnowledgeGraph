@@ -1,0 +1,417 @@
+# ADNI Knowledge Graph Pipeline Configuration
+# Complete configuration with all required settings
+
+# ============================================================================
+# PIPELINE MODE SETTINGS
+# ============================================================================
+# Choose ONE of these modes:
+# - clear_database: true  - Delete all existing data first (DESTRUCTIVE)
+# - incremental: true     - Add new data to existing (SAFE)
+# - Both false           - Standard execution
+
+clear_database: false  # ⚠️ WARNING: This deletes ALL data in Neo4j AND Elasticsearch
+incremental: true     # ✅ RECOMMENDED: Preserve existing data and add new
+
+# ============================================================================
+# DATABASE CONNECTIONS
+# ============================================================================
+
+# Neo4j Database Settings
+neo4j_uri: "bolt://localhost:7687"
+neo4j_user: "neo4j"
+neo4j_password: "your_password"  # CHANGE THIS
+
+# Elasticsearch Settings
+elasticsearch:
+  host: "localhost"
+  port: 9200
+  username: null  # Add if authentication is enabled
+  password: null  # Add if authentication is enabled
+
+  # Index management
+  indices:
+    medical_images: "medical_images"     # Main image index
+    patients: "adni_patients"           # Patient data index
+    studies: "adni_studies"             # Study metadata index
+    biomarkers: "adni_biomarkers"       # Biomarker data index
+    assessments: "adni_assessments"     # Cognitive assessments index
+
+# ============================================================================
+# DATA PATHS
+# ============================================================================
+
+# Base path containing ADNI data
+base_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs"
+
+# Output directory for logs and results
+output_dir: "D:/Programming/Python/ADNIKnowledgeGraph/outputs"
+
+# ============================================================================
+# IMAGE PROCESSING SETTINGS (ENHANCED WITH ZIP SUPPORT)
+# ============================================================================
+
+# External storage for images (recommended)
+use_external_storage: true
+store_image_blobs: false  # Not recommended - uses too much Neo4j storage
+
+# Image Storage Configuration
+image_storage:
+  storage_path: "D:/Programming/Python/ADNIKnowledgeGraph/outputs/image_store"
+
+  # ============================================================================
+  # ZIP PROCESSING CONFIGURATION
+  # ============================================================================
+  zip_processing:
+    # Processing mode - Choose one:
+    # - 'extracted': Process from already extracted directories (traditional)
+    # - 'zip_direct': Process directly from ZIP files without extraction
+    # - 'mixed': Support both modes (check extracted first, then ZIPs)
+    # - 'auto': Automatically detect based on available data
+    mode: 'auto'  # Recommended for flexibility
+
+    # Directory containing ZIP files (for zip_direct mode)
+    zip_directory: "D:/Programming/Python/ADNIKnowledgeGraph/inputs"
+
+    # Directory with extracted files (for extracted mode)
+    extracted_directory: "D:/Programming/Python/ADNIKnowledgeGraph/inputs/extracted"
+
+    # ============================================================================
+    # SELECTIVE ZIP PROCESSING
+    # ============================================================================
+    # Option 1: Specify exact ZIP numbers to process
+    # Use this when you have numbered ZIPs like mri_1.zip, pet_2.zip, etc.
+    # zip_numbers: [1, 2, 3]  # Process only ZIPs 1, 2, and 3
+    # zip_numbers: "1-5"      # Range: process ZIPs 1 through 5
+    # zip_numbers: "1,3,5-7"  # Mixed: process 1, 3, and 5 through 7
+
+    # Option 2: Process first N ZIPs (alternative to zip_numbers)
+    # max_zips: 3  # Process only the first 3 ZIPs found
+
+    # ZIP file name patterns to match
+    zip_patterns:
+      - "*.zip"         # All ZIP files
+      - "mri_*.zip"     # MRI scans
+      - "pet_*.zip"     # PET scans
+      - "*_scan_*.zip"  # Generic pattern
+
+    # ============================================================================
+    # DICOM SERVING CONFIGURATION
+    # ============================================================================
+    # Extract files for DICOM serving/viewing
+    extract_for_serving: false  # Set to true if you need web-based DICOM viewers
+
+    # Directory to cache extracted files for serving
+    serving_cache_dir: "D:/Programming/Python/ADNIKnowledgeGraph/outputs/serving_cache"
+
+    # Serving cache management
+    serving_cache_max_size_gb: 100  # Maximum cache size in GB
+    serving_cache_cleanup_days: 30  # Remove files older than N days
+
+    # ============================================================================
+    # PERFORMANCE SETTINGS FOR ZIP PROCESSING
+    # ============================================================================
+    # Use temporary extraction (for very large files that don't fit in memory)
+    use_temp_extraction: false  # false = process in memory (faster)
+
+    # Parallel processing for ZIP contents
+    zip_parallel_workers: 4  # Number of parallel workers per ZIP
+
+    # Memory threshold for switching to temp extraction (GB)
+    memory_threshold_gb: 8  # Switch to temp extraction if file > 8GB
+
+  # ============================================================================
+  # CONVERSION SETTINGS (applies to both extracted and ZIP modes)
+  # ============================================================================
+  prefer_dicom: true
+  create_thumbnails: true
+  thumbnail_size: [256, 256]
+  lossless_compression: true
+
+  # Output formats
+  output_formats:
+    tiff: true              # Lossless - RAW pixels
+    sharpened_tiff: true    # Enhanced viewing
+    png: true               # Alternative lossless
+    thumbnail: true         # UI previews
+    smooth_tiff: false      # Optional
+    pyramid_tiff: false     # MUST be false
+
+  # Elasticsearch indexing for images
+  es_host: "localhost"
+  es_port: 9200
+  batch_size: 500  # Images indexed per batch
+
+  # DICOM processing
+  dicom:
+    extract_full_metadata: true
+    preserve_original: false
+    skip_if_exists: true
+    auto_window_level: true
+    percentile_min: 2.0  # Less aggressive than 0.5
+    percentile_max: 98.0  # Less aggressive than 99.5
+
+  # NIfTI processing
+  nifti:
+    extract_slice: "middle"  # Which slice to extract for 2D representation
+    preserve_3d: false       # Store full 3D volume (uses more space)
+
+  # Better rendering settings
+  rendering:
+    interpolation_method: 'bicubic'  # or 'lanczos' for best quality
+    smoothing_enabled: false  # Disable by default to avoid blur
+    anti_aliasing: true
+    quality: 'high'
+    upscale_factor: 2  # Reduced from 4 - better quality, less artifacts
+    sharpening_strength: 0.5  # Reduced from 1.5 - prevents blob artifacts
+
+# ============================================================================
+# PROCESSING SETTINGS
+# ============================================================================
+
+# Parallel processing
+max_workers: 16  # Number of parallel workers (adjust based on CPU cores)
+
+# Batch Processing
+batch_processing:
+  image_batch_size: 500      # Images per batch
+  data_batch_size: 1000      # Other data items per batch
+  enable_progress_tracking: true
+  checkpoint_interval: 200   # Save progress every N items
+
+  # Memory management
+  memory_threshold: 0.8      # Trigger GC when memory usage > 80%
+  garbage_collection_interval: 1000  # Force GC every N items
+
+# ============================================================================
+# PIPELINE STEP CONTROL
+# ============================================================================
+# Enable/disable individual pipeline steps
+
+run_database_setup: true              # Step 1: Setup Neo4j and Elasticsearch
+run_table_loading: true               # Step 2: Load CSV tables
+run_patient_creation: true            # Step 3: Create patient nodes
+run_family_extraction: true           # Step 4: Extract family relationships
+run_image_processing: true            # Step 5: Process medical images
+run_findings_extraction: true         # Step 6: Extract clinical findings
+run_batch_insertion: true             # Step 7: Batch insert remaining data
+run_relationship_creation: true       # Step 8: Create all relationships
+run_knowledge_enhancement: true       # Step 9: Enhance knowledge graph
+run_query_execution: true             # Step 10: Execute queries and generate reports
+run_biomarker_analysis: true          # Step 11: Analyze biomarkers
+run_graph_enhancement: true           # Step 12: Enhance graph with external data
+run_graph_eda: true                   # Step 13: Export data to external formats
+run_research_queries: true            # Step 14: Execute research queries
+run_complete_graph_enhancement: true  # Step 15: Event based graph
+
+# ============================================================================
+# ERROR HANDLING
+# ============================================================================
+
+error_handling:
+  continue_on_error: true  # Continue processing even if some items fail
+  max_retries: 3           # Retry failed operations
+  retry_delay: 5           # Seconds between retries
+
+  # Validation
+  validate_data: true      # Check data integrity
+  skip_invalid: true       # Skip invalid records instead of failing
+  log_invalid: true        # Log invalid records for review
+
+  # Error reporting
+  create_error_report: true
+  error_report_path: "outputs/error_report.json"
+
+# ============================================================================
+# LOGGING
+# ============================================================================
+
+log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+log_file: "D:/Programming/Python/ADNIKnowledgeGraph/outputs/pipeline.log"
+
+# Detailed logging options
+logging:
+  log_to_file: true
+  log_to_console: true
+  rotate_logs: true
+  max_log_size_mb: 100
+  backup_count: 5
+
+  # Component-specific logging
+  components:
+    neo4j: "INFO"
+    elasticsearch: "INFO"
+    image_processing: "DEBUG"
+    batch_processing: "INFO"
+    table_loading: "INFO"
+    patient_creation: "INFO"
+    family_extraction: "INFO"
+
+# ============================================================================
+# INCREMENTAL PROCESSING OPTIONS
+# ============================================================================
+
+incremental_options:
+  # How to handle duplicates
+  duplicate_strategy: "skip"  # skip, update, or replace
+
+  # Track processed items
+  track_processed: true
+  processed_tracking_file: "outputs/processed_items.json"
+
+  # Date-based filtering (optional)
+  process_after_date: null  # e.g., "2024-01-01"
+
+  # Checkpointing
+  enable_checkpoints: true
+  checkpoint_dir: "outputs/checkpoints"
+  resume_from_checkpoint: true
+
+  # Incremental batching
+  incremental_batch_size: 100  # Smaller batches for incremental updates
+
+# ============================================================================
+# PERFORMANCE TUNING
+# ============================================================================
+
+performance:
+  # Neo4j tuning
+  neo4j:
+    batch_size: 1000
+    use_unwind: true
+    periodic_commit: 1000
+    transaction_timeout: 300  # seconds
+
+    # Connection pool settings
+    connection_pool_size: 50
+    connection_acquisition_timeout: 60
+
+  # Elasticsearch tuning
+  elasticsearch:
+    bulk_size: 500
+    refresh_interval: "30s"  # Temporarily disable refresh during bulk insert
+    number_of_replicas: 0    # Set to 0 during initial load
+
+    # Request settings
+    request_timeout: 30
+    max_retries: 3
+
+  # Image processing
+  image_processing:
+    convert_parallel: true
+    max_concurrent_conversions: 4
+    cache_metadata: true
+
+    # Memory management for large images
+    max_image_size_mb: 500  # Skip images larger than this
+    downsample_large_images: true
+    downsampling_threshold_mb: 100
+
+  # Table processing
+  table_processing:
+    chunk_size: 10000  # Process tables in chunks
+    use_dtype_optimization: true  # Optimize pandas dtypes
+    category_threshold: 0.5  # Convert to category if cardinality < 50%
+
+# ============================================================================
+# DATA QUALITY CHECKS
+# ============================================================================
+
+quality_checks:
+  enable: true
+
+  # Validation rules
+  validate_patient_ids: true
+  validate_dates: true
+  check_referential_integrity: true
+
+  # Required fields check
+  required_fields:
+    patient: ["ptid"]
+    visit: ["visit_id", "patient_id", "viscode"]
+    image: ["image_hash", "patient_id"]
+
+  # Data quality thresholds
+  min_completeness: 0.7  # Minimum data completeness (70%)
+  max_null_percentage: 0.3  # Maximum nulls allowed (30%)
+
+  # Post-processing verification
+  verify_counts: true
+  verify_relationships: true
+  generate_quality_report: true
+  quality_report_path: "outputs/quality_report.json"
+
+  # Anomaly detection
+  detect_outliers: true
+  flag_missing_data: true
+  outlier_detection_method: "iqr"  # iqr, zscore, isolation_forest
+
+  # Data consistency checks
+  check_temporal_consistency: true  # Ensure visit dates are logical
+  check_value_ranges: true          # Ensure values are within expected ranges
+
+# ============================================================================
+# CACHE SETTINGS
+# ============================================================================
+
+cache:
+  enable: true
+  cache_dir: "outputs/cache"
+
+  # Cache specific data types
+  cache_processed_images: true
+  cache_table_data: true
+  cache_patient_data: true
+
+  # Cache management
+  max_cache_size_gb: 50
+  cache_ttl_days: 30  # Time to live for cached items
+  clear_cache_on_start: false
+
+# ============================================================================
+# EXPORT SETTINGS
+# ============================================================================
+
+export:
+  enable: true
+  export_dir: "outputs/exports"
+
+  # Export formats
+  formats:
+    csv: true
+    json: true
+    graphml: true
+    gephi: false
+
+  # What to export
+  export_nodes: true
+  export_relationships: true
+  export_properties: true
+
+  # Export batching
+  export_batch_size: 10000
+
+# ============================================================================
+# NOTIFICATION SETTINGS (Optional)
+# ============================================================================
+
+notifications:
+  enable: false
+
+  # Email notifications
+  email:
+    enable: false
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    from_address: "pipeline@example.com"
+    to_addresses: ["admin@example.com"]
+
+  # Webhook notifications
+  webhook:
+    enable: false
+    url: "https://your-webhook-url.com/pipeline-status"
+
+  # When to notify
+  notify_on:
+    - "pipeline_complete"
+    - "pipeline_failed"
+    - "critical_error"

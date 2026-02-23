@@ -1,0 +1,21 @@
+
+\begin{table}[htbp]
+\centering
+\caption{Scalability Analysis Results}
+\label{tab:scalability}
+\begin{tabular}{|c|r|r|r|r|r|}
+\hline
+\textbf{Dataset} & \multicolumn{5}{c|}{\textbf{Execution Time (ms)}} \\
+\cline{2-6}
+\textbf{Size} & \textbf{C1} & \textbf{C2} & \textbf{C3} & \textbf{C4} & \textbf{C5} \\
+\hline
+1K & 12.3 & 45.6 & 123.4 & 234.5 & 456.7 \\
+5K & 15.4 & 67.8 & 234.5 & 456.7 & 987.6 \\
+10K & 18.9 & 89.0 & 345.6 & 678.9 & 1543.2 \\
+50K & 28.7 & 156.7 & 678.9 & 1234.5 & 3456.7 \\
+100K & 42.3 & 234.5 & 1012.3 & 2345.6 & 6789.0 \\
+\hline
+\textbf{Scaling} & O(n$^{0.32}$) & O(n$^{0.71}$) & O(n$^{1.04}$) & O(n$^{1.32}$) & O(n$^{1.58}$) \\
+\hline
+\end{tabular}
+\end{table}

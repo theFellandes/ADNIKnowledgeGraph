@@ -1,0 +1,213 @@
+# ADNI Knowledge Graph Pipeline Configuration
+# Enhanced with incremental loading and Elasticsearch integration
+
+# ============================================================================
+# PIPELINE MODE SETTINGS
+# ============================================================================
+# Choose ONE of these modes:
+# - clear_database: true  - Delete all existing data first (DESTRUCTIVE)
+# - incremental: true     - Add new data to existing (SAFE)
+# - Both false           - Standard execution
+
+clear_database: true  # ⚠️ WARNING: This deletes ALL data in Neo4j AND Elasticsearch
+incremental: false     # ✅ RECOMMENDED: Preserve existing data and add new
+
+# ============================================================================
+# DATABASE CONNECTIONS
+# ============================================================================
+
+# Neo4j Database Settings
+neo4j_uri: "bolt://localhost:7687"
+neo4j_user: "neo4j"
+neo4j_password: "your_password"
+
+# Elasticsearch Settings
+elasticsearch:
+  host: "localhost"
+  port: 9200
+  username: null  # Add if authentication is enabled
+  password: null  # Add if authentication is enabled
+
+  # Index management
+  indices:
+    medical_images: "medical_images"  # Main image index
+    patients: "adni_patients"        # Optional patient index
+    studies: "adni_studies"          # Optional study index
+
+# ============================================================================
+# DATA PATHS
+# ============================================================================
+
+# Base path containing ADNI data
+base_path: "D:/Programming/Python/ADNIKnowledgeGraph/inputs"
+
+# Output directory for logs and results
+output_dir: "D:/Programming/Python/ADNIKnowledgeGraph/outputs"
+
+# ============================================================================
+# IMAGE PROCESSING SETTINGS
+# ============================================================================
+
+# External storage for images (recommended)
+use_external_storage: true
+store_image_blobs: false  # Not recommended - uses too much Neo4j storage
+
+# Image Storage Configuration
+image_storage:
+  storage_path: "D:/Programming/Python/ADNIKnowledgeGraph/outputs/image_store"
+
+  # Conversion settings
+  prefer_dicom: true
+  create_thumbnails: true
+  thumbnail_size: [256, 256]
+  lossless_compression: true
+
+  # Elasticsearch indexing for images
+  es_host: "localhost"
+  es_port: 9200
+  batch_size: 500  # Images indexed per batch
+
+  # DICOM processing
+  dicom:
+    extract_full_metadata: true
+    preserve_original: true
+    skip_if_exists: true  # Skip conversion if PNG already exists
+
+# ============================================================================
+# PROCESSING SETTINGS
+# ============================================================================
+
+# Parallel processing
+max_workers: 8
+
+# Batch Processing
+batch_processing:
+  image_batch_size: 500      # Images per batch
+  data_batch_size: 1000     # Other data items per batch
+  enable_progress_tracking: true
+  checkpoint_interval: 200   # Save progress every N items
+
+  # Memory management
+  memory_threshold: 0.8
+  garbage_collection_interval: 1000
+
+# ============================================================================
+# PIPELINE STEP CONTROL
+# ============================================================================
+# Enable/disable individual pipeline steps
+
+run_database_setup: true              # Step 1: Setup Neo4j and Elasticsearch
+run_table_loading: true               # Step 2: Load CSV tables
+run_patient_creation: true            # Step 3: Create patient nodes
+run_family_extraction: true           # Step 4: Extract family relationships
+run_image_processing: true            # Step 5: Process medical images
+run_findings_extraction: true         # Step 6: Extract clinical findings
+run_batch_insertion: true             # Step 7: Batch insert remaining data
+run_relationship_creation: true       # Step 8: Create all relationships
+run_knowledge_enhancement: true       # Step 9: Enhance knowledge graph with additional data
+run_query_execution: true             # Step 10: Execute queries and generate reports
+run_biomarker_analysis: true          # Step 11: Analyze biomarkers and generate reports
+run_graph_enhancement: true           # Step 12: Enhance graph with external data
+run_graph_eda: true                   # Step 13: Export data to external formats
+run_research_queries: true            # Step 14: Execute research queries and generate insights
+run_complete_graph_enhancement: true  # Step 15: Event based graph
+
+# ============================================================================
+# ERROR HANDLING
+# ============================================================================
+
+error_handling:
+  continue_on_error: true  # Continue processing even if some items fail
+  max_retries: 3           # Retry failed operations
+  retry_delay: 5           # Seconds between retries
+
+  # Validation
+  validate_data: true      # Check data integrity
+  skip_invalid: true       # Skip invalid records instead of failing
+  log_invalid: true        # Log invalid records for review
+
+# ============================================================================
+# LOGGING
+# ============================================================================
+
+log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+log_file: "D:/Programming/Python/ADNIKnowledgeGraph/outputs/pipeline.log"
+
+# Detailed logging options
+logging:
+  log_to_file: true
+  log_to_console: true
+  rotate_logs: true
+  max_log_size_mb: 100
+  backup_count: 5
+
+  # Component-specific logging
+  components:
+    neo4j: "INFO"
+    elasticsearch: "INFO"
+    image_processing: "DEBUG"
+    batch_processing: "INFO"
+
+# ============================================================================
+# INCREMENTAL PROCESSING OPTIONS
+# ============================================================================
+
+incremental_options:
+  # How to handle duplicates
+  duplicate_strategy: "skip"  # skip, update, or replace
+
+  # Track processed items
+  track_processed: true
+  processed_tracking_file: "outputs/processed_items.json"
+
+  # Date-based filtering (optional)
+  process_after_date: null  # e.g., "2024-01-01"
+
+  # Checkpointing
+  enable_checkpoints: true
+  checkpoint_dir: "outputs/checkpoints"
+  resume_from_checkpoint: true
+
+# ============================================================================
+# PERFORMANCE TUNING
+# ============================================================================
+
+performance:
+  # Neo4j tuning
+  neo4j:
+    batch_size: 1000
+    use_unwind: true
+    periodic_commit: 1000
+
+  # Elasticsearch tuning
+  elasticsearch:
+    bulk_size: 500
+    refresh_interval: "30s"  # Temporarily disable refresh during bulk insert
+    number_of_replicas: 0    # Set to 0 during initial load
+
+  # Image processing
+  image_processing:
+    convert_parallel: true
+    max_concurrent_conversions: 4
+    cache_metadata: true
+
+# ============================================================================
+# DATA QUALITY CHECKS
+# ============================================================================
+
+quality_checks:
+  enable: true
+
+  # Validation rules
+  validate_patient_ids: true
+  validate_dates: true
+  check_referential_integrity: true
+
+  # Post-processing verification
+  verify_counts: true
+  verify_relationships: true
+  generate_quality_report: true
+
+  # Anomaly detection
+  detect_outliers: true
+  flag_missing_data: true

@@ -181,3 +181,7 @@ cython_debug/
 .cursorindexingignore
 
 inputs
+.kiro
+.streamlit
+logs
+outputs
