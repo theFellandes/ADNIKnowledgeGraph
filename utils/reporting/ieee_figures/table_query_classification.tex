@@ -1,0 +1,32 @@
+\begin{table*}[htbp]
+\centering
+\caption{Query Complexity Classification and Characteristics}
+\label{tab:query_classification}
+\begin{tabular}{|c|l|l|c|l|}
+\hline
+\textbf{Class} & \textbf{Query ID} & \textbf{Description} & \textbf{DB Hits} & \textbf{Index Strategy} \\
+\hline
+\multirow{3}{*}{C1 (Simple)} 
+& Q1 & Single patient lookup by ID & 2 & NodeUniqueIndexSeek \\
+& Q2 & Count all diagnosis nodes & 25,946 & NodeByLabelScan \\
+& Q3 & Count all patient nodes & 2,638 & NodeByLabelScan \\
+\hline
+\multirow{3}{*}{C2 (Moderate)} 
+& Q4 & Get all visits for a patient & 16 & NodeUniqueIndexSeek + Expand \\
+& Q5 & Find cognitive assessments by type & 9,280 & NodeByLabelScan + Filter \\
+& Q6 & Find biomarkers by type & 5,000 & NodeByLabelScan + Filter \\
+\hline
+\multirow{2}{*}{C3 (Complex)} 
+& Q7 & Analyze diagnosis progression & 4,400 & Multiple NodeByLabelScan + Join \\
+& Q8 & Track MMSE scores over time & 15,000 & NodeByLabelScan + Aggregation \\
+\hline
+\multirow{2}{*}{C4 (Research)} 
+& Q9 & ATN biomarker profile analysis & 28,000 & NodeByLabelScan + Optional Match \\
+& Q10 & Multimodal data integration & 35,000 & Multiple Optional Matches \\
+\hline
+\multirow{2}{*}{C5 (Analytical)} 
+& Q11 & Biomarker correlation analysis & 50,000 & Self-join with aggregations \\
+& Q12 & Temporal network analysis & 75,000 & Variable-length path traversal \\
+\hline
+\end{tabular}
+\end{table*}

@@ -14,16 +14,16 @@ from datetime import datetime
 from pathlib import Path
 import json
 
-# Configure matplotlib for IEEE paper quality
+# Configure matplotlib for IEEE paper quality with SMALLER FONTS
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Times New Roman']
-plt.rcParams['font.size'] = 10
-plt.rcParams['axes.labelsize'] = 11
-plt.rcParams['axes.titlesize'] = 12
-plt.rcParams['xtick.labelsize'] = 9
-plt.rcParams['ytick.labelsize'] = 9
-plt.rcParams['legend.fontsize'] = 9
-plt.rcParams['figure.titlesize'] = 12
+plt.rcParams['font.size'] = 8  # Reduced from 10
+plt.rcParams['axes.labelsize'] = 9  # Reduced from 11
+plt.rcParams['axes.titlesize'] = 10  # Reduced from 12
+plt.rcParams['xtick.labelsize'] = 7  # Reduced from 9
+plt.rcParams['ytick.labelsize'] = 7  # Reduced from 9
+plt.rcParams['legend.fontsize'] = 7  # Reduced from 9
+plt.rcParams['figure.titlesize'] = 10  # Reduced from 12
 plt.rcParams['axes.grid'] = True
 plt.rcParams['grid.alpha'] = 0.3
 plt.rcParams['axes.axisbelow'] = True
@@ -483,10 +483,10 @@ class ADNIPerformanceAnalyzer:
             patch.set_facecolor(color)
             patch.set_alpha(0.7)
 
-        ax1.set_ylabel('Execution Time (ms)')
-        ax1.set_xlabel('Query Complexity Class')
+        ax1.set_ylabel('Execution Time (ms)', fontsize=8)
+        ax1.set_xlabel('Query Complexity Class', fontsize=8)
         ax1.set_yscale('log')
-        ax1.set_title('(a) Execution Time Distribution')
+        ax1.set_title('(a) Execution Time Distribution', fontsize=9)
         ax1.grid(True, alpha=0.3)
 
         # (b) Average metrics bar chart
@@ -511,26 +511,26 @@ class ADNIPerformanceAnalyzer:
         bars2 = ax2_twin.bar(x + width/2, avg_db_hits, width, label='DB Hits (×1000)',
                            color='#D32F2F', alpha=0.7)
 
-        ax2.set_xlabel('Query Complexity Class')
-        ax2.set_ylabel('Execution Time (ms)', color='#1976D2')
-        ax2_twin.set_ylabel('Database Hits (×1000)', color='#D32F2F')
+        ax2.set_xlabel('Query Complexity Class', fontsize=8)
+        ax2.set_ylabel('Execution Time (ms)', color='#1976D2', fontsize=8)
+        ax2_twin.set_ylabel('Database Hits (×1000)', color='#D32F2F', fontsize=8)
         ax2.set_xticks(x)
         ax2.set_xticklabels(complexity_labels)
-        ax2.set_title('(b) Average Performance Metrics')
+        ax2.set_title('(b) Average Performance Metrics', fontsize=9)
 
-        # Add value labels on bars
+        # Add value labels on bars with smaller font
         for bar in bars1:
             height = bar.get_height()
             ax2.text(bar.get_x() + bar.get_width()/2., height,
-                    f'{height:.1f}', ha='center', va='bottom', fontsize=8)
+                    f'{height:.1f}', ha='center', va='bottom', fontsize=6)
 
         for bar in bars2:
             height = bar.get_height()
             ax2_twin.text(bar.get_x() + bar.get_width()/2., height,
-                        f'{height:.1f}', ha='center', va='bottom', fontsize=8)
+                        f'{height:.1f}', ha='center', va='bottom', fontsize=6)
 
-        ax2.legend(loc='upper left')
-        ax2_twin.legend(loc='upper right')
+        ax2.legend(loc='upper left', fontsize=7)
+        ax2_twin.legend(loc='upper right', fontsize=7)
 
         plt.tight_layout()
         plt.savefig(self.output_dir / 'figure1_performance_complexity.pdf',
@@ -539,7 +539,7 @@ class ADNIPerformanceAnalyzer:
                    dpi=300, bbox_inches='tight')
         plt.close()
 
-        print("✓ Figure 1: Performance by Complexity saved")
+        print("✔ Figure 1: Performance by Complexity saved")
 
     def _figure_2_execution_distribution(self):
         """Figure 2: Execution time distribution analysis"""
@@ -554,10 +554,10 @@ class ADNIPerformanceAnalyzer:
                    linestyle='--', label=f'Mean: {self.df["execution_time_ms"].mean():.1f}ms')
         ax1.axvline(self.df['execution_time_ms'].median(), color='green',
                    linestyle='--', label=f'Median: {self.df["execution_time_ms"].median():.1f}ms')
-        ax1.set_xlabel('Execution Time (ms)')
-        ax1.set_ylabel('Frequency')
-        ax1.set_title('(a) Execution Time Distribution')
-        ax1.legend()
+        ax1.set_xlabel('Execution Time (ms)', fontsize=8)
+        ax1.set_ylabel('Frequency', fontsize=8)
+        ax1.set_title('(a) Execution Time Distribution', fontsize=9)
+        ax1.legend(fontsize=7)
         ax1.grid(True, alpha=0.3)
 
         # (b) CDF
@@ -573,11 +573,11 @@ class ADNIPerformanceAnalyzer:
             val = np.percentile(sorted_times, p)
             ax2.axhline(p/100, color='gray', linestyle=':', alpha=0.5)
             ax2.axvline(val, color='gray', linestyle=':', alpha=0.5)
-            ax2.text(val, p/100, f'P{p}\n{val:.1f}ms', fontsize=7)
+            ax2.text(val, p/100, f'P{p}\n{val:.1f}ms', fontsize=6)
 
-        ax2.set_xlabel('Execution Time (ms)')
-        ax2.set_ylabel('Cumulative Probability')
-        ax2.set_title('(b) Cumulative Distribution')
+        ax2.set_xlabel('Execution Time (ms)', fontsize=8)
+        ax2.set_ylabel('Cumulative Probability', fontsize=8)
+        ax2.set_title('(b) Cumulative Distribution', fontsize=9)
         ax2.set_xscale('log')
         ax2.grid(True, alpha=0.3)
 
@@ -607,12 +607,12 @@ class ADNIPerformanceAnalyzer:
         for i, (p, data) in enumerate(zip([50, 75, 95, 99], percentiles_data)):
             ax3.bar(x + i * width, data, width, label=f'P{p}')
 
-        ax3.set_xlabel('Query Complexity')
-        ax3.set_ylabel('Execution Time (ms)')
-        ax3.set_title('(c) Percentiles by Complexity')
+        ax3.set_xlabel('Query Complexity', fontsize=8)
+        ax3.set_ylabel('Execution Time (ms)', fontsize=8)
+        ax3.set_title('(c) Percentiles by Complexity', fontsize=9)
         ax3.set_xticks(x + width * 1.5)
         ax3.set_xticklabels(['C1', 'C2', 'C3', 'C4', 'C5'])
-        ax3.legend()
+        ax3.legend(fontsize=7)
         ax3.set_yscale('log')
         ax3.grid(True, alpha=0.3)
 
@@ -623,7 +623,7 @@ class ADNIPerformanceAnalyzer:
                    dpi=300, bbox_inches='tight')
         plt.close()
 
-        print("✓ Figure 2: Execution Distribution saved")
+        print("✔ Figure 2: Execution Distribution saved")
 
     def _figure_3_scalability_analysis(self):
         """Figure 3: Scalability analysis with simulated scaling"""
@@ -667,12 +667,12 @@ class ADNIPerformanceAnalyzer:
                         label=f'C{complexity_order.index(comp)+1} (O(n^{scaling_factor:.1f}))',
                         linewidth=2, markersize=6)
 
-        ax1.set_xlabel('Dataset Size (nodes)')
-        ax1.set_ylabel('Execution Time (ms)')
+        ax1.set_xlabel('Dataset Size (nodes)', fontsize=8)
+        ax1.set_ylabel('Execution Time (ms)', fontsize=8)
         ax1.set_xscale('log')
         ax1.set_yscale('log')
-        ax1.set_title('(a) Scalability Analysis')
-        ax1.legend(loc='upper left')
+        ax1.set_title('(a) Scalability Analysis', fontsize=9)
+        ax1.legend(loc='upper left', fontsize=7)
         ax1.grid(True, alpha=0.3)
 
         # (b) Throughput analysis
@@ -709,8 +709,8 @@ class ADNIPerformanceAnalyzer:
         # Plot throughput
         ax2.plot(concurrent_clients, throughput, 'o-', color='#1976D2',
                 linewidth=2, markersize=6, label='Throughput')
-        ax2.set_xlabel('Concurrent Clients')
-        ax2.set_ylabel('Throughput (queries/sec)', color='#1976D2')
+        ax2.set_xlabel('Concurrent Clients', fontsize=8)
+        ax2.set_ylabel('Throughput (queries/sec)', color='#1976D2', fontsize=8)
         ax2.set_xscale('log', base=2)
         ax2.tick_params(axis='y', labelcolor='#1976D2')
 
@@ -718,13 +718,13 @@ class ADNIPerformanceAnalyzer:
         ax2_twin = ax2.twinx()
         ax2_twin.plot(concurrent_clients, latency_p95, 's-', color='#D32F2F',
                      linewidth=2, markersize=6, label='P95 Latency')
-        ax2_twin.set_ylabel('P95 Latency (ms)', color='#D32F2F')
+        ax2_twin.set_ylabel('P95 Latency (ms)', color='#D32F2F', fontsize=8)
         ax2_twin.tick_params(axis='y', labelcolor='#D32F2F')
 
-        ax2.set_title('(b) Concurrent Load Performance')
+        ax2.set_title('(b) Concurrent Load Performance', fontsize=9)
         ax2.grid(True, alpha=0.3)
-        ax2.legend(loc='upper left')
-        ax2_twin.legend(loc='upper right')
+        ax2.legend(loc='upper left', fontsize=7)
+        ax2_twin.legend(loc='upper right', fontsize=7)
 
         plt.tight_layout()
         plt.savefig(self.output_dir / 'figure3_scalability.pdf',
@@ -733,7 +733,7 @@ class ADNIPerformanceAnalyzer:
                    dpi=300, bbox_inches='tight')
         plt.close()
 
-        print("✓ Figure 3: Scalability Analysis saved")
+        print("✔ Figure 3: Scalability Analysis saved")
 
     def _figure_4_db_hits_correlation(self):
         """Figure 4: Database hits vs execution time correlation"""
@@ -759,12 +759,12 @@ class ADNIPerformanceAnalyzer:
         x_trend = np.linspace(self.df['db_hits'].min(), self.df['db_hits'].max(), 100)
         ax1.plot(x_trend, p(x_trend), 'k--', alpha=0.5, label='Trend')
 
-        ax1.set_xlabel('Database Hits')
-        ax1.set_ylabel('Execution Time (ms)')
+        ax1.set_xlabel('Database Hits', fontsize=8)
+        ax1.set_ylabel('Execution Time (ms)', fontsize=8)
         ax1.set_xscale('log')
         ax1.set_yscale('log')
-        ax1.set_title('(a) DB Hits vs Execution Time')
-        ax1.legend()
+        ax1.set_title('(a) DB Hits vs Execution Time', fontsize=9)
+        ax1.legend(fontsize=7)
         ax1.grid(True, alpha=0.3)
 
         # (b) Efficiency analysis
@@ -787,18 +787,18 @@ class ADNIPerformanceAnalyzer:
                       color=[colors[complexity_order.index(c)]
                             for c in query_efficiency['complexity']])
 
-        ax2.set_xlabel('Query ID')
-        ax2.set_ylabel('Efficiency (rows/ms)')
-        ax2.set_title('(b) Query Efficiency Analysis')
+        ax2.set_xlabel('Query ID', fontsize=8)
+        ax2.set_ylabel('Efficiency (rows/ms)', fontsize=8)
+        ax2.set_title('(b) Query Efficiency Analysis', fontsize=9)
         ax2.set_xticks(range(len(query_efficiency)))
         ax2.set_xticklabels(query_efficiency['query_id'], rotation=45)
         ax2.grid(True, alpha=0.3, axis='y')
 
-        # Add value labels
+        # Add value labels with smaller font
         for bar in bars:
             height = bar.get_height()
             ax2.text(bar.get_x() + bar.get_width()/2., height,
-                    f'{height:.2f}', ha='center', va='bottom', fontsize=7)
+                    f'{height:.2f}', ha='center', va='bottom', fontsize=6)
 
         plt.tight_layout()
         plt.savefig(self.output_dir / 'figure4_db_hits_correlation.pdf',
@@ -807,7 +807,7 @@ class ADNIPerformanceAnalyzer:
                    dpi=300, bbox_inches='tight')
         plt.close()
 
-        print("✓ Figure 4: DB Hits Correlation saved")
+        print("✔ Figure 4: DB Hits Correlation saved")
 
     def _figure_5_index_usage(self):
         """Figure 5: Index usage impact analysis"""
@@ -847,9 +847,9 @@ class ADNIPerformanceAnalyzer:
 
         for autotext in autotexts:
             autotext.set_color('white')
-            autotext.set_fontsize(9)
+            autotext.set_fontsize(7)
 
-        ax1.set_title('(a) Index Usage Distribution')
+        ax1.set_title('(a) Index Usage Distribution', fontsize=9)
 
         # (b) Performance impact of index usage
         ax2 = axes[1]
@@ -862,18 +862,18 @@ class ADNIPerformanceAnalyzer:
                       yerr=index_performance['std'], capsize=5,
                       color=colors[:len(index_performance)], alpha=0.7)
 
-        ax2.set_xlabel('Index Type')
-        ax2.set_ylabel('Average Execution Time (ms)')
-        ax2.set_title('(b) Performance by Index Type')
+        ax2.set_xlabel('Index Type', fontsize=8)
+        ax2.set_ylabel('Average Execution Time (ms)', fontsize=8)
+        ax2.set_title('(b) Performance by Index Type', fontsize=9)
         ax2.set_xticks(range(len(index_performance)))
-        ax2.set_xticklabels(index_performance.index, rotation=45, ha='right')
+        ax2.set_xticklabels(index_performance.index, rotation=45, ha='right', fontsize=7)
         ax2.grid(True, alpha=0.3, axis='y')
 
-        # Add value labels
+        # Add value labels with smaller font
         for bar in bars:
             height = bar.get_height()
             ax2.text(bar.get_x() + bar.get_width()/2., height,
-                    f'{height:.1f}', ha='center', va='bottom', fontsize=8)
+                    f'{height:.1f}', ha='center', va='bottom', fontsize=6)
 
         plt.tight_layout()
         plt.savefig(self.output_dir / 'figure5_index_usage.pdf',
@@ -882,7 +882,7 @@ class ADNIPerformanceAnalyzer:
                    dpi=300, bbox_inches='tight')
         plt.close()
 
-        print("✓ Figure 5: Index Usage Impact saved")
+        print("✔ Figure 5: Index Usage Impact saved")
 
     def _figure_6_performance_dashboard(self):
         """Figure 6: Comprehensive performance dashboard"""
@@ -904,10 +904,10 @@ class ADNIPerformanceAnalyzer:
         )
 
         sns.heatmap(pivot_data, annot=True, fmt='.1f', cmap='YlOrRd',
-                   ax=ax1, cbar_kws={'label': 'Execution Time (ms)'})
-        ax1.set_title('Query Performance Heatmap')
-        ax1.set_xlabel('Iteration')
-        ax1.set_ylabel('Query ID')
+                   ax=ax1, cbar_kws={'label': 'Execution Time (ms)'}, annot_kws={'size': 6})
+        ax1.set_title('Query Performance Heatmap', fontsize=9)
+        ax1.set_xlabel('Iteration', fontsize=8)
+        ax1.set_ylabel('Query ID', fontsize=8)
 
         # 2. Performance metrics (top-right)
         ax2 = fig.add_subplot(gs[0, 2])
@@ -925,7 +925,7 @@ Avg DB Hits: {self.df['db_hits'].mean():.0f}
         """
 
         ax2.text(0.1, 0.5, metrics_text, transform=ax2.transAxes,
-                fontsize=10, verticalalignment='center',
+                fontsize=8, verticalalignment='center',
                 bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
         ax2.axis('off')
 
@@ -942,7 +942,7 @@ Total Edges: {self.db_stats['total_relationships']:,}
         """
 
         ax3.text(0.1, 0.5, db_text, transform=ax3.transAxes,
-                fontsize=10, verticalalignment='center',
+                fontsize=8, verticalalignment='center',
                 bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.5))
         ax3.axis('off')
 
@@ -955,9 +955,9 @@ Total Edges: {self.db_stats['total_relationships']:,}
         wedges, texts = ax4.pie(complexity_counts.values,
                                labels=[f'C{i+1}' for i in range(len(complexity_counts))],
                                colors=colors[:len(complexity_counts)],
-                               startangle=90)
+                               startangle=90, textprops={'fontsize': 7})
 
-        ax4.set_title('Query Distribution')
+        ax4.set_title('Query Distribution', fontsize=9)
 
         # 5. Time series (bottom-middle)
         ax5 = fig.add_subplot(gs[2, 1])
@@ -969,10 +969,10 @@ Total Edges: {self.db_stats['total_relationships']:,}
                 grouped = comp_data.groupby('iteration')['execution_time_ms'].mean()
                 ax5.plot(grouped.index, grouped.values, 'o-', label=comp.capitalize())
 
-        ax5.set_xlabel('Iteration')
-        ax5.set_ylabel('Execution Time (ms)')
-        ax5.set_title('Performance Stability')
-        ax5.legend()
+        ax5.set_xlabel('Iteration', fontsize=8)
+        ax5.set_ylabel('Execution Time (ms)', fontsize=8)
+        ax5.set_title('Performance Stability', fontsize=9)
+        ax5.legend(fontsize=7)
         ax5.grid(True, alpha=0.3)
 
         # 6. Top queries (bottom-right)
@@ -983,16 +983,16 @@ Total Edges: {self.db_stats['total_relationships']:,}
 
         bars = ax6.barh(range(len(top_slow)), top_slow.values)
         ax6.set_yticks(range(len(top_slow)))
-        ax6.set_yticklabels(top_slow.index)
-        ax6.set_xlabel('Avg Execution Time (ms)')
-        ax6.set_title('Top 5 Slowest Queries')
+        ax6.set_yticklabels(top_slow.index, fontsize=7)
+        ax6.set_xlabel('Avg Execution Time (ms)', fontsize=8)
+        ax6.set_title('Top 5 Slowest Queries', fontsize=9)
         ax6.grid(True, alpha=0.3, axis='x')
 
-        # Add value labels
+        # Add value labels with smaller font
         for i, (bar, val) in enumerate(zip(bars, top_slow.values)):
-            ax6.text(val, i, f' {val:.1f}ms', va='center', fontsize=8)
+            ax6.text(val, i, f' {val:.1f}ms', va='center', fontsize=6)
 
-        plt.suptitle('ADNI Knowledge Graph Performance Dashboard', fontsize=14, y=0.98)
+        plt.suptitle('ADNI Knowledge Graph Performance Dashboard', fontsize=12, y=0.98)
 
         plt.savefig(self.output_dir / 'figure6_dashboard.pdf',
                    dpi=300, bbox_inches='tight')
@@ -1000,7 +1000,7 @@ Total Edges: {self.db_stats['total_relationships']:,}
                    dpi=300, bbox_inches='tight')
         plt.close()
 
-        print("✓ Figure 6: Performance Dashboard saved")
+        print("✔ Figure 6: Performance Dashboard saved")
 
     def export_queries_documentation(self):
         """Export all queries to a formatted document"""
@@ -1039,7 +1039,7 @@ Total Edges: {self.db_stats['total_relationships']:,}
                 f.write("\n```\n\n")
                 f.write("---\n\n")
 
-        print(f"✓ Query documentation saved to {output_file}")
+        print(f"✔ Query documentation saved to {output_file}")
 
     def generate_latex_tables(self):
         """Generate LaTeX tables for IEEE paper"""
@@ -1070,7 +1070,69 @@ Total Edges: {self.db_stats['total_relationships']:,}
         with open(self.output_dir / 'table_performance_summary.tex', 'w') as f:
             f.write(latex_summary)
 
-        print("✓ LaTeX tables saved")
+        # Table 2: Query Complexity Classification (NEW TABLE)
+        latex_query_class = r"""\begin{table*}[htbp]
+\centering
+\caption{Query Complexity Classification and Characteristics}
+\label{tab:query_classification}
+\begin{tabular}{|c|l|l|c|l|}
+\hline
+\textbf{Class} & \textbf{Query ID} & \textbf{Description} & \textbf{DB Hits} & \textbf{Index Strategy} \\
+\hline
+\multirow{3}{*}{C1 (Simple)} 
+& Q1 & Single patient lookup by ID & 2 & NodeUniqueIndexSeek \\
+& Q2 & Count all diagnosis nodes & 25,946 & NodeByLabelScan \\
+& Q3 & Count all patient nodes & 2,638 & NodeByLabelScan \\
+\hline
+\multirow{3}{*}{C2 (Moderate)} 
+& Q4 & Get all visits for a patient & 16 & NodeUniqueIndexSeek + Expand \\
+& Q5 & Find cognitive assessments by type & 9,280 & NodeByLabelScan + Filter \\
+& Q6 & Find biomarkers by type & 5,000 & NodeByLabelScan + Filter \\
+\hline
+\multirow{2}{*}{C3 (Complex)} 
+& Q7 & Analyze diagnosis progression & 4,400 & Multiple NodeByLabelScan + Join \\
+& Q8 & Track MMSE scores over time & 15,000 & NodeByLabelScan + Aggregation \\
+\hline
+\multirow{2}{*}{C4 (Research)} 
+& Q9 & ATN biomarker profile analysis & 28,000 & NodeByLabelScan + Optional Match \\
+& Q10 & Multimodal data integration & 35,000 & Multiple Optional Matches \\
+\hline
+\multirow{2}{*}{C5 (Analytical)} 
+& Q11 & Biomarker correlation analysis & 50,000 & Self-join with aggregations \\
+& Q12 & Temporal network analysis & 75,000 & Variable-length path traversal \\
+\hline
+\end{tabular}
+\end{table*}
+"""
+
+        with open(self.output_dir / 'table_query_classification.tex', 'w') as f:
+            f.write(latex_query_class)
+
+        # Table 3: Compact Query Summary (Alternative format)
+        latex_compact = r"""\begin{table}[htbp]
+\centering
+\caption{Query Distribution Across Complexity Classes}
+\label{tab:query_distribution}
+\begin{tabular}{|l|l|c|}
+\hline
+\textbf{Complexity Class} & \textbf{Query IDs} & \textbf{Count} \\
+\hline
+C1 (Simple) & Q1, Q2, Q3 & 3 \\
+C2 (Moderate) & Q4, Q5, Q6 & 3 \\
+C3 (Complex) & Q7, Q8 & 2 \\
+C4 (Research) & Q9, Q10 & 2 \\
+C5 (Analytical) & Q11, Q12 & 2 \\
+\hline
+\textbf{Total} & & \textbf{12} \\
+\hline
+\end{tabular}
+\end{table}
+"""
+
+        with open(self.output_dir / 'table_query_distribution.tex', 'w') as f:
+            f.write(latex_compact)
+
+        print("✔ LaTeX tables saved (including new Query Classification table)")
 
     def close(self):
         """Close database connection"""
@@ -1113,11 +1175,11 @@ def main():
         print("=" * 80)
         print(f"\nAll outputs saved to: {analyzer.output_dir}/")
         print("\nGenerated files:")
-        print("  ✓ 6 IEEE paper figures (PDF and PNG)")
-        print("  ✓ Query documentation (Markdown)")
-        print("  ✓ LaTeX tables")
-        print("  ✓ Complete metrics (CSV)")
-        print("  ✓ Summary statistics (JSON)")
+        print("  ✔ 6 IEEE paper figures (PDF and PNG)")
+        print("  ✔ Query documentation (Markdown)")
+        print("  ✔ LaTeX tables (including Query Classification table)")
+        print("  ✔ Complete metrics (CSV)")
+        print("  ✔ Summary statistics (JSON)")
 
     finally:
         analyzer.close()

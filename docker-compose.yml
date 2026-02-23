@@ -134,6 +134,40 @@ services:
     depends_on:
       - neo4j
 
+  planka:
+    image: ghcr.io/plankanban/planka:latest
+    container_name: planka
+    restart: unless-stopped
+    volumes:
+      - user-avatars:/app/public/user-avatars
+      - project-background-images:/app/public/project-background-images
+      - attachments:/app/private/attachments
+    ports:
+      - 3000:1337
+    environment:
+      - BASE_URL=http://localhost:3000
+      - TRUST_PROXY=0
+      - DATABASE_URL=postgresql://postgres:password@postgres/planka
+      - SECRET_KEY=not-secret-anymore-change-this-to-random-string
+      # Admin Account Settings
+      - DEFAULT_ADMIN_EMAIL=demo@demo.demo
+      - DEFAULT_ADMIN_PASSWORD=demo
+      - DEFAULT_ADMIN_NAME=Demo User
+      - DEFAULT_ADMIN_USERNAME=demo
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:14-alpine
+    container_name: planka_db
+    restart: unless-stopped
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=planka
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+
 networks:
   adni-network:
     driver: bridge
@@ -156,6 +190,10 @@ volumes:
     driver: local
   minio_data:
     driver: local
+  user-avatars:
+  project-background-images:
+  attachments:
+  db-data:
 
 # Usage Instructions:
 #

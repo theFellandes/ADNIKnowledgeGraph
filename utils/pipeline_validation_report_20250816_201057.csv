@@ -1,0 +1,12 @@
+Metric,Value,Unit
+Total Images Validated,100,count
+Images Passed,100,count
+Images Failed,0,count
+Images with Warnings,0,count
+Metadata Generation Rate,100.00,%
+Diagnostic TIFF Generation Rate,100.00,%
+Thumbnail Generation Rate,100.00,%
+Pixel Preservation Rate,100.00,%
+Metadata Completeness Rate,100.00,%
+Total Validation Time,3.18,seconds
+Average Validation Time,0.0120,seconds

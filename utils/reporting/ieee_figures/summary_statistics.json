@@ -1,48 +1,48 @@
 {
   "total_queries": 60,
-  "avg_execution_time": 1236.2626183324512,
-  "median_execution_time": 16.4177499973448,
-  "p95_execution_time": 14382.684990001144,
-  "p99_execution_time": 14894.05190499543,
+  "avg_execution_time": 1248.0794300034177,
+  "median_execution_time": 26.735149993328378,
+  "p95_execution_time": 14262.853245032602,
+  "p99_execution_time": 14726.326788998558,
   "total_db_hits": "1256295",
   "by_complexity": {
     "simple": {
       "count": 15,
-      "avg_time": 3.1088799965800717,
-      "median_time": 1.2852999934693798,
-      "p95_time": 10.294189999694925,
+      "avg_time": 14.088573330082,
+      "median_time": 3.5605999873951077,
+      "p95_time": 56.2308200111146,
       "avg_db_hits": 9529.666666666666,
       "avg_rows": 1.0
     },
     "moderate": {
       "count": 15,
-      "avg_time": 6.4423466683365405,
-      "median_time": 2.514899999368936,
-      "p95_time": 23.7401599966688,
+      "avg_time": 27.561386674642563,
+      "median_time": 7.935800007544458,
+      "p95_time": 122.19434999278744,
       "avg_db_hits": 4906.666666666667,
       "avg_rows": 70.66666666666667
     },
     "complex": {
       "count": 10,
-      "avg_time": 33.62213999935193,
-      "median_time": 26.062450000608806,
-      "p95_time": 85.94105999436576,
+      "avg_time": 81.84754000394605,
+      "median_time": 32.39485004451126,
+      "p95_time": 301.1703699798088,
       "avg_db_hits": 9850.0,
       "avg_rows": 30.0
     },
     "research": {
       "count": 10,
-      "avg_time": 7318.195799997193,
-      "median_time": 7210.485349998635,
-      "p95_time": 14953.47217499584,
+      "avg_time": 7265.459670004202,
+      "median_time": 7247.200050012907,
+      "p95_time": 14761.920794998878,
       "avg_db_hits": 31615.0,
       "avg_rows": 11.5
     },
     "analytical": {
       "count": 10,
-      "avg_time": 51.43093000078807,
-      "median_time": 50.913649996800814,
-      "p95_time": 106.72353499758167,
+      "avg_time": 78.69443000527099,
+      "median_time": 53.55140002211556,
+      "p95_time": 222.4059050175128,
       "avg_db_hits": 62510.0,
       "avg_rows": 0.5
     }

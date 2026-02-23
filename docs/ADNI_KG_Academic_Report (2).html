@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADNI Knowledge Graph: Current State Analysis and Causality Integration Strategy</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Times New Roman', Georgia, serif;
+            background: #ffffff;
+            color: #000000;
+            padding: 50px 80px;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            font-size: 12pt;
+        }
+        
+        /* Academic Paper Styling */
+        .paper-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .paper-title {
+            font-size: 16pt;
+            font-weight: bold;
+            margin-bottom: 15px;
+            line-height: 1.3;
+        }
+        .paper-authors {
+            font-size: 11pt;
+            margin-bottom: 10px;
+        }
+        .paper-affiliation {
+            font-size: 10pt;
+            font-style: italic;
+            color: #444;
+        }
+        
+        /* Abstract */
+        .abstract {
+            margin: 25px 0;
+            padding: 15px 20px;
+            background: #f9f9f9;
+            border-left: 3px solid #333;
+        }
+        .abstract-title {
+            font-weight: bold;
+            font-size: 11pt;
+            margin-bottom: 8px;
+        }
+        .abstract p {
+            font-size: 10pt;
+            text-align: justify;
+        }
+        
+        /* Sections */
+        h2 {
+            font-size: 13pt;
+            font-weight: bold;
+            margin: 25px 0 12px 0;
+            text-transform: uppercase;
+        }
+        h3 {
+            font-size: 12pt;
+            font-weight: bold;
+            font-style: italic;
+            margin: 18px 0 10px 0;
+        }
+        h4 {
+            font-size: 11pt;
+            font-weight: bold;
+            margin: 15px 0 8px 0;
+        }
+        
+        p {
+            text-align: justify;
+            margin-bottom: 10px;
+            text-indent: 20px;
+        }
+        p.no-indent {
+            text-indent: 0;
+        }
+        
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 10pt;
+        }
+        th, td {
+            padding: 6px 10px;
+            text-align: left;
+            border: 1px solid #000;
+        }
+        th {
+            background: #f0f0f0;
+            font-weight: bold;
+        }
+        .table-caption {
+            font-size: 10pt;
+            text-align: center;
+            margin: 8px 0 15px 0;
+            font-style: italic;
+        }
+        .table-title {
+            font-size: 10pt;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        /* Figures */
+        .figure {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .figure-box {
+            border: 1px solid #ccc;
+            padding: 15px;
+            background: #fafafa;
+            margin: 10px auto;
+            max-width: 700px;
+        }
+        .figure-caption {
+            font-size: 10pt;
+            text-align: center;
+            margin-top: 10px;
+            font-style: italic;
+        }
+        
+        /* Lists */
+        ul, ol {
+            margin: 10px 0 10px 40px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        
+        /* Highlight boxes */
+        .highlight-box {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 12px 15px;
+            margin: 15px 0;
+            font-size: 11pt;
+        }
+        .highlight-box h4 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .question-box {
+            background: #fff8e1;
+            border: 1px solid #ffc107;
+            padding: 12px 15px;
+            margin: 12px 0;
+        }
+        .question-box strong {
+            color: #e65100;
+        }
+        
+        /* Code */
+        code {
+            background: #f0f0f0;
+            padding: 1px 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 10pt;
+        }
+        
+        /* References */
+        .references {
+            font-size: 10pt;
+            margin-top: 30px;
+        }
+        .references h2 {
+            font-size: 12pt;
+        }
+        .references ol {
+            margin-left: 25px;
+        }
+        .references li {
+            margin: 8px 0;
+            text-align: justify;
+        }
+        
+        /* Two column layout for compact info */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 15px 0;
+        }
+        
+        /* Simple diagram using text/ASCII style */
+        .text-diagram {
+            font-family: 'Courier New', monospace;
+            font-size: 9pt;
+            background: #f8f8f8;
+            padding: 15px;
+            border: 1px solid #ddd;
+            white-space: pre;
+            overflow-x: auto;
+            line-height: 1.4;
+        }
+        
+        @media print {
+            body { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Paper Header -->
+    <div class="paper-header">
+        <h1 class="paper-title">ADNI Knowledge Graph: Current State Analysis and<br>Causality Integration Strategy</h1>
+        <p class="paper-authors">Progress Report for Patient-Centric Alzheimer's Disease Research Platform</p>
+        <p class="paper-affiliation">
+            Master's Thesis Project<br>
+            Repository: github.com/theFellandes/ADNIKnowledgeGraph<br>
+            January 2025 — Pre-Meeting Discussion Document
+        </p>
+    </div>
+
+    <!-- Abstract -->
+    <div class="abstract">
+        <p class="abstract-title">Abstract</p>
+        <p>This report presents a comprehensive analysis of the current state of the ADNI (Alzheimer's Disease Neuroimaging Initiative) Knowledge Graph project, building upon the knowledge-driven multi-tier architecture established in our IEEE Big Data 2025 paper [1]. The system currently operates as a Labeled Property Graph (LPG) in Neo4j with approximately 407,000 nodes and 1.16 million relationships, integrated with Elasticsearch for fast retrieval and a multi-tier image storage system ensuring lossless preservation. This document examines the exploratory data analysis findings, discusses the architectural distinction between LPGs and true semantic Knowledge Graphs, and critically evaluates the path forward for causality integration. We raise key questions regarding ontology customization for causal reasoning—topics intended for discussion in the upcoming meeting. Importantly, we clarify that the temporal graph component serves patient health trajectory tracking rather than being the primary research focus, and that causality analysis represents the ultimate goal of the thesis research plan.</p>
+    </div>
+
+    <!-- Section 1 -->
+    <h2>I. Introduction</h2>
+    
+    <p>The Alzheimer's Disease Neuroimaging Initiative (ADNI) represents one of the most comprehensive longitudinal studies in neurodegenerative disease research. As documented in our IEEE Big Data 2025 paper [1], ADNI generates tens of thousands of high-resolution MRI and PET scans together with clinical, biomarker, and genetic data across multiple study phases (ADNI-1, ADNI-GO, ADNI-2, ADNI-3, ADNI-4). This multi-terabyte data accumulation offers tremendous opportunities for understanding complex neurodegenerative disorders but simultaneously creates severe bottlenecks for existing storage and retrieval infrastructures.</p>
+    
+    <p>Our previous work addressed the fundamental challenge of integrating semantic modeling through knowledge graphs, high-performance indexing, and multi-tier lossless storage into a single coherent architecture. The system demonstrated that medical images can be managed not only as static files but as semantically enriched nodes within a knowledge network, providing both clinical fidelity and research flexibility under a unified framework. This current report builds upon that foundation to address the next phase of the thesis: the transition from a Labeled Property Graph to a true semantic Knowledge Graph with causality support.</p>
+
+    <h3>A. Thesis Research Plan</h3>
+    <p class="no-indent">The project follows a four-phase research plan:</p>
+    <ol>
+        <li><strong>Phase 1 (Complete):</strong> Construct a data-driven Knowledge Graph from ADNI data</li>
+        <li><strong>Phase 2 (Current):</strong> Develop and compare analytical algorithms</li>
+        <li><strong>Phase 3:</strong> Identify suitable algorithms for specific research questions</li>
+        <li><strong>Phase 4:</strong> Define experiment protocols with causality analysis as the ultimate goal</li>
+    </ol>
+    <p>We are currently at the transition point between Phase 1 and Phase 2. The LPG infrastructure is operational and validated, and we must now address fundamental questions about semantic enhancement and causality integration before proceeding.</p>
+
+    <h3>B. Scope Clarification: Patient-Centric Focus</h3>
+    <p>A critical distinction in our approach: this project emphasizes <em>patient health-life cycles</em> rather than disease causality per se. The focus is on tracking individual patient trajectories through time, including past visits, medication history, and biomarker evolution. Disease causality (e.g., "Does amyloid deposition cause tau pathology?") remains a downstream research question that depends on first establishing robust temporal patient profiles.</p>
+    
+    <div class="highlight-box">
+        <h4>Important Clarification: Temporal Graph Purpose</h4>
+        <p class="no-indent">The temporal graph component is designed for <strong>patient sickness progress tracking</strong>—monitoring how individual patients change over time through their clinical visits. The visit intervals and temporal ordering serve this tracking purpose; they are <em>not</em> the main focal point of the research but rather the infrastructure that enables future causal analysis.</p>
+    </div>
+
+    <!-- Section 2 -->
+    <h2>II. Foundation: IEEE Big Data 2025 Architecture</h2>
+    
+    <p>The current implementation builds directly upon the knowledge-driven, multi-tier architecture presented in our IEEE Big Data 2025 paper [1]. This section summarizes the established foundation before discussing the semantic enhancement required for true Knowledge Graph capabilities.</p>
+
+    <h3>A. Architecture Overview</h3>
+    <p>The system consists of three complementary components that work together to provide semantic integration, high-performance retrieval, and lossless image preservation. Figure 1 illustrates the overall system architecture and data flow.</p>
+    
+    <div class="figure">
+        <div class="figure-box">
+            <img src="figures/diagram5.svg" alt="See Mermaid Diagram 5: System Architecture">
+            <p style="font-size: 10pt; margin-top: 10px;">The architecture shows ADNI data sources (DICOM images and CSV tables) flowing through a 16-step ETL pipeline into the multi-tier storage layer consisting of Neo4j (knowledge graph with 407K nodes and 1.16M edges), Elasticsearch (fast metadata retrieval), Redis (query caching), and the file system (lossless DICOM, PNG, TIFF storage). The Streamlit UI and Query API provide user access to the integrated system.</p>
+        </div>
+        <p class="figure-caption">Figure 1: Multi-tier system architecture showing data flow from ADNI sources through the ETL pipeline to storage and retrieval layers.</p>
+    </div>
+    
+    <p><strong>Neo4j-based Knowledge Graph:</strong> A labeled property graph that organizes patients, visits, diagnoses, images, and biomarkers, enriched with ontological annotations. This allows researchers to retrieve complex cross-domain queries such as "all PET scans with a given biomarker along with the subsequent MRI results for the same patient" using a single query.</p>
+    
+    <p><strong>Elasticsearch-based Indexing:</strong> Metadata extracted from DICOM headers and clinical records is indexed to deliver millisecond-level query responses, ensuring high performance in large-scale filtering operations.</p>
+    
+    <p><strong>Multi-tier File System:</strong> Original DICOM images are stored alongside lossless derivatives (16-bit PNG and TIFF files), complemented by JPEG thumbnails for web access. This approach ensures both diagnostic fidelity and user-friendly accessibility.</p>
+
+    <h3>B. Processing Pipeline</h3>
+    <p>The 15-step ETL pipeline processes ADNI data through sequential stages. As documented in [1], the pipeline achieves ingestion rates exceeding 500 images per second while maintaining verified lossless conversion through pixel-wise validation. The key pipeline steps are summarized in Table I.</p>
+
+    <p class="table-title">TABLE I: Pipeline Step Summary</p>
+    <table>
+        <tr><th>Step</th><th>Component</th><th>Function</th></tr>
+        <tr><td>1-2</td><td>Database Setup & Load</td><td>Initialize connections, ingest CSV tables</td></tr>
+        <tr><td>3-4</td><td>Patient & Family</td><td>Extract patient entities, family relationships</td></tr>
+        <tr><td>5</td><td>Image Processing</td><td>Multi-tier DICOM conversion (PNG, TIFF, thumbnails)</td></tr>
+        <tr><td>6-7</td><td>Findings & Insertion</td><td>Parse clinical findings, batch insert to Neo4j</td></tr>
+        <tr><td>8-9</td><td>Relationships & Enhancement</td><td>Create temporal chains, semantic relationships</td></tr>
+        <tr><td>10-16</td><td>Analysis</td><td>Queries, EDA, biomarker analysis, metrics</td></tr>
+    </table>
+    <p class="table-caption">Summary of the 16-step ETL pipeline for ADNI data processing.</p>
+
+    <h3>C. Validated Performance Metrics</h3>
+    <p>The IEEE paper established key performance benchmarks that inform our current development. Query performance was evaluated across five complexity classes, with results summarized in Table II. Simple metadata queries execute in under 10 milliseconds, while complex research queries requiring multiple optional matches take several seconds—a trade-off addressed through caching and index optimization.</p>
+
+    <p class="table-title">TABLE II: Query Performance Summary (from IEEE Big Data 2025)</p>
+    <table>
+        <tr><th>Complexity</th><th>N</th><th>Mean (ms)</th><th>Median (ms)</th><th>P95 (ms)</th><th>DB Hits</th></tr>
+        <tr><td>C1 Simple</td><td>15</td><td>3.1</td><td>1.3</td><td>10.3</td><td>9.5K</td></tr>
+        <tr><td>C2 Moderate</td><td>15</td><td>6.4</td><td>2.5</td><td>23.7</td><td>4.9K</td></tr>
+        <tr><td>C3 Complex</td><td>10</td><td>33.6</td><td>26.1</td><td>85.9</td><td>9.9K</td></tr>
+        <tr><td>C4 Research</td><td>10</td><td>7318.2</td><td>7210.5</td><td>14953.5</td><td>31.6K</td></tr>
+        <tr><td>C5 Analytical</td><td>10</td><td>51.4</td><td>50.9</td><td>106.7</td><td>62.5K</td></tr>
+    </table>
+    <p class="table-caption">Query performance metrics by complexity class. C4 Research queries are slow due to multiple optional matches; Redis caching mitigates this for frequent queries.</p>
+
+    <!-- Section 3 -->
+    <h2>III. Exploratory Data Analysis: Current Graph State</h2>
+    
+    <p>Building upon the foundation established in the IEEE paper, this section presents the current state of the knowledge graph through exploratory data analysis. The graph has evolved since the initial publication to include additional relationship types and enhanced node properties.</p>
+
+    <h3>A. Graph Statistics Overview</h3>
+    <p>The current Neo4j graph database contains the statistics summarized in Table III. These metrics reflect the patient-centric design philosophy where each patient serves as a hub node connected to their visits, diagnoses, biomarkers, images, and genetic profiles. Figure 2 presents the entity-relationship structure of the current LPG implementation.</p>
+
+    <div class="figure">
+        <div class="figure-box">
+            <img src="figures/diagram1.svg" alt="See Mermaid Diagram 1: LPG Entity-Relationship Diagram">
+            <p style="font-size: 10pt; margin-top: 10px;">The ER diagram shows the Patient entity at the center with relationships to Visit (HAS_VISIT), Diagnosis (HAS_DIAGNOSIS), Medication (TAKES_MEDICATION), FamilyMember (HAS_FAMILY_MEMBER), GeneticRiskProfile (HAS_GENETIC_RISK), and AdverseEvent (EXPERIENCED_ADVERSE_EVENT). Visits connect to clinical observations including CognitiveAssessment (YIELDED), Biomarker (HAS_BIOMARKER), VolumetricMeasure (HAS_VOLUMETRIC), PETBinding (HAS_PET), and VitalSigns (RECORDED_VITALS). The temporal chain is represented by Visit-to-Visit FOLLOWED_BY relationships. Disease progression is captured through Diagnosis PROGRESSED_TO Diagnosis edges.</p>
+        </div>
+        <p class="figure-caption">Figure 2: Entity-Relationship diagram of the current Labeled Property Graph implementation in Neo4j, showing the patient-centric design with all node types and relationship patterns.</p>
+    </div>
+
+    <p class="table-title">TABLE III: Current Database Statistics</p>
+    <table>
+        <tr><th>Entity</th><th>Count</th><th>Description</th></tr>
+        <tr><td>Patients</td><td>2,638</td><td>Unique ADNI participants across all phases</td></tr>
+        <tr><td>Visits</td><td>30,267</td><td>Clinical visits with temporal ordering</td></tr>
+        <tr><td>Diagnoses</td><td>25,946</td><td>Diagnostic assessments (CN, MCI, AD, etc.)</td></tr>
+        <tr><td>Total Nodes</td><td>~407,000</td><td>All entity types including images, biomarkers</td></tr>
+        <tr><td>Total Relationships</td><td>~1,160,000</td><td>Edges connecting entities</td></tr>
+    </table>
+    <p class="table-caption">Database statistics from the current Neo4j implementation.</p>
+
+    <h3>B. Node Type Distribution</h3>
+    <p>The graph contains diverse node types representing different aspects of patient data. Image nodes dominate the count due to the multi-modal imaging nature of ADNI (MRI and PET scans at each visit). The distribution reflects the comprehensive nature of the dataset, with nodes representing clinical assessments, biomarker measurements, genetic profiles, and family history information.</p>
+    
+    <p>Analysis reveals that each patient has an average of approximately 11.5 visits over the study duration, with each visit potentially generating multiple imaging studies, cognitive assessments, and biomarker measurements. This creates a rich, interconnected structure suitable for longitudinal trajectory analysis.</p>
+
+    <h3>C. Relationship Pattern Analysis</h3>
+    <p>The relationship structure reflects the patient-centric design. Figure 3 illustrates a detailed view of a single patient node with all connected entities and their properties, demonstrating the richness of the data model.</p>
+
+    <div class="figure">
+        <div class="figure-box">
+            <img src="figures/diagram3.svg" alt="See Mermaid Diagram 3: Detailed LPG Patient Schema">
+            <p style="font-size: 10pt; margin-top: 10px;">This diagram shows a complete patient record including: Demographics (gender, age, education), Genetics (APOE genotype, family history), Visit Timeline (baseline through month 24 with NEXT_VISIT chains), Cognitive Tests (MMSE, CDR, ADAS-Cog, MoCA, NPI, GDS, FAQ), Vitals, CSF and Blood Biomarkers, Neuroimaging (MRI volumetrics, Amyloid PET, Tau PET, FDG-PET), Medications, Adverse Events, Diagnoses with progression tracking, and the derived ATN Profile. Each entity shows its actual properties as stored in Neo4j.</p>
+        </div>
+        <p class="figure-caption">Figure 3: Detailed schema of a single patient node showing all connected entities, their properties, and relationships. This illustrates the comprehensive data capture for each ADNI participant.</p>
+    </div>
+
+    <p>Key relationship types include:</p>
+    <ul>
+        <li><strong>HAS_VISIT (~30,000):</strong> Links patients to their clinical visits</li>
+        <li><strong>FOLLOWED_BY (~27,000):</strong> Creates temporal chains between consecutive visits</li>
+        <li><strong>HAS_DIAGNOSIS (~26,000):</strong> Associates visits with clinical diagnoses</li>
+        <li><strong>HAS_BIOMARKER (~45,000):</strong> Links visits to CSF and blood biomarker measurements</li>
+        <li><strong>HAS_IMAGE (~150,000):</strong> Connects visits to imaging studies</li>
+        <li><strong>PROGRESSED_TO (~2,500):</strong> Captures disease stage transitions</li>
+    </ul>
+
+    <h3>D. Disease Stage Distribution</h3>
+    <p>The ADNI cohort spans the full Alzheimer's disease continuum, enabling analysis across all disease stages. Table IV shows the distribution of patients by their most recent diagnosis, demonstrating balanced representation across the clinical spectrum.</p>
+
+    <p class="table-title">TABLE IV: Patient Distribution by Disease Stage</p>
+    <table>
+        <tr><th>Stage</th><th>Description</th><th>Approx. Count</th><th>Percentage</th></tr>
+        <tr><td>CN</td><td>Cognitively Normal</td><td>650</td><td>24.6%</td></tr>
+        <tr><td>SMC</td><td>Subjective Memory Concern</td><td>150</td><td>5.7%</td></tr>
+        <tr><td>EMCI</td><td>Early Mild Cognitive Impairment</td><td>520</td><td>19.7%</td></tr>
+        <tr><td>LMCI</td><td>Late Mild Cognitive Impairment</td><td>680</td><td>25.8%</td></tr>
+        <tr><td>AD</td><td>Alzheimer's Disease Dementia</td><td>638</td><td>24.2%</td></tr>
+    </table>
+    <p class="table-caption">Distribution of patients across disease stages at most recent visit.</p>
+
+    <h3>E. Patient Connectivity Analysis</h3>
+    <p>Analysis of patient node connectivity reveals the richness of the graph structure. The average patient node has connections to 11-12 visit nodes, each visit connecting to multiple clinical observations. High-connectivity patients (those with longer study participation) may have over 100 direct and indirect relationships, demonstrating the value of the graph model for capturing longitudinal complexity.</p>
+    
+    <p>Super-connector analysis identifies patients with the most comprehensive data profiles—these individuals often have complete multi-modal data (MRI, PET, CSF, genetics) across many visits and represent ideal candidates for detailed trajectory analysis.</p>
+
+    <!-- Section 4 -->
+    <h2>IV. Critical Distinction: LPG vs. True Knowledge Graph</h2>
+    
+    <p>A fundamental issue must be addressed before proceeding with causality integration: the current Neo4j implementation is a <em>Labeled Property Graph (LPG)</em>, not a true semantic Knowledge Graph. This distinction has significant implications for reasoning capabilities and is often misunderstood in the literature.</p>
+
+    <h3>A. Defining the Distinction</h3>
+    <p>Many systems incorrectly claim to be Knowledge Graphs when they are actually LPGs. The key differentiator is <em>semantic grounding</em>—whether relationships carry formal, machine-interpretable meaning that enables reasoning and inference. Figure 4 illustrates this fundamental distinction.</p>
+
+    <div class="figure">
+        <div class="figure-box">
+            <img src="figures/diagram6.svg" alt="See Mermaid Diagram 6: LPG vs Knowledge Graph Comparison">
+            <p style="font-size: 10pt; margin-top: 10px;">The diagram contrasts two representations of the same patient-diagnosis relationship. In the LPG (current state), the relationship is simply a string label "HAS_DIAGNOSIS" connecting Patient to Diagnosis nodes. In the KG (target state), both entities have ontology type references (Patient: ncit:C16960, Diagnosis: MONDO:0004975, snomed:26929004) and the relationship uses a formal semantic predicate (obo:RO_0002558 "has_disease_course") from the Relation Ontology. The arrow between them represents the semantic enhancement transformation required.</p>
+        </div>
+        <p class="figure-caption">Figure 4: Side-by-side comparison of LPG and Knowledge Graph representations. The LPG uses string labels while the KG uses ontology-grounded URIs that enable reasoning.</p>
+    </div>
+
+    <p class="table-title">TABLE V: LPG vs. Knowledge Graph Characteristics</p>
+    <table>
+        <tr><th>Aspect</th><th>LPG (Current State)</th><th>True KG (Target State)</th></tr>
+        <tr><td>Schema</td><td>Implicit, application-defined</td><td>Formal OWL/RDF ontology</td></tr>
+        <tr><td>Relationships</td><td>Typed strings (syntactic)</td><td>Ontology-grounded (semantic)</td></tr>
+        <tr><td>Inference</td><td>Not supported</td><td>Reasoning capabilities</td></tr>
+        <tr><td>Interoperability</td><td>System-specific</td><td>Standard ontologies (SNOMED, LOINC)</td></tr>
+        <tr><td>Query Language</td><td>Cypher only</td><td>SPARQL + Cypher</td></tr>
+    </table>
+    <p class="table-caption">Comparison of Labeled Property Graph and Knowledge Graph characteristics.</p>
+
+    <h3>B. Current LPG Limitations</h3>
+    <p>In the current implementation, a relationship like <code>HAS_DIAGNOSIS</code> is simply a string label connecting two nodes. It does not carry formal semantic content that a reasoner could interpret. For example, the system cannot automatically infer that a patient with diagnosis "AD" has a more severe condition than one with "MCI" without explicit programming of this logic.</p>
+    
+    <p>Similarly, biomarker values are stored as properties without semantic links to what they measure. The system knows that a patient has an "ABETA42" value of 850, but it does not know that this measures amyloid-beta 42 peptide in cerebrospinal fluid, that values below 880 pg/mL are typically considered abnormal, or that this relates to amyloid plaque pathology in the brain.</p>
+
+    <h3>C. Semantic Enhancement Strategy</h3>
+    <p>The transformation from LPG to true KG requires adding ontology references and semantic relationship grounding. Figure 5 presents the target semantic architecture with full ontology integration, and Table VI outlines the planned ontology mappings.</p>
+
+    <div class="figure">
+        <div class="figure-box">
+            <img src="figures/diagram4.svg" alt="See Mermaid Diagram 4: Semantic Knowledge Graph with Ontology Layer">
+            <p style="font-size: 10pt; margin-top: 10px;">This comprehensive diagram shows the target KG architecture organized into layers: (1) <strong>Ontology Layer</strong> containing external references (SNOMED-CT, HPO, LOINC, UBERON, Gene Ontology, RxNorm, ADO, MONDO); (2) <strong>Patient Semantic Entity</strong> typed with foaf:Person; (3) <strong>Temporal Layer</strong> using OWL-Time with time:Interval and time:Instant; (4) <strong>Observations</strong> grounded in OBOE/LOINC (CSF, MRI, PET observations); (5) <strong>Findings</strong> mapped to HPO (biomarker, cognitive, imaging findings); (6) <strong>Pathological States</strong> representing disease mechanisms (AmyloidPathology, TauPathology, Neurodegeneration) with causal relationships (ro:RO_0002411 "causally upstream of"); (7) <strong>Disease</strong> entities from ICD/MONDO with conversion events; (8) <strong>Treatments</strong> linked to RxNorm. Dashed lines show ontology mappings while solid lines show semantic relationships using Relation Ontology predicates.</p>
+        </div>
+        <p class="figure-caption">Figure 5: Target semantic Knowledge Graph architecture showing ontology layer integration, semantic relationship predicates from RO, and the causal cascade representation (A→T→N).</p>
+    </div>
+
+    <p class="table-title">TABLE VI: Planned Ontology Mappings</p>
+    <table>
+        <tr><th>Entity Type</th><th>Target Ontology</th><th>Example Mapping</th></tr>
+        <tr><td>Diagnosis</td><td>SNOMED-CT</td><td>AD → SNOMED:26929004</td></tr>
+        <tr><td>Biomarker</td><td>LOINC</td><td>Aβ42 → LOINC:72333-6</td></tr>
+        <tr><td>Brain Region</td><td>UBERON</td><td>Hippocampus → UBERON:0002421</td></tr>
+        <tr><td>Symptom</td><td>HPO</td><td>Memory loss → HP:0002354</td></tr>
+        <tr><td>Relationship</td><td>RO (Relation Ontology)</td><td>HAS_DIAGNOSIS → RO:0000091</td></tr>
+    </table>
+    <p class="table-caption">Ontology mapping strategy for semantic enhancement.</p>
+
+    <p>Figure 6 shows the domain-organized view of the enhanced Knowledge Graph, highlighting how different data domains (Clinical, Biomarker, Imaging, Genetic) connect through the patient-centric model with semantic relationships.</p>
+
+    <div class="figure">
+        <div class="figure-box">
+            <img src="figures/diagram2.svg" alt="See Mermaid Diagram 2: Enhanced Knowledge Graph with Semantic Relationships">
+            <p style="font-size: 10pt; margin-top: 10px;">The diagram organizes the KG into domain subgraphs: <strong>Patient-Centric Core</strong> (Patient typed with ncit:C16960); <strong>Temporal Layer</strong> (Visits as time:Instant with time:before relationships and delta_months properties); <strong>Clinical Domain</strong> (Diagnoses with SNOMED codes, CognitiveAssessment with ncit references, CognitiveFinding with HPO); <strong>Biomarker Domain</strong> (CSFBiomarker with LOINC, AmyloidPathology/TauPathology/Neurodegeneration with SNOMED, ATNProfile with custom adni: ontology); <strong>Imaging Domain</strong> (MRI, AmyloidPET, TauPET with DICOM/SNOMED, BrainRegion with UBERON); <strong>Genetic Domain</strong> (APOEGenotype, GeneticRiskFactor); <strong>Disease Ontology Layer</strong> (AlzheimersDisease DOID, MCI DOID, ConversionEvent); <strong>External Knowledge Bases</strong> (AlzKB, Gene Ontology, DrugBank). All relationships use RO predicates (ro:RO_0000056 participates_in, ro:RO_0002234 has_output, ro:RO_0002411 causally_upstream).</p>
+        </div>
+        <p class="figure-caption">Figure 6: Domain-organized Knowledge Graph showing semantic relationships between Patient, Clinical, Biomarker, Imaging, and Genetic domains with Relation Ontology predicates.</p>
+    </div>
+
+    <h3>D. Why This Matters for Causality</h3>
+    <p>True causal reasoning requires semantic grounding. Without formal ontologies, we cannot distinguish between correlation and causation at the data model level. For example:</p>
+    <ul>
+        <li><strong>Correlation (current capability):</strong> "Patients with low Aβ42 often have memory problems"</li>
+        <li><strong>Causation (requires semantic model):</strong> "Amyloid deposition mechanistically leads to synaptic dysfunction"</li>
+    </ul>
+    <p>Ontologies provide the semantic framework needed to model causal mechanisms, not just statistical associations. This is critical for the thesis goal of causality analysis.</p>
+
+    <!-- Section 5 -->
+    <h2>V. Temporal Graph: Role and Scope</h2>
+    
+    <p>The temporal graph component requires clarification regarding its purpose within the overall research plan. There has been some ambiguity about whether temporal analysis is a primary research focus; this section clarifies its role.</p>
+
+    <h3>A. Primary Purpose: Patient Trajectory Tracking</h3>
+    <p>The temporal graph exists to <strong>track patient sickness progression</strong>—following individual patients through their clinical journey over time. The <code>FOLLOWED_BY</code> relationship chains establish temporal ordering between visits, while <code>delta_months</code> properties capture the intervals between observations. Figure 7 illustrates a typical patient trajectory showing disease progression over time.</p>
+
+    <div class="figure">
+        <div class="figure-box">
+            <img src="figures/diagram7.svg" alt="See Mermaid Diagram 7: Temporal Patient Trajectory">
+            <p style="font-size: 10pt; margin-top: 10px;">The diagram follows patient 011_S_0001 through five timepoints: Baseline (CN, MMSE:29, Aβ42:950), Month 12 (CN, MMSE:28, Aβ42:820), Month 24 (MCI, MMSE:26, Aβ42:750), Month 36 (MCI, MMSE:24, Aβ42:680), and Month 48 (AD, MMSE:21, Aβ42:620). FOLLOWED_BY edges connect consecutive visits with Δ=12mo intervals. Two ConversionEvents are highlighted: CN→MCI at Month 24 and MCI→AD at Month 48. Color coding indicates disease stage: green (CN), orange (MCI), red (AD). The diagram demonstrates how cognitive scores decline and biomarker abnormality increases along the trajectory.</p>
+        </div>
+        <p class="figure-caption">Figure 7: Example patient trajectory showing disease progression from Cognitively Normal (CN) through MCI to AD over 48 months, with biomarker and cognitive score changes at each visit.</p>
+    </div>
+    
+    <p>This infrastructure enables queries such as:</p>
+    <ul>
+        <li>What was this patient's cognitive trajectory over 5 years?</li>
+        <li>When did biomarker abnormalities first appear relative to clinical symptoms?</li>
+        <li>How long did it take for this patient to progress from MCI to AD?</li>
+    </ul>
+
+    <h3>B. What Temporal Graph Provides</h3>
+    <ul>
+        <li><strong>Visit Ordering:</strong> FOLLOWED_BY chains establish temporal sequence</li>
+        <li><strong>Time Deltas:</strong> Properties capture intervals between observations</li>
+        <li><strong>Baseline Reference:</strong> <code>months_from_baseline</code> provides consistent timeline</li>
+        <li><strong>Conversion Events:</strong> Track when patients transition between disease stages</li>
+    </ul>
+
+    <h3>C. What Temporal Graph Does NOT Provide</h3>
+    <p>It is important to distinguish what the temporal infrastructure does not provide, as these represent the gap to be addressed in future phases:</p>
+    <ul>
+        <li>Causal relationships between biomarkers and outcomes</li>
+        <li>Mechanistic understanding of disease progression</li>
+        <li>Inference about interventional effects</li>
+        <li>Counterfactual reasoning capabilities</li>
+    </ul>
+    
+    <p>The temporal ordering is <em>necessary but not sufficient</em> for causal analysis. Temporal precedence (A occurs before B) does not establish causation (A causes B). The transition from temporal description to causal explanation is a core challenge for the thesis.</p>
+
+    <!-- Section 6 -->
+    <h2>VI. Causality: Current State and Open Questions</h2>
+    
+    <p>We have <strong>not yet explored the causality part</strong> of the thesis research plan. This section documents the current state and raises questions for discussion before proceeding.</p>
+
+    <h3>A. Current Capabilities</h3>
+    <p class="no-indent">The system currently supports:</p>
+    <ul>
+        <li>✓ Temporal ordering of observations</li>
+        <li>✓ Longitudinal patient trajectories</li>
+        <li>✓ PROGRESSED_TO edges for stage transitions</li>
+        <li>✗ No formal causal semantics</li>
+        <li>✗ No causal discovery algorithms implemented</li>
+        <li>✗ No intervention modeling</li>
+    </ul>
+
+    <p>The ATN (Amyloid-Tau-Neurodegeneration) framework provides a biological staging system that could inform causal modeling. Figure 8 illustrates how biomarker inputs are processed to generate ATN classifications.</p>
+
+    <div class="figure">
+        <div class="figure-box">
+            <img src="figures/diagram8.svg" alt="See Mermaid Diagram 8: ATN Classification Flow">
+            <p style="font-size: 10pt; margin-top: 10px;">The flowchart shows biomarker inputs (CSF Analysis for Aβ42/Tau/pTau, Amyloid PET for Centiloids, Tau PET for SUVR, MRI Volumetrics for hippocampus) feeding into a decision tree. The Amyloid check determines A+/A- status; if positive, the Tau check determines T+/T-; then the Neurodegeneration check determines N+/N-. Four outcome profiles are shown: A-T-N- (Normal, green), A+T-N- (Preclinical AD, yellow), A+T+N- (Early AD, orange), A+T+N+ (AD Dementia, red). This classification scheme, based on the NIA-AA Research Framework, enables biological staging independent of clinical diagnosis.</p>
+        </div>
+        <p class="figure-caption">Figure 8: ATN classification decision flow showing how CSF biomarkers, PET imaging, and MRI volumetrics combine to determine amyloid (A), tau (T), and neurodegeneration (N) status.</p>
+    </div>
+
+    <h3>B. Planned Causal Discovery Algorithms</h3>
+    <p>The thesis plan includes evaluation of several causal discovery approaches, each with different assumptions and capabilities. Table VII summarizes the planned algorithms.</p>
+
+    <p class="table-title">TABLE VII: Planned Causal Discovery Algorithms</p>
+    <table>
+        <tr><th>Algorithm</th><th>Type</th><th>Strengths</th><th>Limitations</th></tr>
+        <tr><td>PC Algorithm</td><td>Constraint-based</td><td>Well-established, interpretable</td><td>Assumes causal sufficiency</td></tr>
+        <tr><td>FCI Algorithm</td><td>Constraint-based</td><td>Handles latent confounders</td><td>Computationally expensive</td></tr>
+        <tr><td>GES</td><td>Score-based</td><td>Good with sparse graphs</td><td>Score function sensitivity</td></tr>
+        <tr><td>DAG-GNN</td><td>Neural network</td><td>Scalable, nonlinear</td><td>Less interpretable</td></tr>
+        <tr><td>DoWhy</td><td>Inference framework</td><td>Refutation tests, robust</td><td>Requires prior DAG</td></tr>
+    </table>
+    <p class="table-caption">Summary of causal discovery algorithms planned for Phase 4.</p>
+
+    <p>Figure 9 presents the planned causal discovery pipeline, showing how data flows from the Knowledge Graph through multiple discovery algorithms to integration and inference.</p>
+
+    <div class="figure">
+        <div class="figure-box">
+            <img src="figures/diagram9.svg" alt="See Mermaid Diagram 9: Causal Discovery Pipeline">
+            <p style="font-size: 10pt; margin-top: 10px;">The pipeline consists of four stages: (1) <strong>Data Preparation</strong>—extracting variables (biomarkers, cognition) from the Knowledge Graph and preprocessing (missing data handling, normalization); (2) <strong>Causal Discovery</strong>—running multiple algorithms in parallel: PC Algorithm (constraint-based), FCI Algorithm (handles latent variables), GES Algorithm (score-based), and DAG-GNN (neural network approach); (3) <strong>Integration</strong>—comparing results across algorithms, validating against literature, and embedding discovered causal edges into the KG; (4) <strong>Causal Inference</strong>—using the DoWhy framework for effect estimation and refutation tests. This multi-algorithm approach allows comparison of discovered structures and increases confidence in robust causal relationships.</p>
+        </div>
+        <p class="figure-caption">Figure 9: Planned causal discovery pipeline showing data preparation, parallel algorithm execution (PC, FCI, GES, DAG-GNN), integration with literature validation, and DoWhy-based causal inference.</p>
+    </div>
+
+    <h3>C. The Ontology Question for Causality</h3>
+    <p>A fundamental question emerges: <strong>Should we customize ontologies specifically to support causal reasoning?</strong> This question has no obvious answer and requires discussion before implementation proceeds.</p>
+    
+    <p>Three approaches are possible:</p>
+    <ol>
+        <li><strong>Option A:</strong> Use standard biomedical ontologies (SNOMED-CT, LOINC, RO) without modification, and layer causal analysis on top as a separate analytical process.</li>
+        <li><strong>Option B:</strong> Extend standard ontologies with custom causal predicates (CAUSES, PREVENTS, CONFOUNDS) embedded in the graph structure.</li>
+        <li><strong>Option C:</strong> Create a separate "causal overlay" ontology that references standard concepts but adds causal semantics without modifying the base ontologies.</li>
+    </ol>
+    
+    <p>Each option involves trade-offs between simplicity, expressivity, and standards compliance that should be discussed before implementation.</p>
+
+    <!-- Section 7 -->
+    <h2>VII. Questions for Discussion</h2>
+    
+    <p>The following questions are raised for discussion in the upcoming meeting. These represent critical decision points that will shape the next phase of the thesis.</p>
+
+    <div class="question-box">
+        <p><strong>Q1: Ontology Customization for Causality</strong></p>
+        <p>Should we customize ontologies specifically to reveal and support causal reasoning? The options range from using standard ontologies as-is (simpler but potentially limiting) to creating custom causal extensions (more complex but more expressive). What approach best serves the thesis objectives?</p>
+    </div>
+
+    <div class="question-box">
+        <p><strong>Q2: Approach to Causality</strong></p>
+        <p>How should we approach the causality component? Options include: (a) Focus on causal discovery from observational data (PC, FCI, GES); (b) Focus on causal inference given an assumed DAG (DoWhy); (c) Combine discovery and inference in a two-stage pipeline; (d) Use knowledge graph structure to guide causal hypothesis generation. Each has different data requirements and scientific contributions.</p>
+    </div>
+
+    <div class="question-box">
+        <p><strong>Q3: Knowledge Graph vs. Causal Graph Relationship</strong></p>
+        <p>What is the relationship between the semantic KG and causal DAG? Should the causal DAG be embedded within the KG as special edge types? Should it be a separate structure derived from KG data? How do ontological relationships (IS_A, PART_OF) relate to causal relationships?</p>
+    </div>
+
+    <div class="question-box">
+        <p><strong>Q4: Temporal vs. Causal Precedence</strong></p>
+        <p>How should temporal ordering inform causal inference? Temporal precedence is necessary but not sufficient for causation. Should FOLLOWED_BY edges constrain causal graph learning? How do we handle biomarker changes that precede clinical symptoms by years?</p>
+    </div>
+
+    <div class="question-box">
+        <p><strong>Q5: ATN Framework Integration</strong></p>
+        <p>Should the ATN (Amyloid-Tau-Neurodegeneration) classification drive causal modeling? The ATN provides a biological framework for AD staging, and the A→T→N cascade is a hypothesized causal chain. Should we test/validate this cascade using causal discovery methods, or use it as prior knowledge to constrain discovery?</p>
+    </div>
+
+    <div class="question-box">
+        <p><strong>Q6: External Knowledge Base Integration</strong></p>
+        <p>Should we integrate external knowledge bases (e.g., AlzKB with 118,902 entities) before or after causal analysis? Integration could provide prior knowledge for causal discovery, but risks biasing discovery toward known relationships rather than novel findings.</p>
+    </div>
+
+    <!-- Section 8 -->
+    <h2>VIII. Proposed Next Steps</h2>
+    
+    <h3>A. Immediate Actions (January 2025)</h3>
+    <ol>
+        <li>Complete LPG documentation for thesis methodology chapter</li>
+        <li>Finalize ontology mapping strategy based on discussion outcomes</li>
+        <li>Generate comprehensive EDA statistics and visualizations</li>
+    </ol>
+
+    <h3>B. Short-term Goals (Q1 2025)</h3>
+    <ol>
+        <li>Implement ontology reference properties (SNOMED, LOINC codes)</li>
+        <li>Create ATNProfile nodes and classification system</li>
+        <li>Evaluate first causal discovery algorithm (PC or FCI)</li>
+        <li>Design experiment protocol for algorithm comparison</li>
+    </ol>
+
+    <h3>C. Medium-term Goals (Q2 2025)</h3>
+    <ol>
+        <li>Complete semantic enhancement (LPG → KG transformation)</li>
+        <li>Integrate AlzKB for biological context enrichment</li>
+        <li>Implement multiple causal discovery algorithms</li>
+        <li>Develop causal inference framework with DoWhy</li>
+    </ol>
+
+    <!-- Section 9 -->
+    <h2>IX. Conclusion</h2>
+    
+    <p>This report has presented the current state of the ADNI Knowledge Graph project, building upon the foundation established in our IEEE Big Data 2025 paper [1]. The main findings can be summarized as follows:</p>
+    
+    <ol>
+        <li><strong>Infrastructure Validated:</strong> The 16-step pipeline successfully processes ADNI data into a Neo4j graph with approximately 407,000 nodes and 1.16 million relationships, with query performance and lossless image handling validated in the IEEE paper.</li>
+        
+        <li><strong>LPG, Not KG:</strong> The current implementation is a Labeled Property Graph; semantic enhancement through ontology mapping is required for true Knowledge Graph capabilities that support reasoning.</li>
+        
+        <li><strong>Temporal Tracking Operational:</strong> FOLLOWED_BY chains and visit ordering support patient trajectory analysis, which serves as infrastructure for—not the focus of—the research.</li>
+        
+        <li><strong>Causality Unexplored:</strong> Causal discovery and inference remain future work, pending decisions on ontology customization and algorithmic approach.</li>
+        
+        <li><strong>Key Questions Raised:</strong> Decisions on ontology customization, causal graph integration, and ATN framework validation are needed before proceeding to Phase 2.</li>
+    </ol>
+    
+    <p>The questions raised in Section VII are intended to guide discussion in the upcoming meeting, ensuring alignment between the technical implementation and thesis objectives. The causality analysis represents the ultimate goal of the research plan, and decisions made now will shape the path toward that goal.</p>
+
+    <!-- References -->
+    <div class="references">
+        <h2>References</h2>
+        <ol>
+            <li>O. Gungor, S. Turhan, O. Pinarer, and S. Arib, "A Knowledge-Driven Multi-Tier Architecture for Lossless Medical Image Storage and Sub-Second Retrieval in Large-Scale Neuroimaging Studies," in <em>Proc. IEEE International Conference on Big Data</em>, 2025.</li>
+            <li>Alzheimer's Disease Neuroimaging Initiative (ADNI), "ADNI Data," https://adni.loni.usc.edu/data-samples/adni-data/, accessed 2025.</li>
+            <li>J. D. Romano et al., "The Alzheimer's Knowledge Base: A Knowledge Graph for Alzheimer Disease Research," <em>J Med Internet Res</em>, vol. 26, p. e46777, Apr. 2024.</li>
+            <li>C. R. Jack Jr et al., "NIA-AA Research Framework: Toward a Biological Definition of Alzheimer's Disease," <em>Alzheimer's & Dementia</em>, vol. 14, no. 4, pp. 535-562, 2018.</li>
+            <li>J. Pearl, <em>Causality: Models, Reasoning, and Inference</em>, 2nd ed. Cambridge University Press, 2009.</li>
+            <li>P. Spirtes, C. Glymour, and R. Scheines, <em>Causation, Prediction, and Search</em>, 2nd ed. MIT Press, 2000.</li>
+            <li>I. Spassov, S. Lazarova, and D. Petrova-Antonova, "Alzheimer's Disease Knowledge Graph Based on Ontology and Neo4j Graph Database," 2024.</li>
+        </ol>
+    </div>
+
+    <!-- Appendix -->
+    <h2>Appendix A: ADNI Data Schema Summary</h2>
+    
+    <p>The ADNI dataset (headers.json) contains 180+ tables with 5,800+ unique columns covering clinical, imaging, biomarker, and genetic domains. Key table categories include:</p>
+
+    <p class="table-title">TABLE A-I: ADNI Data Schema Categories</p>
+    <table>
+        <tr><th>Category</th><th>Example Tables</th><th>Key Fields</th></tr>
+        <tr><td>Clinical</td><td>DXSUM, ADAS, CDR, MMSE</td><td>DIAGNOSIS, TOTSCORE, CDRSUM</td></tr>
+        <tr><td>Biomarker</td><td>UPENNBIOMK, CSF_BIOMARKERS</td><td>ABETA42, TAU, PTAU</td></tr>
+        <tr><td>Imaging</td><td>All_Images, AMYMETA, TAUMETA</td><td>image_id, modality, SCANDATE</td></tr>
+        <tr><td>Genetics</td><td>APOERES, GENETICS</td><td>APOE genotype, SNP data</td></tr>
+        <tr><td>Demographics</td><td>PTDEMOG, VITALS</td><td>AGE, EDUCATION, GENDER</td></tr>
+    </table>
+    <p class="table-caption">Summary of ADNI data categories available for knowledge graph construction.</p>
+
+    <p style="text-align: center; margin-top: 40px; font-size: 10pt; color: #666;">
+        — End of Document —<br>
+        Version 1.1 | January 2025 | Pre-Meeting Discussion Document
+    </p>
+
+    <div class="highlight-box" style="margin-top: 30px;">
+        <p class="no-indent" style="margin-top: 10px;"><strong>Diagram Index:</strong></p>
+        <ul>
+            <li>Figure 1 → Mermaid Diagram 5: System Architecture</li>
+            <li>Figure 2 → Mermaid Diagram 1: LPG Entity-Relationship Diagram</li>
+            <li>Figure 3 → Mermaid Diagram 3: Detailed LPG Patient Schema</li>
+            <li>Figure 4 → Mermaid Diagram 6: LPG vs Knowledge Graph Comparison</li>
+            <li>Figure 5 → Mermaid Diagram 4: Semantic KG with Ontology Layer</li>
+            <li>Figure 6 → Mermaid Diagram 2: Enhanced KG with Semantic Relationships</li>
+            <li>Figure 7 → Mermaid Diagram 7: Temporal Patient Trajectory</li>
+            <li>Figure 8 → Mermaid Diagram 8: ATN Classification Flow</li>
+            <li>Figure 9 → Mermaid Diagram 9: Causal Discovery Pipeline</li>
+        </ul>
+    </div>
+
+</body>
+</html>

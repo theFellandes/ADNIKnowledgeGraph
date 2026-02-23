@@ -1,0 +1,54 @@
+{
+  "timestamp": "2025-08-16T19:53:25.514385",
+  "config_path": "D:\\Programming\\Python\\ADNIKnowledgeGraph\\config.yaml",
+  "storage_path": "D:\\Programming\\Python\\ADNIKnowledgeGraph\\outputs\\image_store",
+  "total_images_analyzed": 100,
+  "format_comparison": {
+    "dicom_metrics": {
+      "noise": 2072.1543566679957,
+      "brightness": 1371.2287572789191,
+      "uniformity": 2257.4827631378175,
+      "count": 100
+    },
+    "tiff_metrics": {
+      "noise": 2072.1543566679957,
+      "brightness": 2087.398764603138,
+      "uniformity": 2257.4827606964113,
+      "avg_psnr": NaN,
+      "count": 100
+    },
+    "png_metrics": {
+      "noise": 1939.0480253386497,
+      "brightness": 2032.3076714634894,
+      "uniformity": 2125.8471408081055,
+      "avg_psnr": 161.73168839062598,
+      "count": 100
+    }
+  },
+  "preservation_rates": {
+    "pixel_preservation": 100.0,
+    "bit_depth_preservation": 100.0,
+    "dynamic_range_preservation": 0.0
+  },
+  "statistical_tests": {
+    "noise_comparison": {
+      "test": "One-way ANOVA",
+      "f_statistic": 0.08444311009613517,
+      "p_value": 0.9190459937167388,
+      "significant": "False",
+      "interpretation": "No significant difference in noise levels"
+    }
+  },
+  "recommendations": [
+    "\u2705 Excellent pixel preservation rate: 100.0%"
+  ],
+  "summary_statistics": {
+    "avg_noise_original": 2072.1543566679957,
+    "avg_noise_tiff": 2072.1543566679957,
+    "avg_brightness_original": 1371.2287572789191,
+    "avg_brightness_tiff": 2087.398764603138,
+    "avg_uniformity_original": 2257.4827631378175,
+    "avg_uniformity_tiff": 2257.4827606964113,
+    "avg_psnr": NaN
+  }
+}
