@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="440" viewBox="0 0 780 440">
+<defs>
+  <style>
+    text { font-family: "Segoe UI", Arial, sans-serif; }
+    .title { font-size: 16px; font-weight: bold; fill: #1a1a2e; }
+    .sub { font-size: 11px; fill: #555; }
+    .lbl { font-size: 10px; fill: #333; font-weight: 600; }
+    .sm { font-size: 9px; fill: #666; }
+    .xs { font-size: 8px; fill: #888; }
+    .cnt { font-size: 9px; fill: #0d47a1; font-weight: bold; }
+    .elbl { font-size: 8px; fill: #c62828; font-weight: 600; }
+    .prop { font-size: 7.5px; fill: #444; font-family: Consolas, monospace; }
+  </style>
+  <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#555"/>
+  </marker>
+  <marker id="arr-b" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#1565c0"/>
+  </marker>
+  <marker id="arr-r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#c62828"/>
+  </marker>
+  <marker id="arr-g" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#2e7d32"/>
+  </marker>
+  <marker id="arr-p" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#6a1b9a"/>
+  </marker>
+</defs>
+<text x="390" y="22" class="title" text-anchor="middle">Complete Roadmap: From LPG to Causal Knowledge Graph</text>
+<text x="390" y="40" class="sub" text-anchor="middle">Phase 1 is done. Phases 2-4 will add causal discovery, AlzKB, and validation.</text>
+<rect x="20" y="60" width="175" height="144" rx="8" fill="#c8e6c9" stroke="#2e7d32" stroke-width="1.2"/>
+<rect x="145" y="62" width="48" height="16" rx="3" fill="#2e7d32"/>
+<text x="169" y="73" class="xs" text-anchor="middle" fill="white">DONE</text>
+<text x="107.5" y="82" class="lbl" text-anchor="middle">Phase 1</text>
+<text x="107.5" y="96" class="sm" text-anchor="middle">Schema Migration</text>
+<text x="30" y="116" class="xs" text-anchor="start">Step 17: Constraints (12)</text>
+<text x="30" y="132" class="xs" text-anchor="start">Step 18: Ontology codes</text>
+<text x="30" y="148" class="xs" text-anchor="start">Step 19: ICD-10 hierarchy</text>
+<text x="30" y="164" class="xs" text-anchor="start">Step 20: MAPS_TO layer</text>
+<line x1="197" y1="132.0" x2="213" y2="132.0" stroke="#2e7d32" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="215" y="60" width="175" height="128" rx="8" fill="#fff9c4" stroke="#f9a825" stroke-width="1.2"/>
+<rect x="340" y="62" width="48" height="16" rx="3" fill="#f9a825"/>
+<text x="364" y="73" class="xs" text-anchor="middle" fill="white">NEXT</text>
+<text x="302.5" y="82" class="lbl" text-anchor="middle">Phase 2</text>
+<text x="302.5" y="96" class="sm" text-anchor="middle">Causal Discovery</text>
+<text x="225" y="116" class="xs" text-anchor="start">Step 21: Feature matrix</text>
+<text x="225" y="132" class="xs" text-anchor="start">Step 22: PC/FCI/GES algos</text>
+<text x="225" y="148" class="xs" text-anchor="start">Step 23: CAUSES edges</text>
+<line x1="392" y1="124.0" x2="408" y2="124.0" stroke="#f9a825" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="410" y="60" width="175" height="128" rx="8" fill="#e1bee7" stroke="#7b1fa2" stroke-width="1.2"/>
+<rect x="535" y="62" width="48" height="16" rx="3" fill="#999"/>
+<text x="559" y="73" class="xs" text-anchor="middle" fill="white">PLANNED</text>
+<text x="497.5" y="82" class="lbl" text-anchor="middle">Phase 3</text>
+<text x="497.5" y="96" class="sm" text-anchor="middle">Validation</text>
+<text x="420" y="116" class="xs" text-anchor="start">Step 24: AlzKB bridge</text>
+<text x="420" y="132" class="xs" text-anchor="start">Step 25: Validate causal</text>
+<text x="420" y="148" class="xs" text-anchor="start">Step 26: DoWhy inference</text>
+<line x1="587" y1="124.0" x2="603" y2="124.0" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="605" y="60" width="175" height="112" rx="8" fill="#b2dfdb" stroke="#00695c" stroke-width="1.2"/>
+<rect x="730" y="62" width="48" height="16" rx="3" fill="#999"/>
+<text x="754" y="73" class="xs" text-anchor="middle" fill="white">PLANNED</text>
+<text x="692.5" y="82" class="lbl" text-anchor="middle">Phase 4</text>
+<text x="692.5" y="96" class="sm" text-anchor="middle">Defense Prep</text>
+<text x="615" y="116" class="xs" text-anchor="start">Step 27: Final statistics</text>
+<text x="615" y="132" class="xs" text-anchor="start">Step 28: Thesis figures</text>
+<rect x="20" y="260" width="740" height="170" rx="6" fill="#fafafa" stroke="#bbb" stroke-width="1.2"/>
+<text x="390" y="278" class="lbl" text-anchor="middle">What Each Phase Adds to the Graph</text>
+<rect x="30" y="294" width="10" height="10" rx="2" fill="#2e7d32"/>
+<text x="50" y="304" class="lbl" text-anchor="start">Phase 1 (DONE)</text>
+<text x="180" y="304" class="xs" text-anchor="start">52 OntologyConcept nodes | 100,770 MAPS_TO | 25,946 CLASSIFIED_AS | 27 IS_A | URI on 1.2M rels</text>
+<rect x="30" y="326" width="10" height="10" rx="2" fill="#f9a825"/>
+<text x="50" y="336" class="lbl" text-anchor="start">Phase 2 (NEXT)</text>
+<text x="180" y="336" class="xs" text-anchor="start">CAUSES edges between biomarker/cognitive/genetic nodes (discovered by PC, FCI, GES algorithms)</text>
+<rect x="30" y="358" width="10" height="10" rx="2" fill="#7b1fa2"/>
+<text x="50" y="368" class="lbl" text-anchor="start">Phase 3</text>
+<text x="180" y="368" class="xs" text-anchor="start">~200 AlzKB nodes with SAME_AS edges | Validation: precision/recall vs known AD biology</text>
+<rect x="30" y="390" width="10" height="10" rx="2" fill="#00695c"/>
+<text x="50" y="400" class="lbl" text-anchor="start">Phase 4</text>
+<text x="180" y="400" class="xs" text-anchor="start">Final statistics JSON | Publication SVG figures | Thesis defense materials</text>
+</svg>

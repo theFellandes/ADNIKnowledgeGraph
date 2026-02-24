@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADNI Knowledge Graph Design — Master's Thesis Blueprint</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #232733;
+    --border: #2e3347; --text: #e0e4f0; --text-dim: #8b90a5;
+    --accent: #6c8cff; --accent2: #a78bfa; --accent3: #34d399;
+    --warn: #fbbf24; --danger: #f87171;
+    --node-patient: #3b82f6; --node-visit: #8b5cf6;
+    --node-diagnosis: #ef4444; --node-biomarker: #f59e0b;
+    --node-imaging: #06b6d4; --node-genetics: #10b981;
+    --node-medication: #ec4899; --node-assessment: #6366f1;
+    --node-adverse: #f97316; --node-family: #84cc16;
+    --node-neuro: #14b8a6; --node-ontology: #64748b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+  
+  /* Header */
+  .hero { text-align: center; padding: 3rem 1rem 2rem; border-bottom: 1px solid var(--border); margin-bottom: 2rem; }
+  .hero h1 { font-size: 2.2rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: .5rem; }
+  .hero .subtitle { color: var(--text-dim); font-size: 1.05rem; }
+  .hero .tags { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-top: 1rem; }
+  .tag { background: var(--surface2); border: 1px solid var(--border); padding: .25rem .75rem; border-radius: 999px; font-size: .8rem; color: var(--accent); }
+  
+  /* TOC */
+  .toc { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 2rem; margin-bottom: 2.5rem; }
+  .toc h2 { font-size: 1.1rem; color: var(--accent); margin-bottom: .75rem; }
+  .toc ol { padding-left: 1.5rem; }
+  .toc li { margin-bottom: .35rem; }
+  .toc a { color: var(--text); text-decoration: none; transition: color .2s; }
+  .toc a:hover { color: var(--accent); }
+  
+  /* Sections */
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; margin-bottom: 2rem; }
+  .section h2 { font-size: 1.5rem; color: var(--accent); margin-bottom: 1rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+  .section h3 { font-size: 1.15rem; color: var(--accent2); margin: 1.5rem 0 .75rem; }
+  .section h4 { font-size: 1rem; color: var(--accent3); margin: 1rem 0 .5rem; }
+  p { margin-bottom: .75rem; }
+  
+  /* Diagram */
+  .diagram-container { background: #fff; border-radius: 8px; padding: 1.5rem; margin: 1.25rem 0; overflow-x: auto; }
+  .diagram-container .mermaid { display: flex; justify-content: center; }
+  .diagram-caption { text-align: center; font-size: .85rem; color: var(--text-dim); margin-top: .5rem; font-style: italic; }
+  
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .9rem; }
+  th { background: var(--surface2); color: var(--accent); text-align: left; padding: .6rem .8rem; border: 1px solid var(--border); font-weight: 600; }
+  td { padding: .5rem .8rem; border: 1px solid var(--border); vertical-align: top; }
+  tr:hover td { background: rgba(108,140,255,.05); }
+  
+  /* Code */
+  pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; overflow-x: auto; font-size: .85rem; margin: .75rem 0; }
+  code { font-family: 'Fira Code', 'Consolas', monospace; color: var(--accent3); }
+  pre code { color: var(--text); }
+  
+  /* Info boxes */
+  .info-box { border-radius: 8px; padding: 1rem 1.25rem; margin: 1rem 0; border-left: 4px solid; }
+  .info-box.insight { background: rgba(108,140,255,.08); border-color: var(--accent); }
+  .info-box.warning { background: rgba(251,191,36,.08); border-color: var(--warn); }
+  .info-box.success { background: rgba(52,211,153,.08); border-color: var(--accent3); }
+  .info-box.research { background: rgba(167,139,250,.08); border-color: var(--accent2); }
+  .info-box .label { font-weight: 700; font-size: .85rem; text-transform: uppercase; margin-bottom: .35rem; }
+  .info-box.insight .label { color: var(--accent); }
+  .info-box.warning .label { color: var(--warn); }
+  .info-box.success .label { color: var(--accent3); }
+  .info-box.research .label { color: var(--accent2); }
+  
+  /* Node legend */
+  .legend { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem 0; }
+  .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .85rem; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  
+  /* Steps */
+  .step { display: flex; gap: 1rem; margin: 1rem 0; padding: 1rem; background: var(--surface2); border-radius: 8px; border-left: 3px solid var(--accent); }
+  .step-num { background: var(--accent); color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+  .step-content { flex: 1; }
+  .step-content strong { color: var(--accent); }
+  
+  /* Comparison */
+  .vs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .vs-card { background: var(--surface2); border-radius: 8px; padding: 1.25rem; border: 1px solid var(--border); }
+  .vs-card h4 { margin-top: 0; }
+  .vs-card.current { border-top: 3px solid var(--warn); }
+  .vs-card.target { border-top: 3px solid var(--accent3); }
+  
+  @media (max-width: 768px) {
+    .vs-grid { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="hero">
+  <h1>ADNI Knowledge Graph Design Blueprint</h1>
+  <p class="subtitle">From Labeled Property Graph to Semantic Knowledge Graph — A Master's Thesis Guide</p>
+  <div class="tags">
+    <span class="tag">Neo4j</span>
+    <span class="tag">108 ADNI Tables</span>
+    <span class="tag">~407K Nodes</span>
+    <span class="tag">Causal Discovery</span>
+    <span class="tag">SNOMED-CT / LOINC</span>
+    <span class="tag">AlzKB Integration</span>
+  </div>
+</div>
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#s1">LPG vs Knowledge Graph — The Core Distinction</a></li>
+    <li><a href="#s2">Target KG Schema — Nodes & Relationships Diagram</a></li>
+    <li><a href="#s3">Node Catalog with Properties & Indexes</a></li>
+    <li><a href="#s4">Relationship Catalog</a></li>
+    <li><a href="#s5">Index & Constraint Strategy</a></li>
+    <li><a href="#s6">How the Research Community Solved This</a></li>
+    <li><a href="#s7">Step-by-Step Implementation Plan</a></li>
+    <li><a href="#s8">Incremental Data Ingestion Pattern</a></li>
+    <li><a href="#s9">AlzKB Integration Strategy</a></li>
+    <li><a href="#s10">Mapping from headers.json to KG Nodes</a></li>
+  </ol>
+</nav>
+
+<!-- ====================== SECTION 1 ====================== -->
+<div class="section" id="s1">
+  <h2>1. LPG vs Knowledge Graph — The Core Distinction</h2>
+  
+  <p>Your current Neo4j implementation is a <strong>Labeled Property Graph (LPG)</strong>. To become a true <strong>Knowledge Graph (KG)</strong>, it needs <em>semantic grounding</em> — meaning that nodes and relationships carry machine-interpretable references to standard ontologies, enabling reasoning and inference.</p>
+
+  <div class="vs-grid">
+    <div class="vs-card current">
+      <h4 style="color: var(--warn);">🔶 Current State: LPG</h4>
+      <p><code>(:Patient)-[:HAS_DIAGNOSIS]->(:Diagnosis {diagnosis: "AD"})</code></p>
+      <p>Relationships are typed strings. "HAS_DIAGNOSIS" is meaningful to humans but not to machines. No formal ontology backing.</p>
+    </div>
+    <div class="vs-card target">
+      <h4 style="color: var(--accent3);">🟢 Target State: KG</h4>
+      <p><code>(:Patient {rdf_type: "ncit:C16960"})-[:HAS_DIAGNOSIS {uri: "ro:RO_0000091"}]->(:Diagnosis {snomed_code: "26929004"})</code></p>
+      <p>Every entity and relationship maps to a standard ontology. Machines can reason: "26929004 IS_A neurodegenerative disease."</p>
+    </div>
+  </div>
+
+  <div class="info-box insight">
+    <div class="label">Key Insight</div>
+    <p>You don't need to switch to RDF/SPARQL. Neo4j can be a KG by <strong>adding ontology properties to existing nodes and relationships</strong>. This is the approach used by Spasov et al. (2024) with AD-DPC ontology in Neo4j, and by Romano et al. (2024) with AlzKB's OWL2 ontology mapped to Neo4j.</p>
+  </div>
+</div>
+
+<!-- ====================== SECTION 2 ====================== -->
+<div class="section" id="s2">
+  <h2>2. Target KG Schema — Nodes & Relationships Diagram</h2>
+  
+  <p>The following diagram shows the <strong>complete target Knowledge Graph schema</strong>. Patient remains the hub node. Time data is stored as properties on Visit nodes (not as separate temporal nodes). The design supports incremental insertion of new data.</p>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--node-patient)"></div>Patient Core</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--node-visit)"></div>Visit / Temporal</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--node-diagnosis)"></div>Diagnosis</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--node-biomarker)"></div>Biomarker</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--node-imaging)"></div>Imaging</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--node-genetics)"></div>Genetics</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--node-assessment)"></div>Assessment</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--node-medication)"></div>Medication</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--node-adverse)"></div>Adverse Event</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--node-family)"></div>Family History</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--node-neuro)"></div>Neuropathology</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--node-ontology)"></div>Ontology Concept</div>
+  </div>
+
+  <div class="diagram-container">
+    <div class="mermaid">
+graph TB
+    subgraph CORE["🧑 PATIENT-CENTRIC CORE"]
+        P["<b>Patient</b><br/>ptid, rid, sex, birth_year<br/>education, ethnicity, race<br/>apoe_a1, apoe_a2<br/>snomed: ncit:C16960"]
+    end
+
+    subgraph TEMPORAL["⏱ VISIT CHAIN"]
+        V["<b>Visit</b><br/>viscode, visit_date<br/>months_from_baseline<br/>phase (ADNI1/2/3/4)<br/>site_id"]
+    end
+
+    subgraph CLINICAL["🏥 CLINICAL DOMAIN"]
+        DX["<b>Diagnosis</b><br/>dx_label (CN/MCI/AD)<br/>snomed_code<br/>dx_method, confidence"]
+        CE["<b>ConversionEvent</b><br/>from_dx, to_dx<br/>conversion_month"]
+        CA["<b>CognitiveAssessment</b><br/>test_name, total_score<br/>subscores (JSON)<br/>loinc_code"]
+    end
+
+    subgraph BIOMARKER["🧪 BIOMARKER DOMAIN"]
+        CSF["<b>CSFBiomarker</b><br/>abeta42, tau, ptau<br/>abeta40, ratio_42_40<br/>assay, batch<br/>loinc_code"]
+        BLOOD["<b>BloodBiomarker</b><br/>analyte, value<br/>units, assay<br/>loinc_code"]
+        ATN["<b>ATNProfile</b><br/>a_status, t_status, n_status<br/>atn_class"]
+    end
+
+    subgraph IMAGING["🧠 IMAGING DOMAIN"]
+        MRI["<b>MRIScan</b><br/>image_id, sequence<br/>field_strength, scanner<br/>dicom_uri"]
+        PET["<b>PETScan</b><br/>image_id, tracer<br/>centiloids, suvr<br/>dicom_uri"]
+        VOL["<b>VolumetricMeasure</b><br/>region, volume<br/>thickness, area<br/>uberon_code"]
+        BR["<b>BrainRegion</b><br/>name, hemisphere<br/>uberon_code"]
+    end
+
+    subgraph GENETICS["🧬 GENETICS"]
+        GP["<b>GeneticProfile</b><br/>apoe_genotype<br/>risk_snps (JSON)"]
+        GR["<b>GeneticRiskFactor</b><br/>gene_symbol, variant<br/>risk_level"]
+    end
+
+    subgraph TREATMENT["💊 TREATMENT"]
+        MED["<b>Medication</b><br/>compound, class<br/>rxnorm_code"]
+    end
+
+    subgraph SAFETY["⚠ SAFETY"]
+        AE["<b>AdverseEvent</b><br/>description, severity<br/>onset_date, outcome<br/>meddra_code"]
+    end
+
+    subgraph FAMILY["👨‍👩‍👧 FAMILY"]
+        FM["<b>FamilyMember</b><br/>relationship, has_dementia<br/>age_at_onset"]
+    end
+
+    subgraph NEUROPATH["🔬 NEUROPATHOLOGY"]
+        NP["<b>NeuropathFinding</b><br/>braak_stage, cerad<br/>thal_phase, lewy_stage"]
+    end
+
+    subgraph ONTOLOGY["📚 ONTOLOGY LAYER"]
+        OC["<b>OntologyConcept</b><br/>uri, code, label<br/>source_ontology<br/>definition"]
+    end
+
+    %% Patient connections
+    P -->|"HAS_VISIT<br/>(ro:participates_in)"| V
+    P -->|"HAS_GENETIC_PROFILE"| GP
+    P -->|"HAS_FAMILY_MEMBER"| FM
+    P -->|"EXPERIENCED_ADVERSE_EVENT"| AE
+    P -->|"HAS_NEUROPATH_FINDING"| NP
+    P -->|"TAKES_MEDICATION"| MED
+
+    %% Visit chain
+    V -->|"FOLLOWED_BY<br/>delta_months"| V
+
+    %% Visit connections
+    V -->|"HAS_DIAGNOSIS<br/>(ro:has_disposition)"| DX
+    V -->|"YIELDED_ASSESSMENT<br/>(ro:has_output)"| CA
+    V -->|"HAS_CSF_BIOMARKER"| CSF
+    V -->|"HAS_BLOOD_BIOMARKER"| BLOOD
+    V -->|"HAS_ATN_PROFILE"| ATN
+    V -->|"HAS_MRI_SCAN"| MRI
+    V -->|"HAS_PET_SCAN"| PET
+    V -->|"RECORDED_VITALS"| CA
+
+    %% Imaging details
+    MRI -->|"HAS_VOLUMETRIC"| VOL
+    VOL -->|"MEASURES_REGION"| BR
+    PET -->|"HAS_REGIONAL_UPTAKE"| BR
+
+    %% Diagnosis progression
+    DX -->|"PROGRESSED_TO"| DX
+    DX -->|"TRIGGERED_CONVERSION"| CE
+
+    %% Genetics
+    GP -->|"INCLUDES_RISK_FACTOR"| GR
+
+    %% Ontology mappings (dashed)
+    DX -.->|"MAPS_TO"| OC
+    CA -.->|"MAPS_TO"| OC
+    CSF -.->|"MAPS_TO"| OC
+    BR -.->|"MAPS_TO"| OC
+    MED -.->|"MAPS_TO"| OC
+    AE -.->|"MAPS_TO"| OC
+
+    style CORE fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style TEMPORAL fill:#2d1f5e,stroke:#8b5cf6,color:#fff
+    style CLINICAL fill:#4a1525,stroke:#ef4444,color:#fff
+    style BIOMARKER fill:#3d2e0a,stroke:#f59e0b,color:#fff
+    style IMAGING fill:#0a3341,stroke:#06b6d4,color:#fff
+    style GENETICS fill:#0a3325,stroke:#10b981,color:#fff
+    style TREATMENT fill:#3d0a2e,stroke:#ec4899,color:#fff
+    style SAFETY fill:#3d1f0a,stroke:#f97316,color:#fff
+    style FAMILY fill:#2a3d0a,stroke:#84cc16,color:#fff
+    style NEUROPATH fill:#0a3d34,stroke:#14b8a6,color:#fff
+    style ONTOLOGY fill:#1e293b,stroke:#64748b,color:#fff
+    </div>
+    <p class="diagram-caption">Figure 1: Complete Target KG Schema — Patient-centric design with ontology overlay. Dashed lines represent MAPS_TO ontology connections. Solid lines are data relationships.</p>
+  </div>
+
+  <div class="info-box success">
+    <div class="label">Design Principle — Simplicity for Master's Level</div>
+    <p>Time is stored as <strong>properties on Visit nodes</strong> (visit_date, months_from_baseline) and as <strong>delta_months on FOLLOWED_BY edges</strong>. No separate temporal nodes. This is enough for causal discovery on baseline-only data and for tracking patient trajectories. The FOLLOWED_BY chain gives you ordering; properties give you intervals.</p>
+  </div>
+</div>
+
+<!-- ====================== SECTION 3 ====================== -->
+<div class="section" id="s3">
+  <h2>3. Node Catalog with Properties & Indexes</h2>
+  
+  <table>
+    <tr>
+      <th>Node Label</th>
+      <th>Key Properties</th>
+      <th>Ontology Mapping</th>
+      <th>Source Tables (headers.json)</th>
+      <th>Index?</th>
+    </tr>
+    <tr>
+      <td><strong>Patient</strong></td>
+      <td><code>ptid</code> (PK), <code>rid</code>, <code>sex</code>, <code>birth_year</code>, <code>education_years</code>, <code>ethnicity</code>, <code>race</code>, <code>marital_status</code>, <code>apoe_a1</code>, <code>apoe_a2</code></td>
+      <td>ncit:C16960 (Patient)</td>
+      <td>PTDEMOG, APOERES, Study_Entry</td>
+      <td>✅ Unique on ptid, Index on rid</td>
+    </tr>
+    <tr>
+      <td><strong>Visit</strong></td>
+      <td><code>visit_id</code> (PK: ptid+viscode), <code>viscode</code>, <code>visit_date</code>, <code>months_from_baseline</code>, <code>phase</code>, <code>site_id</code></td>
+      <td>ncit:C159705 (Clinical Visit)</td>
+      <td>All tables with VISCODE/VISCODE2</td>
+      <td>✅ Composite on (ptid, viscode)</td>
+    </tr>
+    <tr>
+      <td><strong>Diagnosis</strong></td>
+      <td><code>dx_label</code> (CN/MCI/AD/SMC), <code>snomed_code</code>, <code>dx_method</code>, <code>confidence</code></td>
+      <td>SNOMED-CT: 26929004 (AD), 386806002 (MCI)</td>
+      <td>DXSUM, BLCHANGE</td>
+      <td>✅ Index on dx_label, snomed_code</td>
+    </tr>
+    <tr>
+      <td><strong>ConversionEvent</strong></td>
+      <td><code>from_dx</code>, <code>to_dx</code>, <code>conversion_month</code>, <code>conversion_date</code></td>
+      <td>Custom: adni:ConversionEvent</td>
+      <td>Derived from DXSUM longitudinal</td>
+      <td>Index on from_dx, to_dx</td>
+    </tr>
+    <tr>
+      <td><strong>CognitiveAssessment</strong></td>
+      <td><code>test_name</code> (MMSE/CDR/ADAS/MoCA/etc.), <code>total_score</code>, <code>subscores</code> (JSON), <code>loinc_code</code></td>
+      <td>LOINC: 72106-8 (MMSE), 89249-2 (MoCA)</td>
+      <td>MMSE, CDR, ADAS, MOCA, FAQ, GDSCALE, NEUROBAT, NPI, NPIQ, ECOGPT, ECOGSP</td>
+      <td>✅ Index on test_name, loinc_code</td>
+    </tr>
+    <tr>
+      <td><strong>CSFBiomarker</strong></td>
+      <td><code>abeta42</code>, <code>abeta40</code>, <code>tau</code>, <code>ptau</code>, <code>ratio_42_40</code>, <code>assay</code>, <code>batch</code>, <code>sample_date</code></td>
+      <td>LOINC: 72333-6 (Aβ42), 72332-8 (Tau)</td>
+      <td>UPENNBIOMK_ROCHE_ELECSYS, BIOMARK, FOXLABBSI</td>
+      <td>Index on assay</td>
+    </tr>
+    <tr>
+      <td><strong>BloodBiomarker</strong></td>
+      <td><code>analyte</code>, <code>value</code>, <code>units</code>, <code>assay</code>, <code>flags</code></td>
+      <td>LOINC per analyte</td>
+      <td>LABDATA, URMC_LABDATA, FNIHBC_BLOOD_BIOMARKER_TRAJECTORIES, JANSSEN_PLASMA_P217_TAU</td>
+      <td>Index on analyte</td>
+    </tr>
+    <tr>
+      <td><strong>ATNProfile</strong></td>
+      <td><code>a_status</code> (+/-), <code>t_status</code> (+/-), <code>n_status</code> (+/-), <code>atn_class</code> (A-T-N-, A+T-N-, etc.), <code>classification_method</code></td>
+      <td>Custom: adni:ATNProfile (NIA-AA Framework)</td>
+      <td>Derived from CSF + PET + MRI</td>
+      <td>✅ Index on atn_class</td>
+    </tr>
+    <tr>
+      <td><strong>MRIScan</strong></td>
+      <td><code>image_id</code>, <code>sequence</code>, <code>field_strength</code>, <code>scanner_manufacturer</code>, <code>description</code>, <code>dicom_uri</code></td>
+      <td>DICOM + SNOMED imaging terms</td>
+      <td>Key_MRI, Structural_MRI_Images, MRI3META, MRIMETA, MRI_Images_with_AI</td>
+      <td>✅ Unique on image_id</td>
+    </tr>
+    <tr>
+      <td><strong>PETScan</strong></td>
+      <td><code>image_id</code>, <code>tracer</code> (FDG/AV45/FBB/PI-2620), <code>centiloids</code>, <code>suvr_composite</code>, <code>dicom_uri</code></td>
+      <td>SNOMED: 82918005 (PET Scan)</td>
+      <td>Key_PET, PET_Images, AV45META, AMYMETA, TAUMETA, PETMETA3</td>
+      <td>✅ Unique on image_id, Index on tracer</td>
+    </tr>
+    <tr>
+      <td><strong>VolumetricMeasure</strong></td>
+      <td><code>region_name</code>, <code>volume_mm3</code>, <code>cortical_thickness</code>, <code>surface_area</code>, <code>hemisphere</code></td>
+      <td>UBERON codes per region</td>
+      <td>UCSFFSX7, UCBERKELEY_AMY_6MM, UCBERKELEY_TAU_6MM, UCD_WMH</td>
+      <td>Index on region_name</td>
+    </tr>
+    <tr>
+      <td><strong>BrainRegion</strong></td>
+      <td><code>name</code>, <code>hemisphere</code>, <code>uberon_code</code>, <code>freesurfer_label</code></td>
+      <td>UBERON: 0002421 (Hippocampus), etc.</td>
+      <td>Reference data (static)</td>
+      <td>✅ Unique on name+hemisphere</td>
+    </tr>
+    <tr>
+      <td><strong>GeneticProfile</strong></td>
+      <td><code>apoe_genotype</code> (e.g., "e3/e4"), <code>risk_snps</code></td>
+      <td>Gene Ontology / NCBI Gene</td>
+      <td>APOERES, GENETIC</td>
+      <td>Index on apoe_genotype</td>
+    </tr>
+    <tr>
+      <td><strong>GeneticRiskFactor</strong></td>
+      <td><code>gene_symbol</code>, <code>variant</code>, <code>risk_level</code></td>
+      <td>NCBI Gene IDs</td>
+      <td>GENETIC</td>
+      <td>Index on gene_symbol</td>
+    </tr>
+    <tr>
+      <td><strong>Medication</strong></td>
+      <td><code>compound_name</code>, <code>drug_class</code>, <code>rxnorm_code</code>, <code>indication</code></td>
+      <td>RxNorm / ATC codes</td>
+      <td>BACKMEDS, RECCMEDS, ANTIAMYTX</td>
+      <td>Index on compound_name</td>
+    </tr>
+    <tr>
+      <td><strong>AdverseEvent</strong></td>
+      <td><code>description</code>, <code>severity</code>, <code>onset_date</code>, <code>outcome</code>, <code>is_serious</code>, <code>meddra_code</code></td>
+      <td>MedDRA codes</td>
+      <td>ADVERSE, ADSXLIST, RECADV</td>
+      <td>Index on severity</td>
+    </tr>
+    <tr>
+      <td><strong>FamilyMember</strong></td>
+      <td><code>relationship</code> (parent/sibling), <code>has_dementia</code>, <code>age_at_onset</code>, <code>dementia_type</code></td>
+      <td>HPO: HP:0002354 (Memory impairment)</td>
+      <td>FAMHXPAR, FAMHXSIB, FHQ, RECFHQ</td>
+      <td>Index on relationship</td>
+    </tr>
+    <tr>
+      <td><strong>NeuropathFinding</strong></td>
+      <td><code>braak_stage</code> (0-6), <code>cerad_score</code>, <code>thal_phase</code>, <code>lewy_stage</code>, <code>neuropath_dx</code></td>
+      <td>SNOMED neuropath codes</td>
+      <td>NEUROPATH</td>
+      <td>Index on braak_stage</td>
+    </tr>
+    <tr>
+      <td><strong>OntologyConcept</strong></td>
+      <td><code>uri</code> (PK), <code>code</code>, <code>label</code>, <code>source_ontology</code> (SNOMED/LOINC/UBERON/HPO), <code>definition</code></td>
+      <td>Self-referencing (IS_A hierarchy)</td>
+      <td>Imported from standard ontologies</td>
+      <td>✅ Unique on uri, Index on code</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ====================== SECTION 4 ====================== -->
+<div class="section" id="s4">
+  <h2>4. Relationship Catalog</h2>
+
+  <table>
+    <tr>
+      <th>Relationship Type</th>
+      <th>Source → Target</th>
+      <th>Properties</th>
+      <th>Ontology URI</th>
+    </tr>
+    <tr><td><strong>HAS_VISIT</strong></td><td>Patient → Visit</td><td>—</td><td>ro:RO_0000056 (participates_in)</td></tr>
+    <tr><td><strong>FOLLOWED_BY</strong></td><td>Visit → Visit</td><td><code>delta_months</code></td><td>time:intervalBefore</td></tr>
+    <tr><td><strong>HAS_DIAGNOSIS</strong></td><td>Visit → Diagnosis</td><td><code>source_table</code></td><td>ro:RO_0000091 (has_disposition)</td></tr>
+    <tr><td><strong>PROGRESSED_TO</strong></td><td>Diagnosis → Diagnosis</td><td><code>months_between</code></td><td>ro:RO_0002263 (preceded_by, inverse)</td></tr>
+    <tr><td><strong>TRIGGERED_CONVERSION</strong></td><td>Diagnosis → ConversionEvent</td><td>—</td><td>Custom</td></tr>
+    <tr><td><strong>YIELDED_ASSESSMENT</strong></td><td>Visit → CognitiveAssessment</td><td>—</td><td>ro:RO_0002234 (has_output)</td></tr>
+    <tr><td><strong>HAS_CSF_BIOMARKER</strong></td><td>Visit → CSFBiomarker</td><td>—</td><td>ro:RO_0002234 (has_output)</td></tr>
+    <tr><td><strong>HAS_BLOOD_BIOMARKER</strong></td><td>Visit → BloodBiomarker</td><td>—</td><td>ro:RO_0002234 (has_output)</td></tr>
+    <tr><td><strong>HAS_ATN_PROFILE</strong></td><td>Visit → ATNProfile</td><td>—</td><td>Custom: adni:derived_from</td></tr>
+    <tr><td><strong>HAS_MRI_SCAN</strong></td><td>Visit → MRIScan</td><td>—</td><td>ro:RO_0002234 (has_output)</td></tr>
+    <tr><td><strong>HAS_PET_SCAN</strong></td><td>Visit → PETScan</td><td>—</td><td>ro:RO_0002234 (has_output)</td></tr>
+    <tr><td><strong>HAS_VOLUMETRIC</strong></td><td>MRIScan → VolumetricMeasure</td><td>—</td><td>ro:RO_0002234</td></tr>
+    <tr><td><strong>MEASURES_REGION</strong></td><td>VolumetricMeasure → BrainRegion</td><td>—</td><td>bfo:BFO_0000066 (occurs_in)</td></tr>
+    <tr><td><strong>HAS_REGIONAL_UPTAKE</strong></td><td>PETScan → BrainRegion</td><td><code>suvr_value</code></td><td>Custom</td></tr>
+    <tr><td><strong>HAS_GENETIC_PROFILE</strong></td><td>Patient → GeneticProfile</td><td>—</td><td>ro:RO_0000053 (has_characteristic)</td></tr>
+    <tr><td><strong>INCLUDES_RISK_FACTOR</strong></td><td>GeneticProfile → GeneticRiskFactor</td><td>—</td><td>ro:RO_0000053</td></tr>
+    <tr><td><strong>TAKES_MEDICATION</strong></td><td>Patient → Medication</td><td><code>start_date</code>, <code>end_date</code>, <code>dose</code></td><td>ro:RO_0000056 (participates_in)</td></tr>
+    <tr><td><strong>EXPERIENCED_ADVERSE_EVENT</strong></td><td>Patient → AdverseEvent</td><td>—</td><td>Custom</td></tr>
+    <tr><td><strong>HAS_FAMILY_MEMBER</strong></td><td>Patient → FamilyMember</td><td>—</td><td>ro:RO_0000053</td></tr>
+    <tr><td><strong>HAS_NEUROPATH_FINDING</strong></td><td>Patient → NeuropathFinding</td><td>—</td><td>ro:RO_0000053</td></tr>
+    <tr><td><strong>MAPS_TO</strong></td><td>Any → OntologyConcept</td><td><code>mapping_confidence</code></td><td>skos:exactMatch / skos:closeMatch</td></tr>
+    <tr><td><strong>IS_A</strong></td><td>OntologyConcept → OntologyConcept</td><td>—</td><td>rdfs:subClassOf</td></tr>
+    <tr><td style="color: var(--accent3);"><strong>CAUSES</strong> (Phase 2)</td><td>Any → Any</td><td><code>algorithm</code>, <code>p_value</code>, <code>effect_size</code></td><td>ro:RO_0002411 (causally_upstream_of)</td></tr>
+  </table>
+</div>
+
+<!-- ====================== SECTION 5 ====================== -->
+<div class="section" id="s5">
+  <h2>5. Index & Constraint Strategy</h2>
+  
+  <h3>Uniqueness Constraints (Enforce data integrity)</h3>
+  <pre><code>// Primary identity constraints
+CREATE CONSTRAINT patient_ptid IF NOT EXISTS FOR (p:Patient) REQUIRE p.ptid IS UNIQUE;
+CREATE CONSTRAINT visit_id IF NOT EXISTS FOR (v:Visit) REQUIRE v.visit_id IS UNIQUE;
+CREATE CONSTRAINT mri_image_id IF NOT EXISTS FOR (m:MRIScan) REQUIRE m.image_id IS UNIQUE;
+CREATE CONSTRAINT pet_image_id IF NOT EXISTS FOR (p:PETScan) REQUIRE p.image_id IS UNIQUE;
+CREATE CONSTRAINT brain_region IF NOT EXISTS FOR (b:BrainRegion) REQUIRE (b.name, b.hemisphere) IS UNIQUE;
+CREATE CONSTRAINT ontology_uri IF NOT EXISTS FOR (o:OntologyConcept) REQUIRE o.uri IS UNIQUE;</code></pre>
+
+  <h3>Performance Indexes (For query anchors)</h3>
+  <pre><code>// Lookup indexes — these are the properties you'll filter on most
+CREATE INDEX patient_rid IF NOT EXISTS FOR (p:Patient) ON (p.rid);
+CREATE INDEX visit_ptid IF NOT EXISTS FOR (v:Visit) ON (v.ptid);
+CREATE INDEX visit_viscode IF NOT EXISTS FOR (v:Visit) ON (v.viscode);
+CREATE INDEX visit_phase IF NOT EXISTS FOR (v:Visit) ON (v.phase);
+CREATE INDEX dx_label IF NOT EXISTS FOR (d:Diagnosis) ON (d.dx_label);
+CREATE INDEX dx_snomed IF NOT EXISTS FOR (d:Diagnosis) ON (d.snomed_code);
+CREATE INDEX assess_test IF NOT EXISTS FOR (c:CognitiveAssessment) ON (c.test_name);
+CREATE INDEX assess_loinc IF NOT EXISTS FOR (c:CognitiveAssessment) ON (c.loinc_code);
+CREATE INDEX csf_assay IF NOT EXISTS FOR (c:CSFBiomarker) ON (c.assay);
+CREATE INDEX atn_class IF NOT EXISTS FOR (a:ATNProfile) ON (a.atn_class);
+CREATE INDEX pet_tracer IF NOT EXISTS FOR (p:PETScan) ON (p.tracer);
+CREATE INDEX vol_region IF NOT EXISTS FOR (v:VolumetricMeasure) ON (v.region_name);
+CREATE INDEX med_name IF NOT EXISTS FOR (m:Medication) ON (m.compound_name);
+CREATE INDEX gene_symbol IF NOT EXISTS FOR (g:GeneticRiskFactor) ON (g.gene_symbol);
+CREATE INDEX ontology_code IF NOT EXISTS FOR (o:OntologyConcept) ON (o.code);
+CREATE INDEX ontology_source IF NOT EXISTS FOR (o:OntologyConcept) ON (o.source_ontology);
+
+// Full-text search (Elasticsearch alternative for internal Neo4j queries)
+CREATE FULLTEXT INDEX search_patients IF NOT EXISTS FOR (p:Patient) ON EACH [p.ptid];
+CREATE FULLTEXT INDEX search_concepts IF NOT EXISTS FOR (o:OntologyConcept) ON EACH [o.label, o.definition];</code></pre>
+
+  <div class="info-box warning">
+    <div class="label">Indexing Rule of Thumb</div>
+    <p><strong>Index every property you MATCH/WHERE on.</strong> In your KG, the most common query pattern is: find a Patient → traverse to their Visits → filter by diagnosis/biomarker. So <code>Patient.ptid</code>, <code>Visit.ptid</code>, <code>Visit.viscode</code>, and <code>Diagnosis.dx_label</code> are the most critical indexes. The OntologyConcept indexes enable fast concept lookup for semantic queries.</p>
+  </div>
+</div>
+
+<!-- ====================== SECTION 6 ====================== -->
+<div class="section" id="s6">
+  <h2>6. How the Research Community Solved This</h2>
+  
+  <h3>Directly Relevant Prior Work</h3>
+
+  <table>
+    <tr><th>Project</th><th>Authors</th><th>Approach</th><th>What We Take From It</th></tr>
+    <tr>
+      <td><strong>AD-DPC Ontology + Neo4j KG</strong></td>
+      <td>Spasov et al. (2024) / Lazarova et al. (2023)</td>
+      <td>Built a data-independent AD ontology (AD-DPC), then populated a Neo4j KG with ADNI data mapped to that ontology. Used 16,227 entries from 2,404 participants.</td>
+      <td>✅ <strong>The closest precedent.</strong> They proved that Neo4j can serve as a semantic KG without switching to RDF. Their ontology is domain-independent (not tied to ADNI column names), making it extensible. We adopt this principle but at much larger scale (108 tables vs. their ~12).</td>
+    </tr>
+    <tr>
+      <td><strong>AlzKB</strong></td>
+      <td>Romano et al. (2024)</td>
+      <td>Largest AD-specific KG: 118,902 entities, 1.3M relationships. Built OWL2 ontology in Protégé, populated via 21 external databases, deployed in Neo4j.</td>
+      <td>✅ <strong>Our integration target.</strong> We link our patient-level data to AlzKB's literature-derived knowledge. Their ontology classes and relationship types provide a ready-made vocabulary for our MAPS_TO edges.</td>
+    </tr>
+    <tr>
+      <td><strong>ADKG (Yang et al.)</strong></td>
+      <td>Yang et al. (2025)</td>
+      <td>GPT-4 augmented KG from 160K PubMed abstracts. SpERT model for NER. Entity linking to NCBI Gene, ChEBI, DrugBank, HPO, MeSH.</td>
+      <td>✅ Their entity linking pipeline (simstring + multi-database) is the gold standard for resolving ADNI column names to ontology terms.</td>
+    </tr>
+    <tr>
+      <td><strong>Unified Framework (Dobreva et al.)</strong></td>
+      <td>Dobreva et al. (2025)</td>
+      <td>Systematic review of 43 AD KG papers. Proposed "AD-KG 2.0" framework with decision tree for method selection.</td>
+      <td>✅ Their framework validates our Construct → Discover → Represent methodology. They recommend starting with structured data KGs before adding literature-derived knowledge.</td>
+    </tr>
+    <tr>
+      <td><strong>Causal Discovery on ADNI</strong></td>
+      <td>Shen et al. (2020)</td>
+      <td>Tested FCI and FGES algorithms directly on ADNI biomarker data. FCI with expert guidance recovered the canonical A→T→N cascade. FGES achieved 71% precision, 68% recall.</td>
+      <td>✅ <strong>Direct validation</strong> that our planned FCI approach works on ADNI data. They found unguided algorithms miss biology — we'll use our KG's ontology constraints as "expert priors."</td>
+    </tr>
+  </table>
+
+  <div class="info-box research">
+    <div class="label">What's Original About Your Approach</div>
+    <p>No existing work combines: (1) a <strong>full-scale ADNI data graph</strong> (108 tables, 407K nodes) with (2) <strong>semantic ontology grounding</strong> AND (3) <strong>causal discovery integration</strong> where discovered causal edges become native KG relationships. Spasov et al. had the ontology but limited data; AlzKB has scale but no patient-level data; Shen et al. had causal discovery but no KG. Your thesis unifies all three.</p>
+  </div>
+</div>
+
+<!-- ====================== SECTION 7 ====================== -->
+<div class="section" id="s7">
+  <h2>7. Step-by-Step Implementation Plan</h2>
+
+  <h3>Phase 1: Schema Migration (LPG → KG)</h3>
+  
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <strong>Add ontology properties to existing nodes (in-place upgrade)</strong>
+      <p>Don't rebuild the graph. Run Cypher SET commands to add <code>snomed_code</code>, <code>loinc_code</code>, <code>uberon_code</code> properties to existing nodes. This transforms your LPG into a KG without data loss.</p>
+      <pre><code>// Example: Tag all Diagnosis nodes with SNOMED codes
+MATCH (d:Diagnosis) WHERE d.diagnosis = 'AD'
+SET d.snomed_code = '26929004', d.rdf_type = 'MONDO:0004975';
+
+MATCH (d:Diagnosis) WHERE d.diagnosis = 'MCI'
+SET d.snomed_code = '386806002';
+
+MATCH (d:Diagnosis) WHERE d.diagnosis = 'CN'
+SET d.snomed_code = '17621005'; // Cognitively Normal</code></pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <strong>Create OntologyConcept nodes (reference layer)</strong>
+      <p>Import a curated set of ontology concepts relevant to AD. These are your "semantic anchor" nodes that everything MAPS_TO.</p>
+      <pre><code>// Load core SNOMED concepts
+MERGE (c:OntologyConcept {uri: 'snomed:26929004'})
+SET c.code = '26929004', c.label = "Alzheimer's disease",
+    c.source_ontology = 'SNOMED-CT';
+
+// Load LOINC codes for assessments
+MERGE (c:OntologyConcept {uri: 'loinc:72106-8'})
+SET c.code = '72106-8', c.label = 'MMSE total score',
+    c.source_ontology = 'LOINC';
+
+// Build IS_A hierarchy
+MATCH (child:OntologyConcept {uri: 'snomed:26929004'})
+MATCH (parent:OntologyConcept {uri: 'snomed:52448006'})
+MERGE (child)-[:IS_A]->(parent); // AD IS_A Dementia</code></pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <strong>Create MAPS_TO relationships</strong>
+      <p>Connect existing data nodes to their ontology concepts. This is what makes the graph "semantic."</p>
+      <pre><code>// Connect Diagnosis nodes to SNOMED concepts
+MATCH (d:Diagnosis) WHERE d.snomed_code IS NOT NULL
+MATCH (c:OntologyConcept {code: d.snomed_code, source_ontology: 'SNOMED-CT'})
+MERGE (d)-[:MAPS_TO {mapping_type: 'exact'}]->(c);
+
+// Connect CognitiveAssessment nodes to LOINC
+MATCH (a:CognitiveAssessment) WHERE a.loinc_code IS NOT NULL
+MATCH (c:OntologyConcept {code: a.loinc_code, source_ontology: 'LOINC'})
+MERGE (a)-[:MAPS_TO {mapping_type: 'exact'}]->(c);</code></pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <strong>Create uniqueness constraints and indexes</strong>
+      <p>Apply all constraints from Section 5 before inserting new data.</p>
+    </div>
+  </div>
+
+  <h3>Phase 2: Causal Discovery Preparation</h3>
+
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <strong>Extract flat feature matrix from KG for causal algorithms</strong>
+      <p>Cypher query to pull baseline-visit data into a tabular format suitable for PC/FCI/GES/DAG-GNN.</p>
+      <pre><code>// Extract baseline features for causal discovery
+MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit {viscode: 'bl'})
+OPTIONAL MATCH (v)-[:HAS_DIAGNOSIS]->(d:Diagnosis)
+OPTIONAL MATCH (v)-[:YIELDED_ASSESSMENT]->(mmse:CognitiveAssessment {test_name: 'MMSE'})
+OPTIONAL MATCH (v)-[:YIELDED_ASSESSMENT]->(cdr:CognitiveAssessment {test_name: 'CDR'})
+OPTIONAL MATCH (v)-[:HAS_CSF_BIOMARKER]->(csf:CSFBiomarker)
+OPTIONAL MATCH (v)-[:HAS_ATN_PROFILE]->(atn:ATNProfile)
+OPTIONAL MATCH (p)-[:HAS_GENETIC_PROFILE]->(gp:GeneticProfile)
+RETURN p.ptid, p.education_years, p.sex, p.birth_year,
+       d.dx_label, mmse.total_score AS mmse, cdr.total_score AS cdr,
+       csf.abeta42, csf.tau, csf.ptau,
+       atn.atn_class, gp.apoe_genotype</code></pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">6</div>
+    <div class="step-content">
+      <strong>Run causal discovery algorithms (PC, FCI, GES, DAG-GNN)</strong>
+      <p>Use the extracted matrix. FCI is prioritized for handling latent confounders. Compare outputs across algorithms per Shen et al. (2020) methodology.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">7</div>
+    <div class="step-content">
+      <strong>Embed causal edges back into the KG</strong>
+      <p>Discovered causal relationships become native CAUSES edges with metadata.</p>
+      <pre><code>// Insert causal discovery result
+MATCH (src:OntologyConcept {label: 'Amyloid pathology'})
+MATCH (tgt:OntologyConcept {label: 'Tau pathology'})
+MERGE (src)-[r:CAUSES]->(tgt)
+SET r.algorithm = 'FCI', r.p_value = 0.002,
+    r.effect_size = 0.45, r.confidence = 'high',
+    r.ro_uri = 'ro:RO_0002411',
+    r.validated_by_literature = true;</code></pre>
+    </div>
+  </div>
+
+  <h3>Phase 3: Validation & AlzKB Integration</h3>
+
+  <div class="step">
+    <div class="step-num">8</div>
+    <div class="step-content">
+      <strong>Validate causal edges against AlzKB and literature</strong>
+      <p>Cross-reference discovered edges with AlzKB's existing relationships. If AlzKB says "Gene X → Protein Y → Disease Z" and your data supports it, mark it as literature-validated.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">9</div>
+    <div class="step-content">
+      <strong>Run DoWhy for causal inference</strong>
+      <p>Using the KG-derived causal DAG as input, estimate specific causal effects (e.g., "What is the causal effect of amyloid positivity on MMSE decline?"). Run refutation tests.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">10</div>
+    <div class="step-content">
+      <strong>Document and defend</strong>
+      <p>Write up the Construct → Discover → Represent pipeline. Show the before/after: LPG query vs. KG semantic query vs. causal query.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== SECTION 8 ====================== -->
+<div class="section" id="s8">
+  <h2>8. Incremental Data Ingestion Pattern</h2>
+  
+  <p>Your requirement is that the graph accepts new data without rebuilding. The key pattern is <strong>MERGE with ON CREATE / ON MATCH</strong>:</p>
+
+  <div class="diagram-container">
+    <div class="mermaid">
+flowchart LR
+    A["📄 New CSV/DICOM<br/>from ADNI"] --> B["🔍 Parse & Validate<br/>Extract PTID, VISCODE"]
+    B --> C{"Patient<br/>exists?"}
+    C -->|"No"| D["MERGE Patient<br/>ON CREATE SET props"]
+    C -->|"Yes"| E["MERGE Patient<br/>ON MATCH SET updated_at"]
+    D --> F{"Visit<br/>exists?"}
+    E --> F
+    F -->|"No"| G["CREATE Visit<br/>Link to Patient<br/>Link FOLLOWED_BY chain"]
+    F -->|"Yes"| H["MERGE observations<br/>under existing Visit"]
+    G --> I["🔗 Create observation nodes<br/>(Assessment, Biomarker, Image)"]
+    H --> I
+    I --> J["🏷 Add ontology MAPS_TO<br/>if mappable"]
+    J --> K["✅ Data integrated"]
+
+    style A fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style K fill:#0a3325,stroke:#10b981,color:#fff
+    </div>
+    <p class="diagram-caption">Figure 2: Incremental data ingestion — MERGE-based upsert pattern ensures idempotent inserts</p>
+  </div>
+
+  <pre><code>def ingest_new_data(driver, table_name: str, rows: list[dict]):
+    """Generic incremental ingestion function.
+    Works for any ADNI table — uses MERGE to avoid duplicates."""
+    
+    with driver.session() as session:
+        for row in rows:
+            ptid = row.get('PTID')
+            viscode = row.get('VISCODE2') or row.get('VISCODE')
+            
+            # 1. Ensure Patient exists
+            session.run("""
+                MERGE (p:Patient {ptid: $ptid})
+                ON CREATE SET p.created_at = datetime()
+                ON MATCH SET p.updated_at = datetime()
+            """, ptid=ptid)
+            
+            # 2. Ensure Visit exists and chain
+            visit_id = f"{ptid}_{viscode}"
+            session.run("""
+                MATCH (p:Patient {ptid: $ptid})
+                MERGE (v:Visit {visit_id: $visit_id})
+                ON CREATE SET v.viscode = $viscode,
+                              v.ptid = $ptid,
+                              v.visit_date = $visit_date,
+                              v.phase = $phase
+                MERGE (p)-[:HAS_VISIT]->(v)
+            """, ptid=ptid, visit_id=visit_id, viscode=viscode,
+                 visit_date=row.get('VISDATE'), phase=row.get('PHASE'))
+            
+            # 3. Create domain-specific observation (varies by table)
+            create_observation(session, table_name, visit_id, row)</code></pre>
+</div>
+
+<!-- ====================== SECTION 9 ====================== -->
+<div class="section" id="s9">
+  <h2>9. AlzKB Integration Strategy</h2>
+  
+  <p>AlzKB (Romano et al., 2024) contains 118,902 entities and 1,309,527 relationships from 21 external databases. It's literature-derived knowledge. Your graph has patient-level clinical data. The integration creates a bridge between <em>what is known about AD</em> (AlzKB) and <em>what is observed in patients</em> (your KG).</p>
+
+  <h3>Integration Approach: Shared OntologyConcept Nodes</h3>
+  
+  <div class="diagram-container">
+    <div class="mermaid">
+graph LR
+    subgraph YOUR_KG["Your ADNI KG (Patient Data)"]
+        P1["Patient 011_S_0001"]
+        CSF1["CSFBiomarker<br/>abeta42: 750"]
+        OC1["OntologyConcept<br/>uri: uniprot:P05067<br/>label: APP"]
+        P1 -->|"has biomarker"| CSF1
+        CSF1 -->|"MAPS_TO"| OC1
+    end
+
+    subgraph ALZKB["AlzKB (Literature Knowledge)"]
+        OC2["AlzKB:Gene<br/>APP"]
+        OC3["AlzKB:Drug<br/>Aducanumab"]
+        OC4["AlzKB:Pathway<br/>Amyloid cascade"]
+        OC2 -->|"TARGETS"| OC3
+        OC2 -->|"PARTICIPATES_IN"| OC4
+    end
+
+    OC1 ===|"SAME_AS<br/>(owl:sameAs)"| OC2
+
+    style YOUR_KG fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style ALZKB fill:#2d1f5e,stroke:#8b5cf6,color:#fff
+    </div>
+    <p class="diagram-caption">Figure 3: Bridge pattern — OntologyConcept nodes in your KG link to AlzKB entities via SAME_AS relationships</p>
+  </div>
+
+  <div class="info-box insight">
+    <div class="label">Practical AlzKB Integration (Master's Level)</div>
+    <p>You don't need to import all 118K AlzKB entities. Import only the <strong>~200-300 concepts</strong> that overlap with your ADNI data: AD-relevant genes (APOE, APP, PSEN1, MAPT), biomarker analytes (Aβ42, tau, ptau, NfL), brain regions (hippocampus, entorhinal cortex), and drugs your patients take. Create SAME_AS links between your OntologyConcept nodes and AlzKB's equivalent entities.</p>
+  </div>
+</div>
+
+<!-- ====================== SECTION 10 ====================== -->
+<div class="section" id="s10">
+  <h2>10. Mapping from headers.json to KG Nodes</h2>
+  
+  <p>Your 108 ADNI tables map to the KG node types as follows. Each table's PTID+VISCODE join pattern anchors data to the correct Patient → Visit path.</p>
+
+  <table>
+    <tr><th>KG Node</th><th>ADNI Tables (from headers.json)</th><th>Key Columns Used</th></tr>
+    <tr>
+      <td><strong>Patient</strong></td>
+      <td>PTDEMOG, APOERES, Study_Entry, ARM</td>
+      <td>PTID, RID, PTGENDER, PTDOB, PTEDUCAT, PTETHCAT, PTRACCAT, APGEN1, APGEN2</td>
+    </tr>
+    <tr>
+      <td><strong>Visit</strong></td>
+      <td>All 108 tables (join key)</td>
+      <td>PTID, VISCODE/VISCODE2, VISDATE, PHASE, SITEID</td>
+    </tr>
+    <tr>
+      <td><strong>Diagnosis</strong></td>
+      <td>DXSUM, BLCHANGE</td>
+      <td>DXCURREN, DXCHANGE, DXCONV, DXCONTYP, DIAGNOSIS</td>
+    </tr>
+    <tr>
+      <td><strong>CognitiveAssessment</strong></td>
+      <td>MMSE, CDR, ADAS, MOCA, FAQ, GDSCALE, NPI/NPIQ, NEUROBAT, ECOGPT/SP, STAIAD, AMNART, WATC, etc.</td>
+      <td>TOTSCORE/TOTAL13, CDMEMORY/CDGLOBAL, MMSCORE, etc.</td>
+    </tr>
+    <tr>
+      <td><strong>CSFBiomarker</strong></td>
+      <td>UPENNBIOMK_ROCHE_ELECSYS, BIOMARK, FOXLABBSI</td>
+      <td>ABETA42, ABETA40, TAU, PTAU, BATCH, RUNDATE</td>
+    </tr>
+    <tr>
+      <td><strong>BloodBiomarker</strong></td>
+      <td>LABDATA, URMC_LABDATA, FNIHBC_BLOOD_BIOMARKER_TRAJECTORIES, JANSSEN_PLASMA_P217_TAU</td>
+      <td>TestName, ResultValue, Units, Flags</td>
+    </tr>
+    <tr>
+      <td><strong>MRIScan</strong></td>
+      <td>Key_MRI, Structural_MRI_Images, MRI3META, MRIMETA, MRI_Images_with_AI, Diffusion_MRI_Images, Functional_MRI_Images</td>
+      <td>image_id, modality, field_strength, image_description, SCANDATE</td>
+    </tr>
+    <tr>
+      <td><strong>PETScan</strong></td>
+      <td>Key_PET, PET_Images, AV45META, AMYMETA, TAUMETA, PETMETA3, PETMETA_ADNI1, PETMETA_ADNIGO2</td>
+      <td>image_id, RADTRACER, TRACERTYPE, SCANDATE, CENTILOIDS</td>
+    </tr>
+    <tr>
+      <td><strong>VolumetricMeasure</strong></td>
+      <td>UCSFFSX7 (FreeSurfer), UCBERKELEY_AMY_6MM, UCBERKELEY_TAU_6MM, UCBERKELEY_TAUPVC_6MM, UCD_WMH, DTIROI_MEAN/ROBUSTMEAN</td>
+      <td>ST* columns (region volumes/thickness/area), WMH measures, DTI ROI measures</td>
+    </tr>
+    <tr>
+      <td><strong>GeneticProfile</strong></td>
+      <td>APOERES, GENETIC</td>
+      <td>APGEN1, APGEN2, SNP columns</td>
+    </tr>
+    <tr>
+      <td><strong>Medication</strong></td>
+      <td>BACKMEDS, RECCMEDS, ANTIAMYTX</td>
+      <td>CMMED/compound columns, drug class</td>
+    </tr>
+    <tr>
+      <td><strong>AdverseEvent</strong></td>
+      <td>ADVERSE, ADSXLIST, RECADV</td>
+      <td>AECOMPOUND, AEHSEVR, AEOUTCOME, AESERIOUS, AX* symptom columns</td>
+    </tr>
+    <tr>
+      <td><strong>FamilyMember</strong></td>
+      <td>FAMHXPAR, FAMHXSIB, FHQ, RECFHQ</td>
+      <td>Relationship, dementia history, age at onset</td>
+    </tr>
+    <tr>
+      <td><strong>NeuropathFinding</strong></td>
+      <td>NEUROPATH (164 columns)</td>
+      <td>Braak stage, CERAD score, Thal phase, Lewy body stage, TDP-43</td>
+    </tr>
+  </table>
+
+  <div class="info-box success">
+    <div class="label">Completeness Check</div>
+    <p>This mapping covers all 108 tables in headers.json. Tables in the "Study/Admin" group (CONSENTS, BLSCHECK, CLIELG, EXCLUSIO, etc.) provide metadata that informs Visit and Patient properties rather than creating separate nodes. The "Other Assessments" group (AMAS, CCI, CSSRSAD, etc.) maps to CognitiveAssessment with the <code>test_name</code> property distinguishing each instrument.</p>
+  </div>
+</div>
+
+</div><!-- container -->
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+    themeVariables: {
+      primaryColor: '#3b82f6',
+      primaryTextColor: '#1e293b',
+      primaryBorderColor: '#2563eb',
+      lineColor: '#64748b',
+      secondaryColor: '#f1f5f9',
+      tertiaryColor: '#e2e8f0'
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="520" viewBox="0 0 780 520">
+<defs>
+  <style>
+    text { font-family: "Segoe UI", Arial, sans-serif; }
+    .title { font-size: 18px; font-weight: bold; fill: #1a1a2e; }
+    .subtitle { font-size: 13px; fill: #555; }
+    .label { font-size: 11px; fill: #333; font-weight: 600; }
+    .small { font-size: 9px; fill: #666; }
+    .tiny { font-size: 8px; fill: #888; }
+    .count { font-size: 10px; fill: #0d47a1; font-weight: bold; }
+    .edge-label { font-size: 9px; fill: #c62828; font-weight: 600; }
+  </style>
+  <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+  </marker>
+  <marker id="arrowhead-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#c62828"/>
+  </marker>
+  <marker id="arrowhead-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#1565c0"/>
+  </marker>
+  <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#2e7d32"/>
+  </marker>
+</defs>
+<text x="390" y="28" class="title" text-anchor="middle">Labeled Property Graph vs Knowledge Graph</text>
+<text x="390" y="48" class="subtitle" text-anchor="middle">Key distinctions applied to the ADNI dataset</text>
+<rect x="30" y="65" width="720" height="32" fill="#263238" rx="4"/>
+<text x="40" y="84" class="label" text-anchor="start" fill="white">Characteristic</text>
+<text x="300" y="84" class="label" text-anchor="start" fill="white">LPG (Before)</text>
+<text x="540" y="84" class="label" text-anchor="start" fill="white">KG (After Phase 1)</text>
+<rect x="30" y="102" width="720" height="36" fill="#f5f5f5"/>
+<text x="40" y="120" class="small" text-anchor="start">Data Model</text>
+<text x="300" y="116" class="tiny" text-anchor="start">Nodes + Edges + Properties</text>
+<text x="540" y="116" class="tiny" text-anchor="start">Nodes + Edges + Properties</text>
+<text x="540" y="129" class="tiny" text-anchor="start">+ Ontology Concepts</text>
+<rect x="30" y="138" width="720" height="36" fill="#ffffff"/>
+<text x="40" y="156" class="small" text-anchor="start">Node Semantics</text>
+<text x="300" y="152" class="tiny" text-anchor="start">Application-specific labels</text>
+<text x="300" y="165" class="tiny" text-anchor="start">(Patient, Visit, Diagnosis)</text>
+<text x="540" y="152" class="tiny" text-anchor="start">Ontology-grounded labels</text>
+<text x="540" y="165" class="tiny" text-anchor="start">rdf_type = ncit:C16960</text>
+<rect x="30" y="174" width="720" height="36" fill="#f5f5f5"/>
+<text x="40" y="192" class="small" text-anchor="start">Relationship Semantics</text>
+<text x="300" y="188" class="tiny" text-anchor="start">String-typed edges</text>
+<text x="300" y="201" class="tiny" text-anchor="start">(HAS_VISIT, HAS_DIAGNOSIS)</text>
+<text x="540" y="188" class="tiny" text-anchor="start">URI-annotated edges</text>
+<text x="540" y="201" class="tiny" text-anchor="start">uri = ro:RO_0000056</text>
+<rect x="30" y="210" width="720" height="36" fill="#ffffff"/>
+<text x="40" y="228" class="small" text-anchor="start">Disease Coding</text>
+<text x="300" y="224" class="tiny" text-anchor="start">diagnosis_code = 'AD'</text>
+<text x="300" y="237" class="tiny" text-anchor="start">(local string)</text>
+<text x="540" y="224" class="tiny" text-anchor="start">snomed: 26929004</text>
+<text x="540" y="237" class="tiny" text-anchor="start">icd10: G30.9, mondo: 0004975</text>
+<rect x="30" y="246" width="720" height="36" fill="#f5f5f5"/>
+<text x="40" y="264" class="small" text-anchor="start">Assessment Coding</text>
+<text x="300" y="260" class="tiny" text-anchor="start">test_name = 'MMSE'</text>
+<text x="300" y="273" class="tiny" text-anchor="start">(local string)</text>
+<text x="540" y="260" class="tiny" text-anchor="start">loinc_code: 72106-8</text>
+<text x="540" y="273" class="tiny" text-anchor="start">(global standard)</text>
+<rect x="30" y="282" width="720" height="36" fill="#ffffff"/>
+<text x="40" y="300" class="small" text-anchor="start">Brain Region Coding</text>
+<text x="300" y="296" class="tiny" text-anchor="start">name = 'Hippocampus'</text>
+<text x="300" y="309" class="tiny" text-anchor="start">(local string)</text>
+<text x="540" y="296" class="tiny" text-anchor="start">uberon_code: UBERON:0002421</text>
+<text x="540" y="309" class="tiny" text-anchor="start">(global standard)</text>
+<rect x="30" y="318" width="720" height="36" fill="#f5f5f5"/>
+<text x="40" y="336" class="small" text-anchor="start">Concept Taxonomy</text>
+<text x="300" y="332" class="tiny" text-anchor="start">NONE</text>
+<text x="300" y="345" class="tiny" text-anchor="start">(flat namespace)</text>
+<text x="540" y="332" class="tiny" text-anchor="start">IS_A hierarchies: SNOMED,</text>
+<text x="540" y="345" class="tiny" text-anchor="start">UBERON, HPO, ICD-10 (27 edges)</text>
+<rect x="30" y="354" width="720" height="36" fill="#ffffff"/>
+<text x="40" y="372" class="small" text-anchor="start">Cross-Ontology Links</text>
+<text x="300" y="368" class="tiny" text-anchor="start">NONE</text>
+<text x="540" y="368" class="tiny" text-anchor="start">100,770 MAPS_TO +</text>
+<text x="540" y="381" class="tiny" text-anchor="start">25,946 CLASSIFIED_AS</text>
+<rect x="30" y="390" width="720" height="36" fill="#f5f5f5"/>
+<text x="40" y="408" class="small" text-anchor="start">External Interoperability</text>
+<text x="300" y="404" class="tiny" text-anchor="start">Requires custom mappings</text>
+<text x="300" y="417" class="tiny" text-anchor="start">for each integration</text>
+<text x="540" y="404" class="tiny" text-anchor="start">Standard URIs enable</text>
+<text x="540" y="417" class="tiny" text-anchor="start">direct AlzKB, FHIR linking</text>
+<rect x="30" y="426" width="720" height="36" fill="#ffffff"/>
+<text x="40" y="444" class="small" text-anchor="start">Machine Reasoning</text>
+<text x="300" y="440" class="tiny" text-anchor="start">Pattern matching only</text>
+<text x="300" y="453" class="tiny" text-anchor="start">(Cypher queries)</text>
+<text x="540" y="440" class="tiny" text-anchor="start">Ontology traversal +</text>
+<text x="540" y="453" class="tiny" text-anchor="start">IS_A inference + reasoning</text>
+<rect x="30" y="487" width="720" height="40" rx="6" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5" opacity="1.0"/>
+<text x="390" y="505" class="label" text-anchor="middle">Verdict: After Phase 1, the ADNI graph is a Knowledge Graph</text>
+<text x="390" y="520" class="tiny" text-anchor="middle">100% ontology coverage | Formal hierarchies | Standard URIs | Cross-ontology linkage</text>
+</svg>

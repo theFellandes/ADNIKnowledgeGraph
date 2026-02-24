@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="360" viewBox="0 0 780 360">
+<defs>
+  <style>
+    text { font-family: "Segoe UI", Arial, sans-serif; }
+    .title { font-size: 16px; font-weight: bold; fill: #1a1a2e; }
+    .sub { font-size: 11px; fill: #555; }
+    .lbl { font-size: 10px; fill: #333; font-weight: 600; }
+    .sm { font-size: 9px; fill: #666; }
+    .xs { font-size: 8px; fill: #888; }
+    .cnt { font-size: 9px; fill: #0d47a1; font-weight: bold; }
+    .elbl { font-size: 8px; fill: #c62828; font-weight: 600; }
+    .prop { font-size: 7.5px; fill: #444; font-family: Consolas, monospace; }
+  </style>
+  <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#555"/>
+  </marker>
+  <marker id="arr-b" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#1565c0"/>
+  </marker>
+  <marker id="arr-r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#c62828"/>
+  </marker>
+  <marker id="arr-g" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#2e7d32"/>
+  </marker>
+  <marker id="arr-p" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#6a1b9a"/>
+  </marker>
+</defs>
+<text x="390" y="22" class="title" text-anchor="middle">Why CN Maps to "No diagnosis" in ICD-10</text>
+<text x="390" y="40" class="sub" text-anchor="middle">CN = Cognitively Normal = healthy control participant in the ADNI study</text>
+<rect x="30" y="70" width="180" height="100" rx="10" fill="#ffcdd2" stroke="#c62828" stroke-width="1.2"/>
+<text x="120" y="92" class="lbl" text-anchor="middle">Diagnosis Node</text>
+<text x="120" y="108" class="prop" text-anchor="middle">diagnosis_code: "CN"</text>
+<text x="120" y="120" class="prop" text-anchor="middle">diagnosis_text: "Cognitively Normal"</text>
+<text x="120" y="132" class="prop" text-anchor="middle">snomed_code: "17621005"</text>
+<text x="120" y="144" class="prop" text-anchor="middle">icd10_code: "Z03.89"</text>
+<text x="120" y="156" class="cnt" text-anchor="middle">Count: 13,526 nodes</text>
+<rect x="310" y="70" width="180" height="100" rx="10" fill="#e8eaf6" stroke="#283593" stroke-width="1.2"/>
+<text x="400" y="92" class="lbl" text-anchor="middle">OntologyConcept</text>
+<text x="400" y="108" class="prop" text-anchor="middle">code: "Z03.89"</text>
+<text x="400" y="120" class="prop" text-anchor="middle">label: "No diagnosis or condition"</text>
+<text x="400" y="132" class="prop" text-anchor="middle">source_ontology: "ICD-10"</text>
+<text x="400" y="144" class="prop" text-anchor="middle">uri: "icd10:Z03.89"</text>
+<rect x="580" y="70" width="180" height="80" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.2"/>
+<text x="670" y="92" class="lbl" text-anchor="middle">OntologyConcept</text>
+<text x="670" y="108" class="prop" text-anchor="middle">code: "17621005"</text>
+<text x="670" y="120" class="prop" text-anchor="middle">label: "Normal (finding)"</text>
+<text x="670" y="132" class="prop" text-anchor="middle">source_ontology: "SNOMED-CT"</text>
+<line x1="210" y1="120" x2="308" y2="120" stroke="#c62828" stroke-width="2" marker-end="url(#arr-r)"/>
+<text x="260" y="112" class="elbl" text-anchor="middle">CLASSIFIED_AS</text>
+<line x1="210" y1="135" x2="578" y2="110" stroke="#1565c0" stroke-width="2" stroke-dasharray="4,2" marker-end="url(#arr-b)"/>
+<text x="395" y="155" class="elbl" text-anchor="middle">MAPS_TO</text>
+<rect x="30" y="195" width="720" height="150" rx="8" fill="#fff8e1" stroke="#f9a825" stroke-width="1.2"/>
+<text x="390" y="215" class="lbl" text-anchor="middle">Explanation for Prof. Turhan</text>
+<text x="50" y="235" class="sm" text-anchor="start">CN stands for "Cognitively Normal" — these are healthy control participants in the ADNI study.</text>
+<text x="50" y="251" class="sm" text-anchor="start">They have NO disease. In ICD-10, healthy people who are observed but have no condition get code Z03.89.</text>
+<text x="50" y="267" class="sm" text-anchor="start">Z03.89 = "Encounter for observation for other suspected diseases and conditions ruled out".</text>
+<text x="50" y="283" class="sm" text-anchor="start">This is the correct ICD-10 mapping — it means "we checked, and they do NOT have a disease".</text>
+<text x="50" y="299" class="sm" text-anchor="start">In SNOMED-CT, CN maps to code 17621005 = "Normal (finding)" — meaning the clinical finding is normal.</text>
+<text x="50" y="315" class="sm" text-anchor="start">13,526 out of 25,946 Diagnosis nodes are CN — this is expected because ADNI enrolls many healthy controls.</text>
+</svg>

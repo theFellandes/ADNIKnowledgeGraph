@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="550" viewBox="0 0 780 550">
+<defs>
+  <style>
+    text { font-family: "Segoe UI", Arial, sans-serif; }
+    .title { font-size: 16px; font-weight: bold; fill: #1a1a2e; }
+    .sub { font-size: 11px; fill: #555; }
+    .lbl { font-size: 10px; fill: #333; font-weight: 600; }
+    .sm { font-size: 9px; fill: #666; }
+    .xs { font-size: 8px; fill: #888; }
+    .cnt { font-size: 9px; fill: #0d47a1; font-weight: bold; }
+    .elbl { font-size: 8px; fill: #c62828; font-weight: 600; }
+    .prop { font-size: 7.5px; fill: #444; font-family: Consolas, monospace; }
+  </style>
+  <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#555"/>
+  </marker>
+  <marker id="arr-b" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#1565c0"/>
+  </marker>
+  <marker id="arr-r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#c62828"/>
+  </marker>
+  <marker id="arr-g" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#2e7d32"/>
+  </marker>
+  <marker id="arr-p" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#6a1b9a"/>
+  </marker>
+</defs>
+<text x="390" y="22" class="title" text-anchor="middle">Target Architecture: ADNI Causal Knowledge Graph</text>
+<text x="390" y="40" class="sub" text-anchor="middle">Final state after all 4 phases — as planned in ADNI_KG_Design_Blueprint.pdf</text>
+<rect x="20" y="60" width="740" height="130" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+<text x="390" y="78" class="lbl" text-anchor="middle">DATA LAYER (Steps 1-16: already built)</text>
+<circle cx="70" cy="110" r="28" fill="#bbdefb" stroke="#1565c0" stroke-width="1.3"/>
+<text x="70" y="106" class="xs" text-anchor="middle">Patient</text>
+<text x="70" y="118" class="cnt" text-anchor="middle">2,638</text>
+<circle cx="170" cy="110" r="28" fill="#bbdefb" stroke="#1565c0" stroke-width="1.3"/>
+<text x="170" y="106" class="xs" text-anchor="middle">Visit</text>
+<text x="170" y="118" class="cnt" text-anchor="middle">30,267</text>
+<circle cx="280" cy="110" r="28" fill="#bbdefb" stroke="#1565c0" stroke-width="1.3"/>
+<text x="280" y="106" class="xs" text-anchor="middle">Diagnosis</text>
+<text x="280" y="118" class="cnt" text-anchor="middle">25,946</text>
+<circle cx="400" cy="110" r="28" fill="#bbdefb" stroke="#1565c0" stroke-width="1.3"/>
+<text x="400" y="106" class="xs" text-anchor="middle">CogAssess</text>
+<text x="400" y="118" class="cnt" text-anchor="middle">65,345</text>
+<circle cx="520" cy="110" r="28" fill="#bbdefb" stroke="#1565c0" stroke-width="1.3"/>
+<text x="520" y="106" class="xs" text-anchor="middle">Biomarker</text>
+<text x="520" y="118" class="cnt" text-anchor="middle">12,008</text>
+<circle cx="640" cy="110" r="28" fill="#bbdefb" stroke="#1565c0" stroke-width="1.3"/>
+<text x="640" y="106" class="xs" text-anchor="middle">ImageNode</text>
+<text x="640" y="118" class="cnt" text-anchor="middle">88,769</text>
+<circle cx="70" cy="165" r="24" fill="#e3f2fd" stroke="#90caf9" stroke-width="1.3"/>
+<text x="70" y="161" class="xs" text-anchor="middle">FamilyMbr</text>
+<text x="70" y="173" class="xs" text-anchor="middle">97,797</text>
+<circle cx="170" cy="165" r="24" fill="#e3f2fd" stroke="#90caf9" stroke-width="1.3"/>
+<text x="170" y="161" class="xs" text-anchor="middle">BrainRegion</text>
+<text x="170" y="173" class="xs" text-anchor="middle">12</text>
+<circle cx="280" cy="165" r="24" fill="#e3f2fd" stroke="#90caf9" stroke-width="1.3"/>
+<text x="280" y="161" class="xs" text-anchor="middle">DiseaseStage</text>
+<text x="280" y="173" class="xs" text-anchor="middle">5</text>
+<circle cx="400" cy="165" r="24" fill="#e3f2fd" stroke="#90caf9" stroke-width="1.3"/>
+<text x="400" y="161" class="xs" text-anchor="middle">ATNProfile</text>
+<text x="400" y="173" class="xs" text-anchor="middle">2,638</text>
+<circle cx="520" cy="165" r="24" fill="#e3f2fd" stroke="#90caf9" stroke-width="1.3"/>
+<text x="520" y="161" class="xs" text-anchor="middle">ClinFinding</text>
+<text x="520" y="173" class="xs" text-anchor="middle">25,946</text>
+<circle cx="640" cy="165" r="24" fill="#e3f2fd" stroke="#90caf9" stroke-width="1.3"/>
+<text x="640" y="161" class="xs" text-anchor="middle">GeneticProf</text>
+<text x="640" y="173" class="xs" text-anchor="middle">~2.6K</text>
+<rect x="20" y="200" width="360" height="120" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+<text x="200" y="218" class="lbl" text-anchor="middle">SEMANTIC LAYER (Phase 1: DONE)</text>
+<text x="200" y="238" class="sm" text-anchor="middle">52 OntologyConcept nodes</text>
+<text x="200" y="254" class="xs" text-anchor="middle">SNOMED-CT (18) | LOINC (10) | UBERON (14)</text>
+<text x="200" y="268" class="xs" text-anchor="middle">HPO (5) | ICD-10 (5)</text>
+<text x="200" y="284" class="xs" text-anchor="middle">100,770 MAPS_TO + 25,946 CLASSIFIED_AS</text>
+<text x="200" y="298" class="xs" text-anchor="middle">27 IS_A hierarchy edges</text>
+<text x="200" y="312" class="xs" text-anchor="middle">URI on 30 rel types (~1.2M rels)</text>
+<rect x="400" y="200" width="360" height="120" rx="8" fill="#fff9c4" stroke="#f9a825" stroke-width="2"/>
+<text x="580" y="218" class="lbl" text-anchor="middle">CAUSAL LAYER (Phase 2: NEXT)</text>
+<text x="580" y="238" class="sm" text-anchor="middle">CAUSES relationships</text>
+<text x="580" y="256" class="xs" text-anchor="middle">Discovered by PC, FCI, GES algorithms</text>
+<text x="580" y="270" class="xs" text-anchor="middle">From baseline features: MMSE, CDR, ADAS,</text>
+<text x="580" y="284" class="xs" text-anchor="middle">Abeta42, Tau, pTau, Hippocampus vol, APOE</text>
+<text x="580" y="298" class="xs" text-anchor="middle">Expected: Amyloid -> Tau -> Neurodegeneration</text>
+<text x="580" y="312" class="xs" text-anchor="middle">ri: ro:RO_0002411 (causally_upstream_of)</text>
+<rect x="20" y="335" width="360" height="90" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2"/>
+<text x="200" y="353" class="lbl" text-anchor="middle">EXTERNAL KB LAYER (Phase 3)</text>
+<text x="200" y="373" class="sm" text-anchor="middle">AlzKB: 118,902 entities | 1.3M rels</text>
+<text x="200" y="389" class="xs" text-anchor="middle">~200 overlapping concepts with SAME_AS</text>
+<text x="200" y="403" class="xs" text-anchor="middle">APOE, APP, PSEN1, PSEN2, MAPT, Abeta42</text>
+<text x="200" y="417" class="xs" text-anchor="middle">Validation: precision/recall vs known AD bio</text>
+<rect x="400" y="335" width="360" height="90" rx="8" fill="#fce4ec" stroke="#880e4f" stroke-width="2"/>
+<text x="580" y="353" class="lbl" text-anchor="middle">VALIDATION LAYER (Phase 3)</text>
+<text x="580" y="373" class="sm" text-anchor="middle">DoWhy causal inference</text>
+<text x="580" y="389" class="xs" text-anchor="middle">Amyloid positivity -> MMSE decline</text>
+<text x="580" y="403" class="xs" text-anchor="middle">Refutation tests: placebo, subset, random</text>
+<text x="580" y="417" class="xs" text-anchor="middle">Mark edges: validated_by_literature=true</text>
+<line x1="200" y1="190" x2="200" y2="200" stroke="#2e7d32" stroke-width="2" marker-end="url(#arr-g)"/>
+<line x1="580" y1="190" x2="580" y2="200" stroke="#f9a825" stroke-width="1.5" marker-end="url(#arr)"/>
+<line x1="200" y1="320" x2="200" y2="335" stroke="#6a1b9a" stroke-width="1.5" marker-end="url(#arr-p)"/>
+<line x1="580" y1="320" x2="580" y2="335" stroke="#c62828" stroke-width="1.5" marker-end="url(#arr-r)"/>
+<rect x="20" y="440" width="740" height="95" rx="8" fill="#263238" stroke="#263238" stroke-width="1.2"/>
+<text x="390" y="460" class="lbl" text-anchor="middle" fill="white">This Is NOT Just In-Place Semantic Conversion</text>
+<text x="390" y="478" class="sm" text-anchor="middle" fill="#aaa">Phase 1 adds the semantic backbone. Phases 2-4 add real scientific value:</text>
+<text x="390" y="496" class="xs" text-anchor="middle" fill="#66bb6a">Phase 1: Ontology codes + hierarchies + MAPS_TO (makes it a KG)</text>
+<text x="390" y="510" class="xs" text-anchor="middle" fill="#fdd835">Phase 2: Data-driven causal edges from PC/FCI/GES (original research)</text>
+<text x="390" y="524" class="xs" text-anchor="middle" fill="#ce93d8">Phase 3: AlzKB integration + validation (external knowledge base connection)</text>
+</svg>

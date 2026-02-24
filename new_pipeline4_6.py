@@ -3118,6 +3118,66 @@ def main():
 
             pipeline.generate_comprehensive_report()
 
+        # =============================================================================
+        # STEP 7: KG SCHEMA MIGRATION (Steps 17–20)
+        # =============================================================================
+        # These steps transform the LPG into a semantic Knowledge Graph by adding
+        # ontology codes, ICD-10 integration, and MAPS_TO/IS_A relationships.
+        # They use the modular step files from the steps/ directory.
+
+        RUN_CONSTRAINTS = True       # Step 17: Composite constraints + indexes
+        RUN_ONTOLOGY_PROPS = True    # Step 18: Add ontology codes to existing nodes
+        RUN_ICD10 = True             # Step 19: ICD-10 integration
+        RUN_ONTOLOGY_LAYER = True    # Step 20: Full ontology layer + MAPS_TO
+
+        if RUN_CONSTRAINTS:
+            logger.info("\n" + "=" * 50)
+            logger.info("STEP 17: APPLYING KG CONSTRAINTS & INDEXES")
+            logger.info("=" * 50)
+            from steps.step17_apply_constraints import execute_constraints
+            execute_constraints(
+                neo4j_uri=NEO4J_URI,
+                neo4j_user=NEO4J_USER,
+                neo4j_password=NEO4J_PASSWORD,
+            )
+            logger.info("✅ KG constraints applied successfully")
+
+        if RUN_ONTOLOGY_PROPS:
+            logger.info("\n" + "=" * 50)
+            logger.info("STEP 18: ADDING ONTOLOGY PROPERTIES")
+            logger.info("=" * 50)
+            from steps.step18_add_ontology_properties import execute_ontology_properties
+            execute_ontology_properties(
+                neo4j_uri=NEO4J_URI,
+                neo4j_user=NEO4J_USER,
+                neo4j_password=NEO4J_PASSWORD,
+            )
+            logger.info("✅ Ontology properties added successfully")
+
+        if RUN_ICD10:
+            logger.info("\n" + "=" * 50)
+            logger.info("STEP 19: ICD-10 INTEGRATION")
+            logger.info("=" * 50)
+            from steps.step19_icd10_integration import execute_icd10_integration
+            execute_icd10_integration(
+                neo4j_uri=NEO4J_URI,
+                neo4j_user=NEO4J_USER,
+                neo4j_password=NEO4J_PASSWORD,
+            )
+            logger.info("✅ ICD-10 integration completed successfully")
+
+        if RUN_ONTOLOGY_LAYER:
+            logger.info("\n" + "=" * 50)
+            logger.info("STEP 20: ONTOLOGY LAYER + MAPS_TO")
+            logger.info("=" * 50)
+            from steps.step20_ontology_layer import execute_ontology_layer
+            execute_ontology_layer(
+                neo4j_uri=NEO4J_URI,
+                neo4j_user=NEO4J_USER,
+                neo4j_password=NEO4J_PASSWORD,
+            )
+            logger.info("✅ Ontology layer built successfully")
+
         # Calculate execution time
         end_time = datetime.now()
         duration = end_time - start_time

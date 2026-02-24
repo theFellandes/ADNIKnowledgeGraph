@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="400" viewBox="0 0 780 400">
+<defs>
+  <style>
+    text { font-family: "Segoe UI", Arial, sans-serif; }
+    .title { font-size: 18px; font-weight: bold; fill: #1a1a2e; }
+    .subtitle { font-size: 13px; fill: #555; }
+    .label { font-size: 11px; fill: #333; font-weight: 600; }
+    .small { font-size: 9px; fill: #666; }
+    .tiny { font-size: 8px; fill: #888; }
+    .count { font-size: 10px; fill: #0d47a1; font-weight: bold; }
+    .edge-label { font-size: 9px; fill: #c62828; font-weight: 600; }
+  </style>
+  <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+  </marker>
+  <marker id="arrowhead-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#c62828"/>
+  </marker>
+  <marker id="arrowhead-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#1565c0"/>
+  </marker>
+  <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#2e7d32"/>
+  </marker>
+</defs>
+<text x="390" y="28" class="title" text-anchor="middle">Phase 1: Schema Migration Pipeline (Steps 17-20)</text>
+<text x="390" y="48" class="subtitle" text-anchor="middle">In-place semantic upgrade without graph rebuild</text>
+<rect x="30" y="90" width="160" height="130" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5" opacity="1.0"/>
+<text x="110.0" y="115" class="label" text-anchor="middle">Step 17</text>
+<text x="110.0" y="135" class="small" text-anchor="middle">Apply Constraints</text>
+<text x="110.0" y="160" class="tiny" text-anchor="middle">12 constraints</text>
+<text x="110.0" y="176" class="tiny" text-anchor="middle">15 indexes</text>
+<line x1="192" y1="155.0" x2="223" y2="155.0" stroke="#1565c0" stroke-width="2" marker-end="url(#arrowhead)"/>
+<rect x="225" y="90" width="160" height="130" rx="10" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5" opacity="1.0"/>
+<text x="305.0" y="115" class="label" text-anchor="middle">Step 18</text>
+<text x="305.0" y="135" class="small" text-anchor="middle">Ontology Properties</text>
+<text x="305.0" y="160" class="tiny" text-anchor="middle">SNOMED, LOINC</text>
+<text x="305.0" y="176" class="tiny" text-anchor="middle">UBERON, rdf_type</text>
+<line x1="387" y1="155.0" x2="418" y2="155.0" stroke="#2e7d32" stroke-width="2" marker-end="url(#arrowhead)"/>
+<rect x="420" y="90" width="160" height="130" rx="10" fill="#fce4ec" stroke="#c62828" stroke-width="1.5" opacity="1.0"/>
+<text x="500.0" y="115" class="label" text-anchor="middle">Step 19</text>
+<text x="500.0" y="135" class="small" text-anchor="middle">ICD-10 Integration</text>
+<text x="500.0" y="160" class="tiny" text-anchor="middle">5 OntConcepts</text>
+<text x="500.0" y="176" class="tiny" text-anchor="middle">25,946 CLASSIFIED_AS</text>
+<line x1="582" y1="155.0" x2="613" y2="155.0" stroke="#c62828" stroke-width="2" marker-end="url(#arrowhead)"/>
+<rect x="615" y="90" width="160" height="130" rx="10" fill="#ede7f6" stroke="#4527a0" stroke-width="1.5" opacity="1.0"/>
+<text x="695.0" y="115" class="label" text-anchor="middle">Step 20</text>
+<text x="695.0" y="135" class="small" text-anchor="middle">Ontology Layer</text>
+<text x="695.0" y="160" class="tiny" text-anchor="middle">47 OntConcepts</text>
+<text x="695.0" y="176" class="tiny" text-anchor="middle">100,770 MAPS_TO</text>
+<rect x="30" y="260" width="340" height="120" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.5" opacity="1.0"/>
+<text x="200" y="282" class="label" text-anchor="middle">BEFORE (LPG)</text>
+<text x="200" y="302" class="small" text-anchor="middle">Nodes: ~407K (17 labels)</text>
+<text x="200" y="318" class="small" text-anchor="middle">Relationships: ~1.16M (20+ types)</text>
+<text x="200" y="334" class="small" text-anchor="middle">Ontology codes: NONE</text>
+<text x="200" y="350" class="small" text-anchor="middle">Relationship URIs: NONE</text>
+<text x="200" y="366" class="small" text-anchor="middle">OntologyConcept nodes: 0</text>
+<rect x="410" y="260" width="340" height="120" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5" opacity="1.0"/>
+<text x="580" y="282" class="label" text-anchor="middle">AFTER (KG)</text>
+<text x="580" y="302" class="small" text-anchor="middle">Nodes: ~407K + 52 OntologyConcept</text>
+<text x="580" y="318" class="small" text-anchor="middle">Relationships: ~1.16M + 126,743 semantic</text>
+<text x="580" y="334" class="small" text-anchor="middle">Ontology codes: 100% coverage</text>
+<text x="580" y="350" class="small" text-anchor="middle">Relationship URIs: 30 types (1.2M rels)</text>
+<text x="580" y="366" class="small" text-anchor="middle">OntologyConcept nodes: 52 (4 ontologies)</text>
+<line x1="370" y1="320" x2="410" y2="320" stroke="#333" stroke-width="3" marker-end="url(#arrowhead)"/>
+</svg>

@@ -86,6 +86,12 @@ class SearchIndexer:
                         "png_path": {"type": "keyword", "fields": {"path": {"type": "text", "analyzer": "path_analyzer"}}},
                         "thumbnail_path": {"type": "keyword"},
 
+                    # JPEG2000 lossless archival (Step 5b)
+                    "j2k_path": {"type": "keyword", "fields": {"path": {"type": "text", "analyzer": "path_analyzer"}}},
+                    "j2k_compression_ratio": {"type": "float"},
+                    "j2k_lossless": {"type": "boolean"},
+                    "j2k_offset": {"type": "integer"},
+
                         # Image dimensions
                         "original_resolution": {
                             "properties": {

@@ -1,0 +1,76 @@
+{
+  "concepts": {
+    "G30": {
+      "code": "G30",
+      "label": "Alzheimer disease",
+      "parent": "G30-G32",
+      "definition": "A degenerative disease of the brain, of insidious onset"
+    },
+    "G30.0": {
+      "code": "G30.0",
+      "label": "Alzheimer disease with early onset",
+      "parent": "G30",
+      "definition": "Onset usually before the age of 65"
+    },
+    "G30.1": {
+      "code": "G30.1",
+      "label": "Alzheimer disease with late onset",
+      "parent": "G30",
+      "definition": "Onset usually after the age of 65"
+    },
+    "G30.9": {
+      "code": "G30.9",
+      "label": "Alzheimer disease, unspecified",
+      "parent": "G30",
+      "definition": "Alzheimer disease, unspecified as to onset"
+    },
+    "G30-G32": {
+      "code": "G30-G32",
+      "label": "Other degenerative diseases of the nervous system",
+      "parent": "G00-G99",
+      "definition": "Block for degenerative diseases"
+    },
+    "F06.7": {
+      "code": "F06.7",
+      "label": "Mild cognitive disorder",
+      "parent": "F06",
+      "definition": "A disorder characterized by impairment of memory, learning difficulties"
+    },
+    "F06": {
+      "code": "F06",
+      "label": "Other mental disorders due to brain damage and dysfunction",
+      "parent": "F00-F09",
+      "definition": "Mental disorders due to brain damage"
+    },
+    "F03.9": {
+      "code": "F03.9",
+      "label": "Unspecified dementia",
+      "parent": "F03",
+      "definition": "Dementia, unspecified severity, without behavioral disturbance"
+    },
+    "F03": {
+      "code": "F03",
+      "label": "Unspecified dementia",
+      "parent": "F00-F09",
+      "definition": "Presenile or senile dementia NOS"
+    },
+    "Z03.89": {
+      "code": "Z03.89",
+      "label": "No diagnosis or condition",
+      "parent": "Z03",
+      "definition": "Encounter for observation for other suspected diseases and conditions"
+    },
+    "R41.3": {
+      "code": "R41.3",
+      "label": "Other amnesia",
+      "parent": "R41",
+      "definition": "Amnesia NOS, excluding amnesia due to known physiological condition"
+    }
+  },
+  "metadata": {
+    "source": "ICD-10-CM 2024",
+    "version": "2024",
+    "scope": "ADNI-relevant diagnoses",
+    "created": "2026-02-24"
+  }
+}

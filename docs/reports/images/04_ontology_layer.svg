@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="480" viewBox="0 0 780 480">
+<defs>
+  <style>
+    text { font-family: "Segoe UI", Arial, sans-serif; }
+    .title { font-size: 18px; font-weight: bold; fill: #1a1a2e; }
+    .subtitle { font-size: 13px; fill: #555; }
+    .label { font-size: 11px; fill: #333; font-weight: 600; }
+    .small { font-size: 9px; fill: #666; }
+    .tiny { font-size: 8px; fill: #888; }
+    .count { font-size: 10px; fill: #0d47a1; font-weight: bold; }
+    .edge-label { font-size: 9px; fill: #c62828; font-weight: 600; }
+  </style>
+  <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+  </marker>
+  <marker id="arrowhead-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#c62828"/>
+  </marker>
+  <marker id="arrowhead-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#1565c0"/>
+  </marker>
+  <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#2e7d32"/>
+  </marker>
+</defs>
+<text x="390" y="28" class="title" text-anchor="middle">OntologyConcept Layer — IS_A Hierarchies & MAPS_TO</text>
+<text x="390" y="48" class="subtitle" text-anchor="middle">52 concept nodes across 4 ontologies + ICD-10</text>
+<rect x="50" y="75" width="200" height="220" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5" opacity="1.0"/>
+<text x="150" y="95" class="label" text-anchor="middle">SNOMED-CT (18)</text>
+<text x="100" y="115" class="tiny" text-anchor="start">Disease</text>
+<text x="110" y="135" class="tiny" text-anchor="start">Disorder of NS</text>
+<line x1="98" y1="127" x2="106" y2="131" stroke="#1565c0" stroke-width="1"/>
+<text x="120" y="155" class="tiny" text-anchor="start">Neurodegenerative</text>
+<line x1="108" y1="147" x2="116" y2="151" stroke="#1565c0" stroke-width="1"/>
+<text x="130" y="175" class="tiny" text-anchor="start">Dementia</text>
+<line x1="118" y1="167" x2="126" y2="171" stroke="#1565c0" stroke-width="1"/>
+<text x="140" y="195" class="tiny" text-anchor="start">Alzheimer's (26929004)</text>
+<line x1="128" y1="187" x2="136" y2="191" stroke="#1565c0" stroke-width="1"/>
+<text x="130" y="215" class="tiny" text-anchor="start">MCI (386806002)</text>
+<line x1="118" y1="207" x2="126" y2="211" stroke="#1565c0" stroke-width="1"/>
+<text x="100" y="240" class="tiny" text-anchor="start">Cognitive finding</text>
+<text x="100" y="260" class="tiny" text-anchor="start">CSF analysis</text>
+<rect x="270" y="75" width="170" height="160" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5" opacity="1.0"/>
+<text x="355" y="95" class="label" text-anchor="middle">LOINC (10)</text>
+<text x="280" y="115" class="tiny" text-anchor="start">72106-8  MMSE</text>
+<text x="280" y="131" class="tiny" text-anchor="start">72172-0  CDR</text>
+<text x="280" y="147" class="tiny" text-anchor="start">72194-4  ADAS-Cog</text>
+<text x="280" y="163" class="tiny" text-anchor="start">72133-2  MoCA</text>
+<text x="280" y="179" class="tiny" text-anchor="start">13967-5  Abeta42</text>
+<text x="280" y="195" class="tiny" text-anchor="start">15201-7  Tau</text>
+<text x="280" y="211" class="tiny" text-anchor="start">62731-6  pTau181</text>
+<rect x="460" y="75" width="170" height="220" rx="8" fill="#b2dfdb" stroke="#00695c" stroke-width="1.5" opacity="1.0"/>
+<text x="545" y="95" class="label" text-anchor="middle">UBERON (14)</text>
+<text x="470" y="115" class="tiny" text-anchor="start">Brain</text>
+<text x="480" y="135" class="tiny" text-anchor="start">Cerebral cortex</text>
+<text x="490" y="155" class="tiny" text-anchor="start">Hippocampus</text>
+<text x="490" y="175" class="tiny" text-anchor="start">Entorhinal cortex</text>
+<text x="490" y="195" class="tiny" text-anchor="start">Frontal lobe</text>
+<text x="490" y="215" class="tiny" text-anchor="start">Temporal lobe</text>
+<text x="480" y="235" class="tiny" text-anchor="start">Amygdala</text>
+<text x="480" y="255" class="tiny" text-anchor="start">Thalamus</text>
+<text x="480" y="275" class="tiny" text-anchor="start">Cerebellum</text>
+<rect x="650" y="75" width="120" height="120" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5" opacity="1.0"/>
+<text x="710" y="95" class="label" text-anchor="middle">HPO (5)</text>
+<text x="660" y="115" class="tiny" text-anchor="start">Cognitive imp.</text>
+<text x="660" y="131" class="tiny" text-anchor="start">Dementia</text>
+<text x="660" y="147" class="tiny" text-anchor="start">Memory imp.</text>
+<text x="660" y="163" class="tiny" text-anchor="start">Mental deter.</text>
+<text x="660" y="179" class="tiny" text-anchor="start">Behavioral abn.</text>
+<rect x="650" y="210" width="120" height="85" rx="8" fill="#fce4ec" stroke="#880e4f" stroke-width="1.5" opacity="1.0"/>
+<text x="710" y="230" class="label" text-anchor="middle">ICD-10 (5)</text>
+<text x="660" y="250" class="tiny" text-anchor="start">G30.9 AD</text>
+<text x="660" y="263" class="tiny" text-anchor="start">G30 parent</text>
+<text x="660" y="276" class="tiny" text-anchor="start">F06.7 MCI</text>
+<text x="660" y="289" class="tiny" text-anchor="start">F06 parent</text>
+<text x="660" y="302" class="tiny" text-anchor="start">Z03.89 CN</text>
+<rect x="30" y="330" width="720" height="130" rx="8" fill="#fafafa" stroke="#bbb" stroke-width="1.5" opacity="1.0"/>
+<text x="390" y="352" class="label" text-anchor="middle">MAPS_TO Edge Distribution</text>
+<text x="55" y="377" class="tiny" text-anchor="end">Diagnosis -> SNOMED-CT</text>
+<text x="55" y="377" class="tiny" text-anchor="end">Diagnosis</text>
+<rect x="230" y="365" width="158" height="14" fill="#c62828" rx="3" opacity="0.8"/>
+<text x="393" y="377" class="count" text-anchor="start">25,946</text>
+<text x="55" y="397" class="tiny" text-anchor="end">CognitiveAssessment -> LOINC</text>
+<text x="55" y="397" class="tiny" text-anchor="end">CognitiveAssessment</text>
+<rect x="230" y="385" width="400" height="14" fill="#f9a825" rx="3" opacity="0.8"/>
+<text x="635" y="397" class="count" text-anchor="start">65,345</text>
+<text x="55" y="417" class="tiny" text-anchor="end">Biomarker (CSF) -> LOINC</text>
+<text x="55" y="417" class="tiny" text-anchor="end">Biomarker (CSF)</text>
+<rect x="230" y="405" width="57" height="14" fill="#7b1fa2" rx="3" opacity="0.8"/>
+<text x="292" y="417" class="count" text-anchor="start">9,467</text>
+<text x="55" y="437" class="tiny" text-anchor="end">BrainRegion -> UBERON</text>
+<text x="55" y="437" class="tiny" text-anchor="end">BrainRegion</text>
+<rect x="230" y="425" width="4" height="14" fill="#00695c" rx="3" opacity="0.8"/>
+<text x="239" y="437" class="count" text-anchor="start">12</text>
+<text x="55" y="457" class="tiny" text-anchor="end">Diagnosis -> ICD-10 (CLASSIFIED_AS)</text>
+<text x="55" y="457" class="tiny" text-anchor="end">Diagnosis</text>
+<rect x="230" y="445" width="158" height="14" fill="#880e4f" rx="3" opacity="0.8"/>
+<text x="393" y="457" class="count" text-anchor="start">25,946</text>
+</svg>

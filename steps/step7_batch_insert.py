@@ -4,6 +4,8 @@ Handles batch insertion with proper error handling and null checks
 """
 
 import logging
+import hashlib
+import uuid
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 import json
@@ -17,6 +19,22 @@ from utils.neo4j_connector import Neo4jConnector
 from utils.batch_processor import BatchProcessor
 
 logger = logging.getLogger(__name__)
+
+
+def compute_row_hash(data: Dict[str, Any]) -> str:
+    """Compute a deterministic SHA-256 hash of a data row.
+
+    The hash covers all non-null, non-internal values so that identical
+    source data always produces the same hash regardless of insertion order.
+    Internal fields (prefixed with ``_``) are excluded.
+    """
+    # Sort keys for determinism; exclude internal tracking fields
+    canonical = {
+        k: v for k, v in sorted(data.items())
+        if v is not None and not k.startswith('_')
+    }
+    payload = json.dumps(canonical, sort_keys=True, default=str).encode('utf-8')
+    return hashlib.sha256(payload).hexdigest()
 
 
 class BatchInserter:
@@ -40,6 +58,8 @@ class BatchInserter:
         self.connector = connector
         self.batch_processor = BatchProcessor()
         self.insertion_stats = {}
+        # Generate a unique batch ID for this execution run
+        self.batch_id = f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
 
     def execute(self, data_objects: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -174,47 +194,57 @@ class BatchInserter:
         return results
 
     def _insert_imaging_studies_batch(self, studies: List[ImagingStudy]) -> int:
-        """Insert imaging studies with improved error handling"""
+        """Insert imaging studies with hash-based change detection"""
         query = """
         UNWIND $batch as study
         MERGE (s:ImagingStudy {study_id: study.study_id})
-        SET s += study
+        ON CREATE SET s += study,
+                      s.data_hash = study._hash,
+                      s.created_at = datetime(),
+                      s.batch_id = study._batch_id,
+                      s.source_table = study._source_table
+        ON MATCH SET s.updated_at = CASE WHEN s.data_hash <> study._hash
+                     THEN datetime() ELSE s.updated_at END,
+                     s.data_hash = study._hash,
+                     s += CASE WHEN s.data_hash <> study._hash
+                     THEN study ELSE {} END
         """
 
-        # Convert to dictionaries and clean data
-        study_data = []
-        for study in studies:
-            try:
-                data = study.to_dict() if hasattr(study, 'to_dict') else study.__dict__
-                # Remove None values
-                data = {k: v for k, v in data.items() if v is not None}
-                study_data.append(data)
-            except Exception as e:
-                logger.warning(f"Skipping invalid study: {e}")
-                continue
+        study_data = self._prepare_batch_data(
+            studies, source_table='imaging_studies'
+        )
 
         if not study_data:
             return 0
 
-        return self.connector.batch_write(
-            query,
-            study_data,
+        count = self.connector.batch_write(
+            query, study_data,
             batch_size=self.BATCH_SIZES['imaging_studies']
         )
+        self._record_batch_ingestion('imaging_studies', len(study_data), count)
+        return count
 
     def _insert_images_batch(self, images: List[ImageNode]) -> int:
-        """Insert images with improved batching"""
+        """Insert images with hash-based change detection"""
         query = """
         UNWIND $batch as image
         MERGE (i:ImageNode {image_id: image.image_id})
-        SET i += image
+        ON CREATE SET i += image,
+                      i.data_hash = image._hash,
+                      i.created_at = datetime(),
+                      i.batch_id = image._batch_id,
+                      i.source_table = image._source_table
+        ON MATCH SET i.updated_at = CASE WHEN i.data_hash <> image._hash
+                     THEN datetime() ELSE i.updated_at END,
+                     i.data_hash = image._hash,
+                     i += CASE WHEN i.data_hash <> image._hash
+                     THEN image ELSE {} END
         WITH i, image
         WHERE image.study_id IS NOT NULL
         MATCH (s:ImagingStudy {study_id: image.study_id})
         MERGE (s)-[:HAS_IMAGE]->(i)
         """
 
-        # Process in smaller batches for images
         total_inserted = 0
         batch_size = self.BATCH_SIZES['images']
 
@@ -225,9 +255,12 @@ class BatchInserter:
             for img in batch:
                 try:
                     data = img.to_dict() if hasattr(img, 'to_dict') else img.__dict__
-                    # Remove None values and complex objects
                     data = {k: v for k, v in data.items()
                            if v is not None and not isinstance(v, (list, dict))}
+                    row_hash = compute_row_hash(data)
+                    data['_hash'] = row_hash
+                    data['_batch_id'] = self.batch_id
+                    data['_source_table'] = 'images'
                     image_data.append(data)
                 except Exception as e:
                     logger.warning(f"Skipping invalid image: {e}")
@@ -238,14 +271,24 @@ class BatchInserter:
                 total_inserted += count
                 logger.debug(f"Inserted batch {i//batch_size + 1}: {count} images")
 
+        self._record_batch_ingestion('images', len(images), total_inserted)
         return total_inserted
 
     def _insert_cognitive_batch(self, assessments: List[CognitiveAssessment]) -> int:
-        """Insert cognitive assessments"""
+        """Insert cognitive assessments with hash-based change detection"""
         query = """
         UNWIND $batch as assessment
         MERGE (a:CognitiveAssessment {assessment_id: assessment.assessment_id})
-        SET a += assessment
+        ON CREATE SET a += assessment,
+                      a.data_hash = assessment._hash,
+                      a.created_at = datetime(),
+                      a.batch_id = assessment._batch_id,
+                      a.source_table = assessment._source_table
+        ON MATCH SET a.updated_at = CASE WHEN a.data_hash <> assessment._hash
+                     THEN datetime() ELSE a.updated_at END,
+                     a.data_hash = assessment._hash,
+                     a += CASE WHEN a.data_hash <> assessment._hash
+                     THEN assessment ELSE {} END
         WITH a, assessment
         WHERE assessment.visit_id IS NOT NULL
         MATCH (v:Visit {visit_id: assessment.visit_id})
@@ -256,12 +299,14 @@ class BatchInserter:
         for assessment in assessments:
             try:
                 data = assessment.to_dict() if hasattr(assessment, 'to_dict') else assessment.__dict__
-                # Handle subscores as JSON
                 if 'subscores' in data and isinstance(data['subscores'], dict):
                     data['subscores_json'] = json.dumps(data['subscores'])
                     del data['subscores']
-                # Remove None values
                 data = {k: v for k, v in data.items() if v is not None}
+                row_hash = compute_row_hash(data)
+                data['_hash'] = row_hash
+                data['_batch_id'] = self.batch_id
+                data['_source_table'] = 'cognitive_assessments'
                 assessment_data.append(data)
             except Exception as e:
                 logger.warning(f"Skipping invalid assessment: {e}")
@@ -270,49 +315,63 @@ class BatchInserter:
         if not assessment_data:
             return 0
 
-        return self.connector.batch_write(
-            query,
-            assessment_data,
+        count = self.connector.batch_write(
+            query, assessment_data,
             batch_size=self.BATCH_SIZES['cognitive']
         )
+        self._record_batch_ingestion('cognitive_assessments', len(assessment_data), count)
+        return count
 
     def _insert_biomarkers_batch(self, biomarkers: List[Biomarker]) -> int:
-        """Insert biomarkers"""
+        """Insert biomarkers with hash-based change detection"""
         query = """
         UNWIND $batch as biomarker
         MERGE (b:Biomarker {biomarker_id: biomarker.biomarker_id})
-        SET b += biomarker
+        ON CREATE SET b += biomarker,
+                      b.data_hash = biomarker._hash,
+                      b.created_at = datetime(),
+                      b.batch_id = biomarker._batch_id,
+                      b.source_table = biomarker._source_table
+        ON MATCH SET b.updated_at = CASE WHEN b.data_hash <> biomarker._hash
+                     THEN datetime() ELSE b.updated_at END,
+                     b.data_hash = biomarker._hash,
+                     b += CASE WHEN b.data_hash <> biomarker._hash
+                     THEN biomarker ELSE {} END
         WITH b, biomarker
         WHERE biomarker.visit_id IS NOT NULL
         MATCH (v:Visit {visit_id: biomarker.visit_id})
         MERGE (v)-[:HAS_BIOMARKER]->(b)
         """
 
-        biomarker_data = []
-        for biomarker in biomarkers:
-            try:
-                data = biomarker.to_dict() if hasattr(biomarker, 'to_dict') else biomarker.__dict__
-                data = {k: v for k, v in data.items() if v is not None}
-                biomarker_data.append(data)
-            except Exception as e:
-                logger.warning(f"Skipping invalid biomarker: {e}")
-                continue
+        biomarker_data = self._prepare_batch_data(
+            biomarkers, source_table='biomarkers'
+        )
 
         if not biomarker_data:
             return 0
 
-        return self.connector.batch_write(
-            query,
-            biomarker_data,
+        count = self.connector.batch_write(
+            query, biomarker_data,
             batch_size=self.BATCH_SIZES['biomarkers']
         )
+        self._record_batch_ingestion('biomarkers', len(biomarker_data), count)
+        return count
 
     def _insert_diagnoses_batch(self, diagnoses: List[Diagnosis]) -> int:
-        """Insert diagnoses"""
+        """Insert diagnoses with hash-based change detection"""
         query = """
         UNWIND $batch as diagnosis
         MERGE (d:Diagnosis {diagnosis_id: diagnosis.diagnosis_id})
-        SET d += diagnosis
+        ON CREATE SET d += diagnosis,
+                      d.data_hash = diagnosis._hash,
+                      d.created_at = datetime(),
+                      d.batch_id = diagnosis._batch_id,
+                      d.source_table = diagnosis._source_table
+        ON MATCH SET d.updated_at = CASE WHEN d.data_hash <> diagnosis._hash
+                     THEN datetime() ELSE d.updated_at END,
+                     d.data_hash = diagnosis._hash,
+                     d += CASE WHEN d.data_hash <> diagnosis._hash
+                     THEN diagnosis ELSE {} END
         WITH d, diagnosis
         WHERE diagnosis.visit_id IS NOT NULL
         MATCH (v:Visit {visit_id: diagnosis.visit_id})
@@ -323,92 +382,145 @@ class BatchInserter:
         MERGE (p)-[:HAS_DIAGNOSIS]->(d)
         """
 
-        diagnosis_data = []
-        for diagnosis in diagnoses:
-            try:
-                data = diagnosis.to_dict() if hasattr(diagnosis, 'to_dict') else diagnosis.__dict__
-                data = {k: v for k, v in data.items() if v is not None}
-                diagnosis_data.append(data)
-            except Exception as e:
-                logger.warning(f"Skipping invalid diagnosis: {e}")
-                continue
+        diagnosis_data = self._prepare_batch_data(
+            diagnoses, source_table='diagnoses'
+        )
 
         if not diagnosis_data:
             return 0
 
-        return self.connector.batch_write(
-            query,
-            diagnosis_data,
+        count = self.connector.batch_write(
+            query, diagnosis_data,
             batch_size=self.BATCH_SIZES['diagnoses']
         )
+        self._record_batch_ingestion('diagnoses', len(diagnosis_data), count)
+        return count
 
     def _insert_volumetric_batch(self, measures: List[VolumetricMeasure]) -> int:
-        """Insert volumetric measures"""
+        """Insert volumetric measures with hash-based change detection"""
         query = """
         UNWIND $batch as measure
         MERGE (m:VolumetricMeasure {measure_id: measure.measure_id})
-        SET m += measure
+        ON CREATE SET m += measure,
+                      m.data_hash = measure._hash,
+                      m.created_at = datetime(),
+                      m.batch_id = measure._batch_id,
+                      m.source_table = measure._source_table
+        ON MATCH SET m.updated_at = CASE WHEN m.data_hash <> measure._hash
+                     THEN datetime() ELSE m.updated_at END,
+                     m.data_hash = measure._hash,
+                     m += CASE WHEN m.data_hash <> measure._hash
+                     THEN measure ELSE {} END
         WITH m, measure
         WHERE measure.visit_id IS NOT NULL
         MATCH (v:Visit {visit_id: measure.visit_id})
         MERGE (v)-[:HAS_VOLUMETRIC_MEASURE]->(m)
         """
 
-        measure_data = []
-        for measure in measures:
-            try:
-                data = measure.to_dict() if hasattr(measure, 'to_dict') else measure.__dict__
-                data = {k: v for k, v in data.items() if v is not None}
-                measure_data.append(data)
-            except Exception as e:
-                logger.warning(f"Skipping invalid measure: {e}")
-                continue
+        measure_data = self._prepare_batch_data(
+            measures, source_table='volumetric_measures'
+        )
 
         if not measure_data:
             return 0
 
-        return self.connector.batch_write(
-            query,
-            measure_data,
+        count = self.connector.batch_write(
+            query, measure_data,
             batch_size=self.BATCH_SIZES['volumetric']
         )
+        self._record_batch_ingestion('volumetric_measures', len(measure_data), count)
+        return count
 
     def _insert_pet_batch(self, bindings: List[PETBinding]) -> int:
-        """Insert PET bindings"""
+        """Insert PET bindings with hash-based change detection"""
         query = """
         UNWIND $batch as binding
         MERGE (b:PETBinding {binding_id: binding.binding_id})
-        SET b += binding
+        ON CREATE SET b += binding,
+                      b.data_hash = binding._hash,
+                      b.created_at = datetime(),
+                      b.batch_id = binding._batch_id,
+                      b.source_table = binding._source_table
+        ON MATCH SET b.updated_at = CASE WHEN b.data_hash <> binding._hash
+                     THEN datetime() ELSE b.updated_at END,
+                     b.data_hash = binding._hash,
+                     b += CASE WHEN b.data_hash <> binding._hash
+                     THEN binding ELSE {} END
         WITH b, binding
         WHERE binding.visit_id IS NOT NULL
         MATCH (v:Visit {visit_id: binding.visit_id})
         MERGE (v)-[:HAS_PET_BINDING]->(b)
         """
 
-        binding_data = []
-        for binding in bindings:
-            try:
-                data = binding.to_dict() if hasattr(binding, 'to_dict') else binding.__dict__
-                data = {k: v for k, v in data.items() if v is not None}
-                binding_data.append(data)
-            except Exception as e:
-                logger.warning(f"Skipping invalid binding: {e}")
-                continue
+        binding_data = self._prepare_batch_data(
+            bindings, source_table='pet_bindings'
+        )
 
         if not binding_data:
             return 0
 
-        return self.connector.batch_write(
-            query,
-            binding_data,
+        count = self.connector.batch_write(
+            query, binding_data,
             batch_size=self.BATCH_SIZES['pet_bindings']
         )
+        self._record_batch_ingestion('pet_bindings', len(binding_data), count)
+        return count
+
+    def _prepare_batch_data(
+        self,
+        entities: list,
+        source_table: str,
+    ) -> List[Dict[str, Any]]:
+        """Convert entity objects to dicts, inject hash + tracking metadata.
+
+        Internal keys (``_hash``, ``_batch_id``, ``_source_table``) are
+        prefixed with ``_`` so that ``compute_row_hash`` excludes them.
+        """
+        prepared: List[Dict[str, Any]] = []
+        for entity in entities:
+            try:
+                data = entity.to_dict() if hasattr(entity, 'to_dict') else entity.__dict__
+                data = {k: v for k, v in data.items() if v is not None}
+                row_hash = compute_row_hash(data)
+                data['_hash'] = row_hash
+                data['_batch_id'] = self.batch_id
+                data['_source_table'] = source_table
+                prepared.append(data)
+            except Exception as e:
+                logger.warning(f"Skipping invalid entity ({source_table}): {e}")
+                continue
+        return prepared
+
+    def _record_batch_ingestion(
+        self,
+        source_table: str,
+        total_rows: int,
+        written_rows: int,
+    ) -> None:
+        """Create a BatchIngestion meta-node for audit trail."""
+        try:
+            query = """
+            MERGE (bi:BatchIngestion {batch_id: $batch_id, source_table: $source_table})
+            SET bi.timestamp      = datetime(),
+                bi.total_rows     = $total_rows,
+                bi.written_rows   = $written_rows,
+                bi.source_table   = $source_table
+            """
+            self.connector.run_query(query, {
+                'batch_id': self.batch_id,
+                'source_table': source_table,
+                'total_rows': total_rows,
+                'written_rows': written_rows,
+            })
+        except Exception as e:
+            logger.warning(f"Failed to record batch ingestion meta-node: {e}")
 
     def _log_insertion_summary(self, results: Dict[str, Any]) -> None:
         """Log detailed insertion summary"""
         logger.info("\n" + "=" * 60)
         logger.info("BATCH INSERTION SUMMARY")
         logger.info("=" * 60)
+        logger.info(f"Batch ID: {self.batch_id}")
 
         logger.info(f"Total entities inserted: {results['total_inserted']:,}")
 

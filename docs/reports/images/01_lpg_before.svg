@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="520" viewBox="0 0 780 520">
+<defs>
+  <style>
+    text { font-family: "Segoe UI", Arial, sans-serif; }
+    .title { font-size: 18px; font-weight: bold; fill: #1a1a2e; }
+    .subtitle { font-size: 13px; fill: #555; }
+    .label { font-size: 11px; fill: #333; font-weight: 600; }
+    .small { font-size: 9px; fill: #666; }
+    .tiny { font-size: 8px; fill: #888; }
+    .count { font-size: 10px; fill: #0d47a1; font-weight: bold; }
+    .edge-label { font-size: 9px; fill: #c62828; font-weight: 600; }
+  </style>
+  <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+  </marker>
+  <marker id="arrowhead-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#c62828"/>
+  </marker>
+  <marker id="arrowhead-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#1565c0"/>
+  </marker>
+  <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#2e7d32"/>
+  </marker>
+</defs>
+<text x="390" y="30" class="title" text-anchor="middle">ADNI Labeled Property Graph (LPG) — Before Phase 1</text>
+<text x="390" y="50" class="subtitle" text-anchor="middle">~407K nodes, ~1.16M relationships | No ontology grounding</text>
+<circle cx="390" cy="180" r="42" fill="#bbdefb" stroke="#1565c0" stroke-width="1.5"/>
+<text x="390" y="176" class="label" text-anchor="middle">Patient</text>
+<text x="390" y="191" class="count" text-anchor="middle">2,638</text>
+<circle cx="180" cy="300" r="36" fill="#c8e6c9" stroke="#2e7d32" stroke-width="1.5"/>
+<text x="180" y="296" class="label" text-anchor="middle">Visit</text>
+<text x="180" y="311" class="count" text-anchor="middle">30,267</text>
+<circle cx="390" cy="400" r="36" fill="#ffcdd2" stroke="#c62828" stroke-width="1.5"/>
+<text x="390" y="396" class="label" text-anchor="middle">Diagnosis</text>
+<text x="390" y="411" class="count" text-anchor="middle">25,946</text>
+<circle cx="600" cy="300" r="36" fill="#fff9c4" stroke="#f9a825" stroke-width="1.5"/>
+<text x="600" y="296" class="label" text-anchor="middle">CogAssess</text>
+<text x="600" y="311" class="count" text-anchor="middle">65,345</text>
+<circle cx="100" cy="180" r="34" fill="#e1bee7" stroke="#7b1fa2" stroke-width="1.5"/>
+<text x="100" y="176" class="label" text-anchor="middle">Biomarker</text>
+<text x="100" y="191" class="count" text-anchor="middle">9,467</text>
+<circle cx="680" cy="180" r="30" fill="#b2dfdb" stroke="#00695c" stroke-width="1.5"/>
+<text x="680" y="176" class="label" text-anchor="middle">BrainReg</text>
+<text x="680" y="191" class="count" text-anchor="middle">12</text>
+<circle cx="600" cy="440" r="30" fill="#ffe0b2" stroke="#e65100" stroke-width="1.5"/>
+<text x="600" y="436" class="label" text-anchor="middle">DxStage</text>
+<text x="600" y="451" class="count" text-anchor="middle">5</text>
+<circle cx="180" cy="120" r="30" fill="#d1c4e9" stroke="#4527a0" stroke-width="1.5"/>
+<text x="180" y="116" class="label" text-anchor="middle">Genetic</text>
+<text x="180" y="131" class="count" text-anchor="middle">~2.6K</text>
+<line x1="360" y1="210" x2="210" y2="275" stroke="#1565c0" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+<text x="270" y="235" class="edge-label" text-anchor="middle">HAS_VISIT</text>
+<line x1="195" y1="330" x2="360" y2="385" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+<text x="260" y="365" class="edge-label" text-anchor="middle">HAS_DIAGNOSIS</text>
+<line x1="420" y1="210" x2="575" y2="275" stroke="#f9a825" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+<text x="520" y="235" class="edge-label" text-anchor="middle">HAS_COGNITIVE</text>
+<line x1="145" y1="195" x2="155" y2="275" stroke="#7b1fa2" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+<text x="115" y="245" class="edge-label" text-anchor="middle">HAS_BIO</text>
+<line x1="420" y1="430" x2="575" y2="435" stroke="#e65100" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+<text x="500" y="425" class="edge-label" text-anchor="middle">IN_STAGE</text>
+<line x1="340" y1="155" x2="210" y2="130" stroke="#4527a0" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+<text x="265" y="130" class="edge-label" text-anchor="middle">HAS_GENETIC</text>
+<rect x="20" y="460" width="740" height="50" rx="6" fill="#fff3e0" stroke="#e65100" stroke-width="1.5" opacity="1.0"/>
+<text x="390" y="480" class="small" text-anchor="middle">LPG Properties: ptid, viscode, diagnosis_code='AD', test_name='MMSE', total_score=28</text>
+<text x="390" y="496" class="tiny" text-anchor="middle">NO snomed_code | NO loinc_code | NO uberon_code | NO rdf_type | NO URI on relationships</text>
+</svg>

@@ -31,6 +31,10 @@ from steps.step12_complete_graph_enhancement import execute_complete_graph_enhan
 from steps.step13_graph_eda import execute_graph_eda
 from steps.step14_test_queries import execute_research_queries
 from steps.step15_event_based_model import execute_event_based_model
+from steps.step17_apply_constraints import execute_constraints
+from steps.step18_add_ontology_properties import execute_ontology_properties
+from steps.step19_icd10_integration import execute_icd10_integration
+from steps.step20_ontology_layer import execute_ontology_layer
 from utils.quality_aware_logger import QualityAwarePipeline
 
 LOG_FMT = "%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s"
@@ -181,6 +185,19 @@ class ADNIPipeline:
             # Step 15: Event based graph
             if self.config.get('run_complete_graph_enhancement', True):
                 self._run_step(15, "Event Based Model", self._execute_event_based_model)
+
+            # ── Phase 1: Schema Migration (Steps 17-20) ──────────────
+            if self.config.get('run_apply_constraints', False):
+                self._run_step(17, "Apply Constraints", self._execute_constraints)
+
+            if self.config.get('run_ontology_properties', False):
+                self._run_step(18, "Add Ontology Properties", self._execute_ontology_properties)
+
+            if self.config.get('run_icd10_integration', False):
+                self._run_step(19, "ICD-10 Integration", self._execute_icd10_integration)
+
+            if self.config.get('run_ontology_layer', False):
+                self._run_step(20, "Ontology Layer", self._execute_ontology_layer)
 
             # Generate final report
             self._generate_final_report()
@@ -446,6 +463,41 @@ class ADNIPipeline:
             neo4j_uri=self.config['neo4j_uri'],
             neo4j_user=self.config['neo4j_user'],
             neo4j_password=self.config['neo4j_password']
+        )
+
+    # ── Phase 1: Schema Migration ─────────────────────────────────
+
+    def _execute_constraints(self) -> Dict[str, Any]:
+        """Execute Step 17: Apply composite constraints and indexes"""
+        return execute_constraints(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password'],
+        )
+
+    def _execute_ontology_properties(self) -> Dict[str, Any]:
+        """Execute Step 18: Add ontology properties to existing nodes"""
+        return execute_ontology_properties(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password'],
+        )
+
+    def _execute_icd10_integration(self) -> Dict[str, Any]:
+        """Execute Step 19: ICD-10 integration"""
+        return execute_icd10_integration(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password'],
+            config=self.config,
+        )
+
+    def _execute_ontology_layer(self) -> Dict[str, Any]:
+        """Execute Step 20: Build ontology layer + MAPS_TO"""
+        return execute_ontology_layer(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password'],
         )
 
     def _generate_final_report(self):
