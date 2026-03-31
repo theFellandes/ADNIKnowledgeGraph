@@ -31,10 +31,20 @@ from steps.step12_complete_graph_enhancement import execute_complete_graph_enhan
 from steps.step13_graph_eda import execute_graph_eda
 from steps.step14_test_queries import execute_research_queries
 from steps.step15_event_based_model import execute_event_based_model
+from steps.step16_create_metrics import run_comprehensive_metrics_analysis
 from steps.step17_apply_constraints import execute_constraints
 from steps.step18_add_ontology_properties import execute_ontology_properties
 from steps.step19_icd10_integration import execute_icd10_integration
 from steps.step20_ontology_layer import execute_ontology_layer
+from steps.step21_extract_causal_features import execute_causal_features
+from steps.step22_causal_discovery import execute_causal_discovery
+from steps.step23_embed_causal_edges import execute_causal_edges
+from steps.step24_alzkb_bridge import execute_alzkb_bridge
+from steps.step25_validate_causal import execute_validate_causal
+from steps.step26_dowhy_inference import execute_dowhy_inference
+from steps.step27_final_stats import execute_final_stats
+from steps.step28_thesis_figures import execute_thesis_figures
+from steps.step29_kg_eda import execute_kg_eda
 from utils.quality_aware_logger import QualityAwarePipeline
 
 LOG_FMT = "%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s"
@@ -159,7 +169,7 @@ class ADNIPipeline:
                 self._run_step(8, "Create Relationships", self._execute_relationship_creation)
 
             # Step 9: Enhance Knowledge Graph
-            if self.config.get('run_knowledge_graph_enhancer', True):
+            if self.config.get('run_knowledge_enhancement', True):
                 self._run_step(9, "Enhance Knowledge Graph", self._execute_knowledge_enhancement)
 
             # Step 10: Execute Queries
@@ -186,6 +196,10 @@ class ADNIPipeline:
             if self.config.get('run_complete_graph_enhancement', True):
                 self._run_step(15, "Event Based Model", self._execute_event_based_model)
 
+            # Step 16: Create Metrics
+            if self.config.get('run_create_metrics', True):
+                self._run_step(16, "Create Metrics", self._execute_create_metrics)
+
             # ── Phase 1: Schema Migration (Steps 17-20) ──────────────
             if self.config.get('run_apply_constraints', False):
                 self._run_step(17, "Apply Constraints", self._execute_constraints)
@@ -198,6 +212,37 @@ class ADNIPipeline:
 
             if self.config.get('run_ontology_layer', False):
                 self._run_step(20, "Ontology Layer", self._execute_ontology_layer)
+
+            # ── Phase 2: Causal Discovery (Steps 21-23) ─────────────
+            if self.config.get('run_causal_feature_extraction', False):
+                self._run_step(21, "Extract Causal Features", self._execute_causal_features)
+
+            if self.config.get('run_causal_discovery', False):
+                self._run_step(22, "Causal Discovery", self._execute_causal_discovery)
+
+            if self.config.get('run_embed_causal_edges', False):
+                self._run_step(23, "Embed CAUSES Edges", self._execute_causal_edges)
+
+            # ── Phase 3: Validation & Integration (Steps 24-26) ────
+            if self.config.get('run_alzkb_bridge', False):
+                self._run_step(24, "AlzKB Bridge", self._execute_alzkb_bridge)
+
+            if self.config.get('run_evaluate_causality', False):
+                self._run_step(25, "Validate Causal Edges", self._execute_validate_causal)
+
+            if self.config.get('run_dowhy_inference', False):
+                self._run_step(26, "DoWhy Causal Inference", self._execute_dowhy_inference)
+
+            # ── Phase 4: Documentation & Defense Prep (Steps 27-28) ──
+            if self.config.get('run_final_stats', False):
+                self._run_step(27, "Final Statistics", self._execute_final_stats)
+
+            if self.config.get('run_thesis_figures', False):
+                self._run_step(28, "Thesis Figures", self._execute_thesis_figures)
+
+            # ── Step 29: Knowledge Graph EDA ──────────────────────────
+            if self.config.get('run_kg_eda', False):
+                self._run_step(29, "KG Exploratory Data Analysis", self._execute_kg_eda)
 
             # Generate final report
             self._generate_final_report()
@@ -254,7 +299,10 @@ class ADNIPipeline:
                 'status': 'failed',
                 'error': str(e)
             }
-            raise
+            if self.config.get('error_handling', {}).get('continue_on_error', False):
+                self.logger.warning(f"  Continuing despite error (continue_on_error=true)")
+            else:
+                raise
 
     def _execute_database_setup(self) -> Dict[str, Any]:
         """Execute database setup step with ES clearing support"""
@@ -465,6 +513,14 @@ class ADNIPipeline:
             neo4j_password=self.config['neo4j_password']
         )
 
+    def _execute_create_metrics(self) -> Dict[str, Any]:
+        """Execute Step 16: Create performance metrics"""
+        return run_comprehensive_metrics_analysis(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password'],
+        )
+
     # ── Phase 1: Schema Migration ─────────────────────────────────
 
     def _execute_constraints(self) -> Dict[str, Any]:
@@ -498,6 +554,74 @@ class ADNIPipeline:
             neo4j_uri=self.config['neo4j_uri'],
             neo4j_user=self.config['neo4j_user'],
             neo4j_password=self.config['neo4j_password'],
+        )
+
+    # ── Phase 2: Causal Discovery ──────────────────────────────────
+
+    def _execute_causal_features(self) -> Dict[str, Any]:
+        """Execute Step 21: Extract causal feature matrix from KG"""
+        return execute_causal_features(
+            config=self.config,
+            connector=self.connector,
+        )
+
+    def _execute_causal_discovery(self) -> Dict[str, Any]:
+        """Execute Step 22: Run PC/FCI/GES causal discovery algorithms"""
+        return execute_causal_discovery(
+            config=self.config,
+        )
+
+    def _execute_causal_edges(self) -> Dict[str, Any]:
+        """Execute Step 23: Embed CAUSES edges into Neo4j"""
+        return execute_causal_edges(
+            config=self.config,
+            connector=self.connector,
+        )
+
+    # ── Phase 3: Validation & Integration ─────────────────────────
+
+    def _execute_alzkb_bridge(self) -> Dict[str, Any]:
+        """Execute Step 24: AlzKB Bridge — create SAME_AS links"""
+        return execute_alzkb_bridge(
+            config=self.config,
+            connector=self.connector,
+        )
+
+    def _execute_validate_causal(self) -> Dict[str, Any]:
+        """Execute Step 25: Validate CAUSES edges against ground truth"""
+        return execute_validate_causal(
+            config=self.config,
+            connector=self.connector,
+        )
+
+    def _execute_dowhy_inference(self) -> Dict[str, Any]:
+        """Execute Step 26: DoWhy causal effect estimation"""
+        return execute_dowhy_inference(
+            config=self.config,
+        )
+
+    # ── Phase 4: Documentation & Defense Prep ─────────────────
+
+    def _execute_final_stats(self) -> Dict[str, Any]:
+        """Execute Step 27: Collect and report final graph statistics"""
+        return execute_final_stats(
+            config=self.config,
+            connector=self.connector,
+        )
+
+    def _execute_thesis_figures(self) -> Dict[str, Any]:
+        """Execute Step 28: Generate publication-quality thesis figures"""
+        return execute_thesis_figures(
+            config=self.config,
+        )
+
+    def _execute_kg_eda(self) -> Dict[str, Any]:
+        """Execute Step 29: Knowledge Graph Exploratory Data Analysis"""
+        return execute_kg_eda(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password'],
+            output_dir=str(Path(self.config.get('output_dir', 'outputs')) / 'eda_figures'),
         )
 
     def _generate_final_report(self):

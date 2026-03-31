@@ -98,7 +98,7 @@ image_storage:
     png: true
     thumbnail: true
     smooth_tiff: false
-    jpeg2000: false # Lossless archival via glymur (Step 5b)
+    jpeg2000: true # Lossless archival via glymur (Step 5b)
     pyramid_tiff: false # MUST be false
 
   # Elasticsearch indexing for images
@@ -181,11 +181,12 @@ run_causal_discovery: false # Step 22: PC/FCI/GES algorithms
 run_embed_causal_edges: false # Step 23: Write CAUSES edges (with run_id)
 
 # Phase 3: Validation & Integration
-run_alzkb_bridge: false # Step 24: AlzKB SAME_AS integration
+run_alzkb_bridge: true # Step 24: AlzKB SAME_AS integration
 run_evaluate_causality: false # Step 25: SHD, F1, precision/recall
 run_dowhy_inference: false # Step 26: Causal effect estimation
-run_final_stats: false # Step 27: Graph statistics report
-run_thesis_figures: false # Step 28: Publication-quality figures
+run_final_stats: true # Step 27: Graph statistics report
+run_thesis_figures: true # Step 28: Publication-quality figures
+run_kg_eda: true # Step 29: KG Exploratory Data Analysis (13 figures)
 
 # ============================================================================
 # EXTERNAL API SETTINGS (keys loaded from .env via utils/env_loader.py)

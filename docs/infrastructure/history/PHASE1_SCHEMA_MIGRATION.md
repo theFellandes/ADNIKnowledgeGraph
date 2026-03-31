@@ -102,20 +102,25 @@
 - [ ] Hash-based change detection for incremental ingestion (Step 7b)
 
 ### Phase 2: Causal Discovery (Steps 21-23)
-- [ ] Extract causal feature matrix from graph (demographics, cognitive, CSF, volumetric, PET, ATN)
-- [ ] Run PC, FCI, GES algorithms (requires `causal-learn` — not yet installed)
-- [ ] Embed CAUSES edges back into the graph
+- [x] Extract causal feature matrix from graph (demographics, cognitive, CSF, volumetric, PET, ATN)
+- [x] Run PC, FCI, GES algorithms (`causal-learn` installed)
+- [x] Embed CAUSES edges back into the graph
+- See [PHASE2_CAUSAL_DISCOVERY.md](PHASE2_CAUSAL_DISCOVERY.md) for details
 
 ### Phase 3: Validation & Integration (Steps 24-26)
-- [ ] AlzKB Bridge (external knowledge base alignment)
-- [ ] Validate causal edges against literature ground truth
-- [ ] DoWhy causal inference (requires `dowhy` — not yet installed)
+- [x] AlzKB Bridge (external knowledge base alignment)
+- [x] Validate causal edges against literature ground truth
+- [x] DoWhy causal inference
+- See [PHASE3_VALIDATION_INTEGRATION.md](PHASE3_VALIDATION_INTEGRATION.md) for details
+- ⏳ Pending live Neo4j verification
 
 ### Phase 4: Documentation & Defense Prep (Steps 27-28)
-- [ ] Final statistics report (JSON + Markdown)
-- [ ] Thesis figures (schema diagram, causal graph, ICD-10 tree, before/after queries)
+- [x] Final statistics report (JSON + Markdown)
+- [x] Thesis figures (schema diagram, causal graph, ICD-10 tree, before/after queries)
+- See [PHASE4_DOCUMENTATION_DEFENSE.md](PHASE4_DOCUMENTATION_DEFENSE.md) for details
+- ⏳ Pending live Neo4j verification
 
-### Missing Dependencies for Later Phases
-- `causal-learn` (Phase 2)
-- `dowhy` (Phase 3)
-- `glymur` (Phase 1.5 — JPEG2000)
+### Phase 5: Exploration & Analysis (Step 29)
+- [x] KG EDA — 15 publication-quality figures
+- [x] Cypher explorer — 50+ guided queries
+- See [PHASE5_EXPLORATION_ANALYSIS.md](PHASE5_EXPLORATION_ANALYSIS.md) for details

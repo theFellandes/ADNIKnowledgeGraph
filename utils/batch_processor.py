@@ -491,9 +491,19 @@ class DataValidator:
     _validation_cache: Dict[str, bool] = {}
     _cache_lock = threading.Lock()
 
+    # ADNI Data Quality Advisory (March 2026): 78 participants with site
+    # prefix 381_S_ were flagged for serious data quality concerns in
+    # clinically acquired cognitive and functional assessment data.
+    # ADNI leadership strongly advises these PTIDs not be used in any analysis.
+    EXCLUDED_SITE_PREFIXES = frozenset({"381_S_"})
+
     @classmethod
     def validate_patient_id(cls, patient_id: str) -> bool:
-        """Validate patient ID format with caching"""
+        """Validate patient ID format with caching.
+
+        Rejects PTIDs from sites flagged by ADNI data quality advisories
+        (currently: 381_S_ — 78 participants removed from IDA).
+        """
         if not patient_id or not isinstance(patient_id, str):
             return False
 
@@ -506,6 +516,13 @@ class DataValidator:
         import re
         pattern = r"^\d{3}_S_\d{4}$"
         result = bool(re.match(pattern, patient_id))
+
+        # Exclude PTIDs from flagged sites (ADNI data quality advisory)
+        if result:
+            for prefix in cls.EXCLUDED_SITE_PREFIXES:
+                if patient_id.startswith(prefix):
+                    result = False
+                    break
 
         # Cache result
         with cls._cache_lock:

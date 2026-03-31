@@ -262,8 +262,12 @@ class OntologyPropertyManager:
         # 4. BrainRegion UBERON codes
         results["brain_region"] = self._enrich_brain_regions()
 
-        # 5. Patient rdf_type
+        # 5. Patient rdf_type and SNOMED code
         results["patient"] = self._set_rdf_type("Patient", "ncit:C16960", "Research Subject")
+        self._enrich_patients()
+
+        # 5b. DiseaseStage SNOMED/ICD-10 codes (CN, SMC, EMCI, LMCI, AD)
+        results["disease_stage"] = self._enrich_disease_stages()
 
         # 6. Visit rdf_type
         results["visit"] = self._set_rdf_type("Visit", "ncit:C159705", "Clinical Visit")
@@ -394,6 +398,62 @@ class OntologyPropertyManager:
         logger.info(f"  BrainRegion coverage: {total_updated}/{total} ({pct:.1f}%)")
 
         return {"updated": total_updated, "total": total, "pct": round(pct, 1)}
+
+    def _enrich_disease_stages(self) -> Dict[str, Any]:
+        """Add SNOMED/ICD-10 codes to DiseaseStage reference nodes.
+
+        DiseaseStage nodes (CN, SMC, EMCI, LMCI, AD) are created in step 9
+        but lack ontology codes. We reuse DIAGNOSIS_MAPPINGS keyed by stage_id.
+        """
+        logger.info("Enriching DiseaseStage nodes with SNOMED/ICD-10 codes...")
+        total_updated = 0
+
+        for stage_id, mappings in DIAGNOSIS_MAPPINGS.items():
+            query = """
+                MATCH (ds:DiseaseStage {stage_id: $stage_id})
+                SET ds.snomed_code = $snomed_code,
+                    ds.snomed_label = $snomed_label,
+                    ds.icd10_code = $icd10_code,
+                    ds.icd10_label = $icd10_label,
+                    ds.rdf_type = $rdf_type,
+                    ds.ontology_uri = 'http://snomed.info/id/' + $snomed_code,
+                    ds.source_ontology = 'SNOMED-CT'
+                RETURN count(ds) AS updated
+            """
+            params = {
+                "stage_id": stage_id,
+                "snomed_code": mappings["snomed_code"],
+                "snomed_label": mappings["snomed_label"],
+                "icd10_code": mappings["icd10_code"],
+                "icd10_label": mappings["icd10_label"],
+                "rdf_type": mappings["rdf_type"],
+            }
+            res = self.connector.run_query(query, params)
+            cnt = res[0]["updated"] if res else 0
+            total_updated += cnt
+            if cnt > 0:
+                logger.info(f"  ✅ DiseaseStage {stage_id}: SNOMED {mappings['snomed_code']}")
+
+        total = self._count_nodes("DiseaseStage")
+        pct = (total_updated / total * 100) if total else 0
+        logger.info(f"  DiseaseStage coverage: {total_updated}/{total} ({pct:.1f}%)")
+        return {"updated": total_updated, "total": total, "pct": round(pct, 1)}
+
+    def _enrich_patients(self) -> Dict[str, Any]:
+        """Add SNOMED-CT code to Patient nodes (SNOMED 116154003 = Patient)."""
+        logger.info("Enriching Patient nodes with SNOMED code...")
+        query = """
+            MATCH (p:Patient)
+            SET p.snomed_code = '116154003',
+                p.snomed_label = 'Patient',
+                p.ontology_uri = 'http://snomed.info/id/116154003',
+                p.source_ontology = 'SNOMED-CT'
+            RETURN count(p) AS updated
+        """
+        res = self.connector.run_query(query)
+        cnt = res[0]["updated"] if res else 0
+        logger.info(f"  Patient SNOMED enrichment: {cnt:,} nodes")
+        return {"updated": cnt, "total": cnt, "pct": 100.0}
 
     def _set_rdf_type(self, label: str, rdf_type: str, description: str) -> Dict[str, Any]:
         """Set rdf_type property on all nodes of a given label."""

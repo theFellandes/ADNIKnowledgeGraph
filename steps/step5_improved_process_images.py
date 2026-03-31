@@ -62,6 +62,11 @@ try:
         except (OSError, AttributeError):
             pass
     import glymur
+    # On modern Windows, ctypes.util.find_library does not search PATH for
+    # openjp2.dll.  Point glymur directly at the shipped DLL.
+    _openjp2_dll = os.path.join(_openjpeg_bin, "openjp2.dll")
+    if os.path.isfile(_openjp2_dll) and glymur.version.openjpeg_version == "0.0.0":
+        glymur.set_option("lib.openjp2", _openjp2_dll)
     HAS_GLYMUR = True
     logger.info(f"glymur {glymur.__version__} detected – JPEG2000 output enabled "
                 f"(OpenJPEG {glymur.version.openjpeg_version})")
