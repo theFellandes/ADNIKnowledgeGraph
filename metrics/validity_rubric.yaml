@@ -1,0 +1,115 @@
+# KG Validity Rubric — Sultan's Gate
+#
+# Threshold-based scoring per the user decision (see c7_plan_v2/IMPLEMENTATION_PLAN.md §10).
+# Default threshold: 0.95 per assertion.
+# Hard-fail conditions still apply even under threshold scoring.
+#
+# Edit this file (no code changes needed) to adjust thresholds after Q.6 review.
+
+version: 1
+
+defaults:
+  threshold: 0.95
+
+assertions:
+  A1:
+    description: "Constraints + indexes complete (step 17 ran)"
+    expected_constraints: 12
+    expected_indexes: 15
+    hard_fail_if_zero_constraints: true
+
+  A2:
+    description: "Ontology-code coverage on enriched node labels (step 18)"
+    per_label:
+      Diagnosis:
+        property: snomed_code
+        threshold: 0.95
+      CognitiveAssessment:
+        property: loinc_code
+        threshold: 0.95
+      Biomarker:
+        property: loinc_code
+        threshold: 0.95
+        # CSF biomarkers only — non-CSF biomarkers (imaging-derived, etc.)
+        # are not expected to carry LOINC codes.
+        filter_cypher: "n.biomarker_type IS NOT NULL AND toUpper(coalesce(n.biomarker_type,'')) CONTAINS 'CSF'"
+      BrainRegion:
+        property: uberon_code
+        threshold: 0.95
+    hard_fail_if_label_missing: true
+
+  A3:
+    description: "OntologyConcept layer materialised across five sources (steps 19, 20)"
+    required_sources: [SNOMED-CT, LOINC, UBERON, HPO, ICD-10]
+    # Optional tolerance bands — leave commented out to skip count enforcement.
+    # expected_counts:
+    #   SNOMED-CT: { min: 15, max: 25 }
+    #   LOINC:     { min: 8,  max: 14 }
+    #   UBERON:    { min: 12, max: 18 }
+    #   HPO:       { min: 4,  max: 8 }
+    #   ICD-10:    { min: 4,  max: 8 }
+    hard_fail_if_zero: true
+
+  A4:
+    description: "Ontology edges present with uri (steps 19, 20)"
+    edges: [MAPS_TO, IS_A, CLASSIFIED_AS]
+    threshold: 0.95
+    hard_fail_if_maps_to_zero: true
+
+  A5:
+    description: "Relationship-type URI annotation coverage (step 18)"
+    per_type_threshold: 0.95   # each annotated rel-type must have >= 95% of edges with uri
+    type_coverage_threshold: 0.95  # >= 95% of all rel types must be "annotated"
+    # Rel types intentionally NOT URI-annotated:
+    #   - Provenance / batch tracking infrastructure (not part of the domain graph)
+    #   - Project-internal aggregations (HAS_TIMELINE, HAS_SUMMARY, etc.) point
+    #     at synthetic aggregation nodes; assigning an RO URI to them is overreach.
+    allowlist_unannotated:
+      - BATCH_INGESTED_BY
+      - LOADED_FROM
+      - PROCESSED_BY
+      - HAS_TIMELINE          # internal: Patient → Timeline aggregation
+      - HAS_SUMMARY           # internal: Patient → Summary aggregation
+      - HAS_DOMAIN            # internal: classification scaffolding
+      - DEFINES_EVENT_TYPE    # internal: type definition meta-edge
+      - MATCHES_PATTERN       # internal: ATNProfile → SubtypePattern
+
+  A6:
+    description: "No orphan OntologyConcept nodes"
+    threshold: 0.95
+    # URIs in this list are exempt from reachability. Two categories:
+    #   1. Hierarchy roots — top-of-ontology with no IS_A parent.
+    #   2. Schema-only concepts whose data-side mapping isn't yet implemented
+    #      (HPO phenotypes pending ADSXLIST mapping, demographic concepts not
+    #      materialised as data nodes, biomarker concepts for absent analytes).
+    # Adding a URI here is a deliberate "we know this is unmapped" decision.
+    hierarchy_roots:
+      # ICD-10 top-of-tree
+      - "icd10:G30"          # AD chapter
+      - "icd10:F00"          # Dementia chapter
+      # SNOMED top-level
+      - "snomed:64572001"    # Disease (root)
+      # HPO — pending ADSXLIST → HPO column-to-concept mapping (future work)
+      - "hpo:HP:0000708"     # Behavioral abnormality
+      - "hpo:HP:0000726"     # Dementia
+      - "hpo:HP:0001268"     # Mental deterioration
+      - "hpo:HP:0002354"     # Memory impairment
+      # LOINC — analyte not present in current dataset
+      - "loinc:83235-5"      # Beta-amyloid 40 in CSF
+      # SNOMED — demographic / protein / SMC concepts (no data nodes map here)
+      - "snomed:105421008"   # Educational attainment (Patient property)
+      - "snomed:125676002"   # Sex (Patient property)
+      - "snomed:259565002"   # Amyloid beta protein
+      - "snomed:386807006"   # Memory finding (SMC) — no SMC patients in data
+      - "snomed:397669002"   # Age (Patient property)
+      - "snomed:414482005"   # APOE genotype (Patient property)
+      - "snomed:85916004"    # Tau protein
+      # UBERON — concepts created by step 20 but BrainRegion data nodes don't
+      # use these region names yet
+      - "uberon:0001876"     # Amygdala
+      - "uberon:0002728"     # Entorhinal cortex
+
+  A7:
+    description: "PTID hygiene — no 381_S_* patients (ADNI March 2026 advisory)"
+    forbidden_prefix: "381_S_"
+    binary: true

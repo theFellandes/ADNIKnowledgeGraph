@@ -287,18 +287,17 @@ class EventBasedModelBuilder:
         WHERE current.diagnosis.diagnosis_code <> next.diagnosis.diagnosis_code
 
         // Create diagnosis change event
-        CREATE (e:Event:ClinicalEvent {
-            event_id: p.ptid + '_dx_change_' + toString(current.months) + '_to_' + toString(next.months),
-            event_type: 'DIAGNOSIS_CHANGE',
-            patient_id: p.ptid,
-            timestamp: next.visit.visit_date,
-            months_from_baseline: next.months,
-            from_state: current.diagnosis.diagnosis_code,
-            to_state: next.diagnosis.diagnosis_code,
-            transition: current.diagnosis.diagnosis_code + '_to_' + next.diagnosis.diagnosis_code,
-            duration_months: next.months - current.months,
-            created_at: datetime()
-        })
+        MERGE (e:Event:ClinicalEvent {event_id: p.ptid + '_dx_change_' + toString(current.months) + '_to_' + toString(next.months)})
+        ON CREATE SET e.created_at = datetime()
+        SET e.event_type = 'DIAGNOSIS_CHANGE',
+            e.patient_id = p.ptid,
+            e.timestamp = next.visit.visit_date,
+            e.months_from_baseline = next.months,
+            e.from_state = current.diagnosis.diagnosis_code,
+            e.to_state = next.diagnosis.diagnosis_code,
+            e.transition = current.diagnosis.diagnosis_code + '_to_' + next.diagnosis.diagnosis_code,
+            e.duration_months = next.months - current.months,
+            e.updated_at = datetime()
 
         // Link to patient and visits
         MERGE (p)-[:EXPERIENCED_EVENT]->(e)
@@ -322,17 +321,16 @@ class EventBasedModelBuilder:
         ORDER BY v.months_from_baseline
         WITH p, collect({assessment: ca, visit: v})[0] as first_impairment
 
-        CREATE (e:Event:ClinicalEvent {
-            event_id: p.ptid + '_symptom_onset_' + first_impairment.assessment.test_name,
-            event_type: 'SYMPTOM_ONSET',
-            patient_id: p.ptid,
-            timestamp: first_impairment.visit.visit_date,
-            months_from_baseline: first_impairment.visit.months_from_baseline,
-            symptom_type: 'cognitive_impairment',
-            test_name: first_impairment.assessment.test_name,
-            severity: first_impairment.assessment.clinical_significance,
-            created_at: datetime()
-        })
+        MERGE (e:Event:ClinicalEvent {event_id: p.ptid + '_symptom_onset_' + first_impairment.assessment.test_name})
+        ON CREATE SET e.created_at = datetime()
+        SET e.event_type = 'SYMPTOM_ONSET',
+            e.patient_id = p.ptid,
+            e.timestamp = first_impairment.visit.visit_date,
+            e.months_from_baseline = first_impairment.visit.months_from_baseline,
+            e.symptom_type = 'cognitive_impairment',
+            e.test_name = first_impairment.assessment.test_name,
+            e.severity = first_impairment.assessment.clinical_significance,
+            e.updated_at = datetime()
 
         MERGE (p)-[:EXPERIENCED_EVENT]->(e)
         MERGE (e)-[:DETECTED_BY]->(first_impairment.assessment)
@@ -370,19 +368,18 @@ class EventBasedModelBuilder:
         WHERE current.abnormal_flag <> next.abnormal_flag
 
         // Create biomarker change event
-        CREATE (e:Event:BiomarkerEvent {
-            event_id: p.ptid + '_bio_change_' + analyte + '_' + current.viscode,
-            event_type: 'BIOMARKER_CHANGE',
-            patient_id: p.ptid,
-            analyte: analyte,
-            from_status: CASE WHEN current.abnormal_flag THEN 'abnormal' ELSE 'normal' END,
-            to_status: CASE WHEN next.abnormal_flag THEN 'abnormal' ELSE 'normal' END,
-            from_value: current.value,
-            to_value: next.value,
-            change_magnitude: next.value - current.value,
-            viscode: next.viscode,
-            created_at: datetime()
-        })
+        MERGE (e:Event:BiomarkerEvent {event_id: p.ptid + '_bio_change_' + analyte + '_' + current.viscode})
+        ON CREATE SET e.created_at = datetime()
+        SET e.event_type = 'BIOMARKER_CHANGE',
+            e.patient_id = p.ptid,
+            e.analyte = analyte,
+            e.from_status = CASE WHEN current.abnormal_flag THEN 'abnormal' ELSE 'normal' END,
+            e.to_status = CASE WHEN next.abnormal_flag THEN 'abnormal' ELSE 'normal' END,
+            e.from_value = current.value,
+            e.to_value = next.value,
+            e.change_magnitude = next.value - current.value,
+            e.viscode = next.viscode,
+            e.updated_at = datetime()
 
         MERGE (p)-[:EXPERIENCED_EVENT]->(e)
         MERGE (current)-[:CHANGED_TO {via_event: e.event_id}]->(next)
@@ -410,17 +407,16 @@ class EventBasedModelBuilder:
                 ELSE 'other'
              END as atn_stage
 
-        CREATE (e:Event:BiomarkerEvent {
-            event_id: p.ptid + '_atn_transition_' + atn_stage,
-            event_type: 'ATN_TRANSITION',
-            patient_id: p.ptid,
-            atn_profile: atn.profile,
-            atn_stage: atn_stage,
-            amyloid_status: atn.a_status,
-            tau_status: atn.t_status,
-            neurodegeneration_status: atn.n_status,
-            created_at: datetime()
-        })
+        MERGE (e:Event:BiomarkerEvent {event_id: p.ptid + '_atn_transition_' + atn_stage})
+        ON CREATE SET e.created_at = datetime()
+        SET e.event_type = 'ATN_TRANSITION',
+            e.patient_id = p.ptid,
+            e.atn_profile = atn.profile,
+            e.atn_stage = atn_stage,
+            e.amyloid_status = atn.a_status,
+            e.tau_status = atn.t_status,
+            e.neurodegeneration_status = atn.n_status,
+            e.updated_at = datetime()
 
         MERGE (p)-[:EXPERIENCED_EVENT]->(e)
         MERGE (atn)-[:REPRESENTS_EVENT]->(e)
@@ -476,23 +472,22 @@ class EventBasedModelBuilder:
         WHERE decline >= threshold
 
         // Create cognitive decline event
-        CREATE (e:Event:CognitiveEvent {
-            event_id: p.ptid + '_cog_decline_' + test + '_' + toString(followup.months),
-            event_type: 'COGNITIVE_DECLINE',
-            patient_id: p.ptid,
-            test_name: test,
-            baseline_score: baseline.score,
-            followup_score: followup.score,
-            decline_amount: decline,
-            months_between: followup.months - baseline.months,
-            months_from_baseline: followup.months,
-            severity: CASE
+        MERGE (e:Event:CognitiveEvent {event_id: p.ptid + '_cog_decline_' + test + '_' + toString(followup.months)})
+        ON CREATE SET e.created_at = datetime()
+        SET e.event_type = 'COGNITIVE_DECLINE',
+            e.patient_id = p.ptid,
+            e.test_name = test,
+            e.baseline_score = baseline.score,
+            e.followup_score = followup.score,
+            e.decline_amount = decline,
+            e.months_between = followup.months - baseline.months,
+            e.months_from_baseline = followup.months,
+            e.severity = CASE
                 WHEN decline >= threshold * 2 THEN 'severe'
                 WHEN decline >= threshold * 1.5 THEN 'moderate'
                 ELSE 'mild'
             END,
-            created_at: datetime()
-        })
+            e.updated_at = datetime()
 
         MERGE (p)-[:EXPERIENCED_EVENT]->(e)
         MERGE (baseline.assessment)-[:PRECEDED_DECLINE]->(e)
@@ -521,17 +516,16 @@ class EventBasedModelBuilder:
         ORDER BY p.ptid, i.study_date
         WITH p, collect(i)[0] as first_pet
 
-        CREATE (e:Event:ImagingEvent {
-            event_id: p.ptid + '_pet_scan_' + first_pet.image_hash,
-            event_type: 'IMAGING_FINDING',
-            patient_id: p.ptid,
-            modality: 'PET',
-            tracer: first_pet.pet_tracer,
-            finding: 'amyloid_pet_performed',
-            study_date: first_pet.study_date,
-            image_id: first_pet.image_id,
-            created_at: datetime()
-        })
+        MERGE (e:Event:ImagingEvent {event_id: p.ptid + '_pet_scan_' + first_pet.image_hash})
+        ON CREATE SET e.created_at = datetime()
+        SET e.event_type = 'IMAGING_FINDING',
+            e.patient_id = p.ptid,
+            e.modality = 'PET',
+            e.tracer = first_pet.pet_tracer,
+            e.finding = 'amyloid_pet_performed',
+            e.study_date = first_pet.study_date,
+            e.image_id = first_pet.image_id,
+            e.updated_at = datetime()
 
         MERGE (p)-[:EXPERIENCED_EVENT]->(e)
         MERGE (first_pet)-[:REPRESENTS_EVENT]->(e)
@@ -563,22 +557,21 @@ class EventBasedModelBuilder:
              (baseline.volume - followup.volume) / baseline.volume * 100 as percent_loss
         WHERE percent_loss > 5  // Significant if >5% loss
 
-        CREATE (e:Event:ImagingEvent {
-            event_id: p.ptid + '_hippocampal_atrophy_' + toString(followup.months),
-            event_type: 'IMAGING_FINDING',
-            patient_id: p.ptid,
-            finding: 'hippocampal_atrophy',
-            baseline_volume: baseline.volume,
-            followup_volume: followup.volume,
-            percent_loss: percent_loss,
-            months_between: followup.months - baseline.months,
-            severity: CASE
+        MERGE (e:Event:ImagingEvent {event_id: p.ptid + '_hippocampal_atrophy_' + toString(followup.months)})
+        ON CREATE SET e.created_at = datetime()
+        SET e.event_type = 'IMAGING_FINDING',
+            e.patient_id = p.ptid,
+            e.finding = 'hippocampal_atrophy',
+            e.baseline_volume = baseline.volume,
+            e.followup_volume = followup.volume,
+            e.percent_loss = percent_loss,
+            e.months_between = followup.months - baseline.months,
+            e.severity = CASE
                 WHEN percent_loss > 15 THEN 'severe'
                 WHEN percent_loss > 10 THEN 'moderate'
                 ELSE 'mild'
             END,
-            created_at: datetime()
-        })
+            e.updated_at = datetime()
 
         MERGE (p)-[:EXPERIENCED_EVENT]->(e)
         MERGE (baseline.measure)-[:PRECEDED_ATROPHY]->(e)
@@ -610,15 +603,14 @@ class EventBasedModelBuilder:
         WHERE size(patient_events) > 1
 
         // Create event chain
-        CREATE (ec:EventChain {
-            chain_id: p.ptid + '_event_chain',
-            patient_id: p.ptid,
-            event_count: size(patient_events),
-            start_event: patient_events[0].event_type,
-            end_event: patient_events[-1].event_type,
-            duration_months: patient_events[-1].months_from_baseline - patient_events[0].months_from_baseline,
-            created_at: datetime()
-        })
+        MERGE (ec:EventChain {chain_id: p.ptid + '_event_chain'})
+        ON CREATE SET ec.created_at = datetime()
+        SET ec.patient_id = p.ptid,
+            ec.event_count = size(patient_events),
+            ec.start_event = patient_events[0].event_type,
+            ec.end_event = patient_events[-1].event_type,
+            ec.duration_months = patient_events[-1].months_from_baseline - patient_events[0].months_from_baseline,
+            ec.updated_at = datetime()
 
         MERGE (p)-[:HAS_EVENT_CHAIN]->(ec)
 
@@ -731,16 +723,15 @@ class EventBasedModelBuilder:
         WITH p, collect(e) as events
         WHERE size(events) > 0
 
-        CREATE (tl:PatientTimeline {
-            timeline_id: p.ptid + '_timeline',
-            patient_id: p.ptid,
-            total_events: size(events),
-            event_types: [e IN events | e.event_type],
-            start_date: events[0].timestamp,
-            end_date: events[-1].timestamp,
-            duration_months: events[-1].months_from_baseline - events[0].months_from_baseline,
-            created_at: datetime()
-        })
+        MERGE (tl:PatientTimeline {timeline_id: p.ptid + '_timeline'})
+        ON CREATE SET tl.created_at = datetime()
+        SET tl.patient_id = p.ptid,
+            tl.total_events = size(events),
+            tl.event_types = [e IN events | e.event_type],
+            tl.start_date = events[0].timestamp,
+            tl.end_date = events[-1].timestamp,
+            tl.duration_months = events[-1].months_from_baseline - events[0].months_from_baseline,
+            tl.updated_at = datetime()
 
         MERGE (p)-[:HAS_TIMELINE]->(tl)
 
@@ -783,19 +774,24 @@ class EventBasedModelBuilder:
 
         # Find common event sequences
         pattern_query = """
-        // Find common 3-event sequences
+        // Find common 3-event sequences with percentage
         MATCH (e1:Event)-[:FOLLOWED_BY]->(e2:Event)-[:FOLLOWED_BY]->(e3:Event)
         WITH e1.event_type + '->' + e2.event_type + '->' + e3.event_type as pattern,
              count(*) as frequency
         WHERE frequency >= 5
 
-        CREATE (ep:EventPattern {
-            pattern_id: replace(pattern, '->', '_'),
-            pattern_string: pattern,
-            frequency: frequency,
-            pattern_length: 3,
-            created_at: datetime()
-        })
+        // Calculate total for percentage
+        WITH collect({pattern: pattern, frequency: frequency}) AS patterns,
+             sum(frequency) AS total
+        UNWIND patterns AS p
+
+        MERGE (ep:EventPattern {pattern_id: replace(p.pattern, '->', '_')})
+        ON CREATE SET ep.created_at = datetime()
+        SET ep.pattern_string = p.pattern,
+            ep.frequency = p.frequency,
+            ep.percentage = round(100.0 * p.frequency / total, 2),
+            ep.pattern_length = 3,
+            ep.updated_at = datetime()
 
         RETURN count(ep) as patterns_found
         """
@@ -803,20 +799,24 @@ class EventBasedModelBuilder:
         result = self.connector.run_query(pattern_query)
         pattern_count = result[0]['patterns_found'] if result else 0
 
-        # Identify rapid progressors
+        # Identify progression patterns (any diagnosis change within 60 months)
+        # Broadened from CN→AD<36mo to capture all transitions (CN→MCI, MCI→AD, etc.)
         rapid_query = """
         MATCH (p:Patient)-[:EXPERIENCED_EVENT]->(e:Event {event_type: 'DIAGNOSIS_CHANGE'})
-        WHERE e.from_state = 'CN' AND e.to_state = 'AD' AND e.duration_months < 36
+        WHERE e.duration_months IS NOT NULL AND e.duration_months > 0
 
-        CREATE (rp:ProgressionPattern {
-            pattern_id: 'rapid_progression_' + p.ptid,
-            pattern_type: 'rapid_progression',
-            patient_id: p.ptid,
-            progression_time: e.duration_months,
-            from_state: e.from_state,
-            to_state: e.to_state,
-            created_at: datetime()
-        })
+        MERGE (rp:ProgressionPattern {pattern_id: 'progression_' + p.ptid + '_' + e.from_state + '_' + e.to_state})
+        ON CREATE SET rp.created_at = datetime()
+        SET rp.pattern_type = CASE
+                WHEN e.from_state = 'CN' AND e.to_state = 'AD' AND e.duration_months < 36 THEN 'rapid_progression'
+                WHEN e.duration_months < 24 THEN 'fast_progression'
+                ELSE 'standard_progression'
+            END,
+            rp.patient_id = p.ptid,
+            rp.progression_time = e.duration_months,
+            rp.from_state = e.from_state,
+            rp.to_state = e.to_state,
+            rp.updated_at = datetime()
 
         MERGE (p)-[:SHOWS_PATTERN]->(rp)
         MERGE (e)-[:EXEMPLIFIES]->(rp)

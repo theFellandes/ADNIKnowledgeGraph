@@ -82,9 +82,98 @@
 
 ---
 
+## Pipeline Idempotency Fixes
+
+### step15_event_based_model.py — CREATE → MERGE
+- Changed **11 CREATE statements** to MERGE for idempotent event creation
+- All Event, EventChain, PatientTimeline, EventPattern, ProgressionPattern nodes now use MERGE on deterministic IDs
+- Added `ON CREATE SET created_at`, `SET updated_at` pattern
+
+### step4_extract_family.py — Deterministic member_id
+- Replaced `uuid.uuid4()` with `hashlib.md5(ptid + relationship_type + column)` for deterministic FamilyMember IDs
+- Added `ptid` parameter to `_extract_family_member_from_column()`
+
+### step7_batch_insert.py — Deterministic batch_id
+- Replaced `timestamp + uuid` batch_id with date-only `batch_YYYYMMDD`
+
+### step5_improved_process_images.py — J2K Diagnostic
+- Added end-of-processing diagnostic check for JPEG2000 conversion status
+- Logs warning if glymur is available but no J2K files were generated
+
+---
+
+## Thesis Figure Improvements
+
+### lpg_vs_kg_query Redesign (step28_thesis_figures.py)
+- Replaced plain-text code boxes with visual graph diagrams
+- Left panel: LPG with 3 nodes (Patient→Visit→Diagnosis)
+- Right panel: KG with full semantic layer (MAPS_TO, SAME_AS, CAUSES edges)
+- Uses FancyBboxPatch for nodes, annotate with arrowprops for edges
+
+### Mermaid Versions (thesis_output/mermaid/)
+Created 5 Overleaf-compatible Mermaid diagrams:
+
+| File | Description |
+|---|---|
+| `kg_schema.mmd` | Full KG schema, 17 node types, color-coded by category |
+| `lpg_vs_kg.mmd` | Side-by-side LPG vs KG comparison |
+| `atn_cascade.mmd` | ATN biomarker cascade with CAUSES edges |
+| `icd10_tree.mmd` | ICD-10 hierarchy (G30 + F00 branches) |
+| `causal_overlay.mmd` | Consensus causal discovery graph |
+
+### ICD-10 Cypher Queries (docs/cypher_explorer.cypher)
+Added queries 8.6–8.9:
+- 8.6: CLASSIFIED_AS → OntologyConcept mapping
+- 8.7: IS_A hierarchy traversal
+- 8.8: Coverage gap analysis (unmapped diagnoses)
+- 8.9: Full semantic chain (Patient → Diagnosis → ICD-10)
+
+---
+
+## Files Created
+
+| File | Lines | Purpose |
+|---|---|---|
+| `steps/step29_kg_eda.py` | 1,171 | EDA figure generation from Neo4j |
+| `docs/cypher_explorer.cypher` | 660+ | Guided Cypher query reference |
+| `thesis_output/mermaid/kg_schema.mmd` | — | KG schema (Mermaid) |
+| `thesis_output/mermaid/lpg_vs_kg.mmd` | — | LPG vs KG comparison (Mermaid) |
+| `thesis_output/mermaid/atn_cascade.mmd` | — | ATN cascade (Mermaid) |
+| `thesis_output/mermaid/icd10_tree.mmd` | — | ICD-10 hierarchy (Mermaid) |
+| `thesis_output/mermaid/causal_overlay.mmd` | — | Causal graph (Mermaid) |
+
+## Files Modified
+
+| File | Changes |
+|---|---|
+| `pipeline.py` | 1 import + 1 run block + 1 wrapper method |
+| `config.yaml` | `run_kg_eda` toggle |
+| `steps/step15_event_based_model.py` | 11 CREATE → MERGE for idempotency |
+| `steps/step4_extract_family.py` | Deterministic member_id (hashlib) |
+| `steps/step7_batch_insert.py` | Deterministic batch_id (date-only) |
+| `steps/step5_improved_process_images.py` | J2K diagnostic check |
+| `steps/step28_thesis_figures.py` | Redesigned lpg_vs_kg_query figure |
+
+---
+
+## Output Directories
+
+- `outputs/eda_figures/` — 15 EDA figures (SVG + PNG)
+- `thesis_output/` — 5 thesis figures (SVG + PNG + DOT source)
+- `thesis_output/mermaid/` — 5 Mermaid diagrams for Overleaf
+- `thesis_output/overleaf/` — Rendered SVGs for LaTeX import
+
+---
+
 ## Status
 
 - ✅ Step 29 compiles and generates all figures
 - ✅ Cypher explorer tested against live Neo4j
 - ✅ Node count bug fixed (multi-label inflation)
 - ✅ Graph bubble rendering fixed (return nodes, not paths)
+- ✅ Pipeline idempotency fixed (step15, step4, step7)
+- ✅ ICD-10 queries added to cypher explorer
+- ✅ lpg_vs_kg_query redesigned as visual graph diagram
+- ✅ 5 Mermaid diagrams created for Overleaf
+- ✅ J2K diagnostic check added to step5
+- ⏳ System Graphviz needed to render DOT → SVG for overleaf/

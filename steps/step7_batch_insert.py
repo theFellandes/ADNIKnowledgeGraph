@@ -58,8 +58,8 @@ class BatchInserter:
         self.connector = connector
         self.batch_processor = BatchProcessor()
         self.insertion_stats = {}
-        # Generate a unique batch ID for this execution run
-        self.batch_id = f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+        # Generate deterministic batch_id from current date only (not time/uuid)
+        self.batch_id = f"batch_{datetime.now().strftime('%Y%m%d')}"
 
     def execute(self, data_objects: Dict[str, Any]) -> Dict[str, Any]:
         """

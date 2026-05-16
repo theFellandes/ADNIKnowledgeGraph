@@ -509,11 +509,15 @@ class ADNIFindingsExtractor:
                 visit_id = f"{ptid}_{viscode}"
 
                 # Extract CSF biomarkers
+                # Thresholds for Roche Elecsys platform (UPENNBIOMK_ROCHE_ELECSYS)
+                # Aβ42 < 1100 pg/mL = amyloid positive (A+)
+                # Total Tau > 400 pg/mL = neurodegeneration (N+)
+                # p-Tau181 > 27 pg/mL = tau pathology (T+)
                 biomarkers_map = {
-                    'ABETA42': ('Aβ42', 600),  # threshold
+                    'ABETA42': ('Aβ42', 1100),
                     'ABETA40': ('Aβ40', None),
                     'TAU': ('Total Tau', 400),
-                    'PTAU': ('p-Tau181', 80)
+                    'PTAU': ('p-Tau181', 27)
                 }
 
                 for col, (analyte, threshold) in biomarkers_map.items():

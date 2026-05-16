@@ -1,0 +1,13 @@
+source_table,source_column,source_value_pattern,target_ontology,target_uri,target_label,mapping_rule,test_fixture_id,last_verified_date
+UCSFFSX7,region_name,Hippocampus,UBERON,uberon:UBERON:0002421,hippocampal formation,case_insensitive,,2026-05-09
+UCSFFSX7,region_name,Cerebral Cortex,UBERON,uberon:UBERON:0000956,cerebral cortex,case_insensitive,,2026-05-09
+UCSFFSX7,region_name,Ventricles,UBERON,uberon:UBERON:0004086,brain ventricle,case_insensitive,,2026-05-09
+UCSFFSX7,region_name,Cerebellum,UBERON,uberon:UBERON:0002037,cerebellum,case_insensitive,,2026-05-09
+UCSFFSX7,region_name,Frontal Lobe,UBERON,uberon:UBERON:0000203,frontal lobe,case_insensitive,,2026-05-09
+UCSFFSX7,region_name,Temporal Lobe,UBERON,uberon:UBERON:0001871,temporal lobe,case_insensitive,,2026-05-09
+UCSFFSX7,region_name,Parietal Lobe,UBERON,uberon:UBERON:0001872,parietal lobe,case_insensitive,,2026-05-09
+UCSFFSX7,region_name,Occipital Lobe,UBERON,uberon:UBERON:0002021,occipital lobe,case_insensitive,,2026-05-09
+UCSFFSX7,region_name,Brainstem,UBERON,uberon:UBERON:0002298,brainstem,case_insensitive,,2026-05-09
+UCSFFSX7,region_name,Thalamus,UBERON,uberon:UBERON:0001897,thalamus,case_insensitive,,2026-05-09
+UCSFFSX7,region_name,Basal Ganglia,UBERON,uberon:UBERON:0002420,basal ganglion,case_insensitive,,2026-05-09
+UCSFFSX7,region_name,Whole Brain,UBERON,uberon:UBERON:0000955,brain,case_insensitive,,2026-05-09

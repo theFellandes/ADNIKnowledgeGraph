@@ -1,0 +1,53 @@
+source_table,source_column,source_value_pattern,target_ontology,target_uri,target_label,mapping_rule,test_fixture_id,last_verified_date
+_synthetic,_relationship_type,HAS_VISIT,RO,ro:RO_0000056,participates_in,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_COGNITIVE_ASSESSMENT,RO,ro:RO_0002234,has_output,exact_match,,2026-05-09
+_synthetic,_relationship_type,UNDERWENT_ASSESSMENT,RO,ro:RO_0002234,has_output,exact_match,,2026-05-09
+_synthetic,_relationship_type,INCLUDES_ASSESSMENT,RO,ro:RO_0002234,has_output,exact_match,,2026-05-09
+_synthetic,_relationship_type,FOLLOWED_BY,OWL-Time,time:intervalBefore,interval before,exact_match,,2026-05-09
+_synthetic,_relationship_type,PRECEDES,OWL-Time,time:intervalBefore,interval before,exact_match,,2026-05-09
+_synthetic,_relationship_type,PROGRESSED_TO,RO,ro:RO_0002411,causally_upstream_of,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_DIAGNOSIS,RO,ro:RO_0000091,has_disposition,exact_match,,2026-05-09
+_synthetic,_relationship_type,SUPPORTS_DIAGNOSIS,RO,ro:RO_0000091,has_disposition,exact_match,,2026-05-09
+_synthetic,_relationship_type,IS_CLINICAL_FINDING,RO,ro:RO_0000052,inheres_in,exact_match,,2026-05-09
+_synthetic,_relationship_type,RESULTED_IN,RO,ro:RO_0002234,has_output,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_CLINICAL_FINDING,RO,ro:RO_0000052,inheres_in,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_BIOMARKER,RO,ro:RO_0000056,participates_in,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_IMAGE,RO,ro:RO_0000056,participates_in,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_FAMILY_MEMBER,RO,ro:RO_0002351,has_member,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_SIBLING,RO,ro:RO_0002351,has_member,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_PARENT,RO,ro:RO_0002351,has_member,exact_match,,2026-05-09
+_synthetic,_relationship_type,IS_TYPE,RDFS,rdfs:subClassOf,subclass of,exact_match,,2026-05-09
+_synthetic,_relationship_type,BELONGS_TO_CATEGORY,RDFS,rdfs:subClassOf,subclass of,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_ATN_PROFILE,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_MULTIMODAL_ASSESSMENT,RO,ro:RO_0002234,has_output,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_COGNITIVE_TRAJECTORY,RO,ro:RO_0002234,has_output,exact_match,,2026-05-09
+_synthetic,_relationship_type,CORRELATES_WITH,RO,ro:RO_0002610,correlated_with,exact_match,,2026-05-09
+_synthetic,_relationship_type,INDICATES_PATHWAY,RO,ro:RO_0002610,correlated_with,exact_match,,2026-05-09
+_synthetic,_relationship_type,ASSOCIATED_WITH_STAGE,RO,ro:RO_0002610,correlated_with,exact_match,,2026-05-09
+_synthetic,_relationship_type,BELONGS_TO_COHORT,RO,ro:RO_0001015,location_of,exact_match,,2026-05-09
+_synthetic,_relationship_type,IN_COHORT,RO,ro:RO_0001015,location_of,exact_match,,2026-05-09
+_synthetic,_relationship_type,EXPERIENCED_PROGRESSION,RO,ro:RO_0002411,causally_upstream_of,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_TRAJECTORY,RO,ro:RO_0002234,has_output,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_PHENOTYPE,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+_synthetic,_relationship_type,MAPS_TO,SKOS,skos:exactMatch,exact match,exact_match,,2026-05-09
+_synthetic,_relationship_type,IS_A,RDFS,rdfs:subClassOf,subclass of,exact_match,,2026-05-09
+_synthetic,_relationship_type,CLASSIFIED_AS,SKOS,skos:closeMatch,close match,exact_match,,2026-05-09
+_synthetic,_relationship_type,SAME_AS,OWL,owl:sameAs,same as,exact_match,,2026-05-09
+_synthetic,_relationship_type,CAUSES,RO,ro:RO_0002411,causally_upstream_of,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_RISK_FACTOR,RO,ro:RO_0002500,causal_relation_with_disposition,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_FAMILY_RISK,RO,ro:RO_0002500,causal_relation_with_disposition,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_GENETIC_RISK,RO,ro:RO_0002500,causal_relation_with_disposition,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_GENETIC_MARKER,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_BIOMARKER_PROFILE,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_DEMOGRAPHICS,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_AMYLOID_STATUS,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_TAU_STATUS,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_NEURODEGENERATION_STATUS,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+_synthetic,_relationship_type,AT_DISEASE_STAGE,RO,ro:RO_0002092,happens_during,exact_match,,2026-05-09
+_synthetic,_relationship_type,AT_STAGE,RO,ro:RO_0002092,happens_during,exact_match,,2026-05-09
+_synthetic,_relationship_type,PROGRESSES_TO,RO,ro:RO_0002411,causally_upstream_of,exact_match,,2026-05-09
+_synthetic,_relationship_type,CAN_PROGRESS_TO,RO,ro:RO_0002411,causally_upstream_of,exact_match,,2026-05-09
+_synthetic,_relationship_type,FOLLOWS_PROGRESSION,RO,ro:RO_0002086,preceded_by,exact_match,,2026-05-09
+_synthetic,_relationship_type,INDICATES,RO,ro:RO_0002610,correlated_with,exact_match,,2026-05-09
+_synthetic,_relationship_type,HAS_SUBTYPE,RDFS,rdfs:subClassOf,subclass of,exact_match,,2026-05-09
+_synthetic,_relationship_type,ALZKB_RELATES_TO,RO,ro:RO_0002610,correlated_with (generic; specific predicate in r.type),exact_match,,2026-05-09

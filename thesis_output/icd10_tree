@@ -1,0 +1,43 @@
+digraph ICD10_Tree {
+	graph [bgcolor="#FAFAFA" fontname=Helvetica fontsize=16 label="ICD-10 Hierarchy — Alzheimer Disease Codes" labelloc=t nodesep=0.5 rankdir=TB ranksep=0.8]
+	G [label="G
+Diseases of the
+nervous system" fillcolor="#2C3E50" fontcolor=white fontname=Helvetica fontsize=9 shape=box style="filled,rounded"]
+	G30 [label="G30
+Alzheimer disease" fillcolor="#E74C3C" fontcolor=white fontname=Helvetica fontsize=9 shape=box style="filled,rounded"]
+	"G30.0" [label="G30.0
+Early onset" fillcolor="#C0392B" fontcolor=white fontname=Helvetica fontsize=9 shape=box style="filled,rounded"]
+	"G30.1" [label="G30.1
+Late onset" fillcolor="#E74C3C" fontcolor=white fontname=Helvetica fontsize=9 shape=box style="filled,rounded"]
+	"G30.8" [label="G30.8
+Other Alzheimer" fillcolor="#D35400" fontcolor=white fontname=Helvetica fontsize=9 shape=box style="filled,rounded"]
+	"G30.9" [label="G30.9
+Unspecified" fillcolor="#BDC3C7" fontcolor=white fontname=Helvetica fontsize=9 shape=box style="filled,rounded"]
+	F [label="F
+Mental and behavioural
+disorders" fillcolor="#2C3E50" fontcolor=white fontname=Helvetica fontsize=9 shape=box style="filled,rounded"]
+	F00 [label="F00
+Dementia in
+Alzheimer disease" fillcolor="#9B59B6" fontcolor=white fontname=Helvetica fontsize=9 shape=box style="filled,rounded"]
+	"F00.0" [label="F00.0
+Early onset
+(type 2)" fillcolor="#8E44AD" fontcolor=white fontname=Helvetica fontsize=9 shape=box style="filled,rounded"]
+	"F00.1" [label="F00.1
+Late onset
+(type 1)" fillcolor="#9B59B6" fontcolor=white fontname=Helvetica fontsize=9 shape=box style="filled,rounded"]
+	"F00.2" [label="F00.2
+Atypical/mixed" fillcolor="#7D3C98" fontcolor=white fontname=Helvetica fontsize=9 shape=box style="filled,rounded"]
+	"F00.9" [label="F00.9
+Unspecified" fillcolor="#BDC3C7" fontcolor=white fontname=Helvetica fontsize=9 shape=box style="filled,rounded"]
+	G -> G30 [color="#2C3E50" penwidth=1.5]
+	G30 -> "G30.0" [color="#2C3E50" penwidth=1.5]
+	G30 -> "G30.1" [color="#2C3E50" penwidth=1.5]
+	G30 -> "G30.8" [color="#2C3E50" penwidth=1.5]
+	G30 -> "G30.9" [color="#2C3E50" penwidth=1.5]
+	F -> F00 [color="#2C3E50" penwidth=1.5]
+	F00 -> "F00.0" [color="#2C3E50" penwidth=1.5]
+	F00 -> "F00.1" [color="#2C3E50" penwidth=1.5]
+	F00 -> "F00.2" [color="#2C3E50" penwidth=1.5]
+	F00 -> "F00.9" [color="#2C3E50" penwidth=1.5]
+	G30 -> F00 [label="ICD cross-ref" color="#95A5A6" fontcolor="#95A5A6" fontsize=8 style=dashed]
+}

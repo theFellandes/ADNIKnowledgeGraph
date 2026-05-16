@@ -1,0 +1,57 @@
+%% ICD-10 Hierarchy -- Alzheimer Disease Codes
+%% G30 (Alzheimer disease) and F00 (Dementia in Alzheimer disease)
+
+graph TB
+
+    G["G\nDiseases of the\nnervous system"]
+    G30["G30\nAlzheimer disease"]
+    G30_0["G30.0\nEarly onset"]
+    G30_1["G30.1\nLate onset"]
+    G30_8["G30.8\nOther Alzheimer"]
+    G30_9["G30.9\nUnspecified"]
+
+    F["F\nMental and behavioural\ndisorders"]
+    F00["F00\nDementia in\nAlzheimer disease"]
+    F00_0["F00.0\nEarly onset (type 2)"]
+    F00_1["F00.1\nLate onset (type 1)"]
+    F00_2["F00.2\nAtypical / mixed"]
+    F00_9["F00.9\nUnspecified"]
+
+    %% ── G30 hierarchy ──
+    G --> G30
+    G30 --> G30_0
+    G30 --> G30_1
+    G30 --> G30_8
+    G30 --> G30_9
+
+    %% ── F00 hierarchy ──
+    F --> F00
+    F00 --> F00_0
+    F00 --> F00_1
+    F00 --> F00_2
+    F00 --> F00_9
+
+    %% ── ICD cross-reference ──
+    G30 -. "ICD cross-ref" .-> F00
+
+    %% ── Styles ──
+    classDef chapterNode fill:#2C3E50,stroke:#1A252F,color:#fff,stroke-width:2px
+    classDef g30Node fill:#E74C3C,stroke:#C0392B,color:#fff,stroke-width:2px
+    classDef g30early fill:#C0392B,stroke:#922B21,color:#fff,stroke-width:2px
+    classDef g30other fill:#D35400,stroke:#A04000,color:#fff,stroke-width:2px
+    classDef f00Node fill:#9B59B6,stroke:#6C3483,color:#fff,stroke-width:2px
+    classDef f00early fill:#8E44AD,stroke:#6C3483,color:#fff,stroke-width:2px
+    classDef f00mixed fill:#7D3C98,stroke:#5B2C6F,color:#fff,stroke-width:2px
+    classDef unspecified fill:#BDC3C7,stroke:#95A5A6,color:#2C3E50,stroke-width:2px
+
+    class G,F chapterNode
+    class G30 g30Node
+    class G30_0 g30early
+    class G30_1 g30Node
+    class G30_8 g30other
+    class G30_9 unspecified
+    class F00 f00Node
+    class F00_0 f00early
+    class F00_1 f00Node
+    class F00_2 f00mixed
+    class F00_9 unspecified

@@ -1886,7 +1886,27 @@ def execute_enhanced_image_processing(neo4j_uri: str, neo4j_user: str, neo4j_pas
         processing_results['images_stored'] = processing_results.get('newly_processed', 0)
         processing_results['images_indexed'] = neo4j_count + es_count
         processing_results['processor'] = processor
-        
+
+        # J2K conversion diagnostic
+        if HAS_GLYMUR and 'j2k' in processor.dirs:
+            j2k_dir = processor.dirs['j2k']
+            j2k_count = len(list(j2k_dir.glob('*.j2k')))
+            png_dir = processor.dirs.get('diagnostic', processor.dirs.get('png', None))
+            png_count = len(list(png_dir.glob('*.png'))) if png_dir else 0
+            tiff_dir = processor.dirs.get('tiff', processor.dirs.get('diagnostic_tiff', None))
+            tiff_count = len(list(tiff_dir.glob('*.tif*'))) if tiff_dir else 0
+
+            if j2k_count > 0:
+                logger.info(f"✅ JPEG2000: {j2k_count} J2K files generated")
+            elif png_count > 0 or tiff_count > 0:
+                logger.warning(
+                    f"⚠️ JPEG2000 diagnostic: glymur is available but 0 J2K files generated "
+                    f"({png_count} PNGs, {tiff_count} TIFFs exist). "
+                    f"Re-run step5 to generate J2K files for existing images."
+                )
+        elif not HAS_GLYMUR:
+            logger.info("ℹ️ JPEG2000: glymur not available — J2K conversion skipped")
+
         return processing_results
         
     except Exception as e:

@@ -1,0 +1,65 @@
+%% ATN Biomarker Cascade with Causal Annotations
+%% A = Amyloid, T = Tau, N = Neurodegeneration -> Clinical Outcome
+
+graph LR
+
+    subgraph A["A (Amyloid)"]
+        APOE4["APOE e4"]
+        CSF_AB42["CSF Abeta42"]
+        AV45["Amyloid PET\n(AV45 SUVR)"]
+    end
+
+    subgraph T["T (Tau)"]
+        CSF_TAU["CSF Total Tau"]
+        CSF_PTAU["CSF p-Tau"]
+    end
+
+    subgraph N["N (Neurodegeneration)"]
+        Hippocampus["Hippocampal\nVolume"]
+        Entorhinal["Entorhinal\nCortex"]
+        FDG["FDG PET\n(Metabolism)"]
+    end
+
+    subgraph Outcome["Clinical Outcome"]
+        MMSE["MMSE"]
+        ADAS13["ADAS-Cog 13"]
+        DX["Diagnosis\n(CN -> MCI -> AD)"]
+    end
+
+    %% ── Causal edges (bold = discovered) ──
+    APOE4 ==>|CAUSES| CSF_AB42
+    CSF_AB42 ==>|CAUSES| CSF_TAU
+    CSF_AB42 ==>|CAUSES| CSF_PTAU
+    CSF_TAU ==>|CAUSES| Hippocampus
+    CSF_PTAU ==>|CAUSES| Hippocampus
+    Hippocampus ==>|CAUSES| MMSE
+
+    %% ── Hypothesized / weaker edges (dashed) ──
+    Hippocampus -.->|CAUSES| ADAS13
+    Entorhinal -.->|CAUSES| MMSE
+    FDG -.->|CAUSES| ADAS13
+    CSF_TAU -.->|CAUSES| Entorhinal
+    CSF_PTAU -.->|CAUSES| FDG
+
+    %% ── Reflective / defining edges (dotted) ──
+    AV45 -.->|reflects| CSF_AB42
+    MMSE -.->|defines| DX
+    ADAS13 -.->|defines| DX
+
+    %% ── Styles ──
+    classDef amyloid fill:#F39C12,stroke:#C87F0A,color:#fff,stroke-width:2px
+    classDef genetic fill:#4A90D9,stroke:#2C5F9E,color:#fff,stroke-width:2px
+    classDef tau fill:#E74C3C,stroke:#C0392B,color:#fff,stroke-width:2px
+    classDef neurodegeneration fill:#1ABC9C,stroke:#148F77,color:#fff,stroke-width:2px
+    classDef pet fill:#E67E22,stroke:#BA6914,color:#fff,stroke-width:2px
+    classDef cognitive fill:#27AE60,stroke:#1E8449,color:#fff,stroke-width:2px
+    classDef diagnosis fill:#9B59B6,stroke:#6C3483,color:#fff,stroke-width:2px
+
+    class APOE4 genetic
+    class CSF_AB42 amyloid
+    class AV45 pet
+    class CSF_TAU,CSF_PTAU tau
+    class Hippocampus,Entorhinal neurodegeneration
+    class FDG pet
+    class MMSE,ADAS13 cognitive
+    class DX diagnosis

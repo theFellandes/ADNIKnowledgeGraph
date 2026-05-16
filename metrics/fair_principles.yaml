@@ -1,0 +1,223 @@
+# FAIR Principles Rubric
+#
+# Three-level scoring per principle: yes (1.0) / partial (0.5) / no (0.0).
+# Score is computed by the corresponding `check` block:
+#   - cypher: run a query, compare against threshold
+#   - file:   check presence (and optionally minimum size) of a file or glob
+#   - manual: requires human review — defaults to the configured value
+#
+# Adjust thresholds after Q.5 confirmation with Hajer.
+
+version: 1
+
+defaults:
+  partial_threshold: 0.5
+  full_threshold: 0.95
+
+principles:
+  # =====================================================================
+  # Findable
+  # =====================================================================
+  F1:
+    name: "(Meta)data are assigned a globally unique and persistent identifier"
+    rationale: >-
+      Each :OntologyConcept and each enriched data node should carry a stable
+      URI / ontology code. Measured as the fraction of data nodes with at
+      least one ontology code property.
+    check:
+      type: cypher
+      query: |
+        MATCH (n)
+        WHERE n:Diagnosis OR n:CognitiveAssessment OR n:Biomarker
+              OR n:BrainRegion OR n:OntologyConcept
+        WITH count(n) AS total,
+             count(CASE WHEN n.ontology_uri IS NOT NULL
+                          OR n.snomed_code IS NOT NULL
+                          OR n.loinc_code IS NOT NULL
+                          OR n.uberon_code IS NOT NULL
+                          OR n.icd10_code IS NOT NULL
+                          OR n.uri IS NOT NULL
+                        THEN 1 END) AS with_id
+        RETURN CASE WHEN total > 0 THEN toFloat(with_id)/total ELSE 0.0 END AS coverage
+
+  F2:
+    name: "Data are described with rich metadata"
+    rationale: >-
+      Patient / Visit / Diagnosis nodes should have at least N descriptive
+      properties beyond the bare key. Measured as the average property count
+      per data node.
+    check:
+      type: cypher
+      query: |
+        MATCH (n)
+        WHERE n:Diagnosis OR n:CognitiveAssessment OR n:Biomarker
+              OR n:Patient OR n:Visit
+        RETURN avg(size(keys(n))) AS avg_properties
+      partial_threshold: 4.0
+      full_threshold: 8.0
+
+  F3:
+    name: "Metadata clearly and explicitly include the identifier of the data they describe"
+    rationale: >-
+      OntologyConcept nodes carry a `code` property and a back-reference URI
+      that lets metadata describe the data instance unambiguously.
+    check:
+      type: cypher
+      query: |
+        MATCH (o:OntologyConcept)
+        WITH count(o) AS total,
+             count(CASE WHEN o.code IS NOT NULL AND o.uri IS NOT NULL THEN 1 END) AS ok
+        RETURN CASE WHEN total > 0 THEN toFloat(ok)/total ELSE 0.0 END AS coverage
+
+  F4:
+    name: "(Meta)data are registered or indexed in a searchable resource"
+    rationale: >-
+      Indexes on the key data node properties (ptid, visit_id, snomed_code,
+      etc.) ensure the graph is searchable. Score is the fraction of expected
+      indexes that are actually present.
+    check:
+      type: cypher
+      query: |
+        SHOW INDEXES YIELD name, type, labelsOrTypes
+        WHERE type IN ['RANGE','TEXT','LOOKUP','POINT']
+        RETURN count(*) AS index_count
+      partial_threshold: 8
+      full_threshold: 15
+
+  # =====================================================================
+  # Accessible
+  # =====================================================================
+  A1.1:
+    name: "Protocol is open, free, and universally implementable"
+    rationale: >-
+      Neo4j is queried via Bolt — an open protocol with documented spec and
+      open-source clients. Treated as a manual yes for any KG hosted on
+      Neo4j.
+    check:
+      type: manual
+      default: yes
+
+  A1.2:
+    name: "Protocol allows for an authentication and authorization procedure where necessary"
+    rationale: >-
+      Neo4j supports user/role-based auth. Marked yes provided the graph
+      enforces a non-default password.
+    check:
+      type: manual
+      default: yes
+
+  A2:
+    name: "Metadata are accessible, even when the data are no longer available"
+    rationale: >-
+      Ontology metadata (OntologyConcept layer + curated mappings under
+      ontology/mappings/) is checked into source control and survives the
+      data being unloaded.
+    check:
+      type: file
+      paths:
+        - ontology/mappings/
+        - ontology/icd10_mappings.json
+      partial_if_any: true
+      full_if_all: true
+
+  # =====================================================================
+  # Interoperable
+  # =====================================================================
+  I1:
+    name: "(Meta)data use a formal, accessible, shared, and broadly applicable language for knowledge representation"
+    rationale: >-
+      RDF-style URIs are used on relationships (skos:exactMatch,
+      rdfs:subClassOf, ro:* etc.). Coverage measured as the fraction of
+      edge instances that carry a formal-language `uri` property — the
+      direct measure of "data uses formal language" at the data point
+      level. Type-level coverage is also informative but is sensitive to
+      the small number of project-internal aggregation rel-types that are
+      intentionally not URI-annotated; edge-level reflects the actual
+      quantitative claim the paper makes.
+    check:
+      type: cypher
+      query: |
+        MATCH ()-[r]->()
+        WITH count(r) AS total,
+             count(CASE WHEN r.uri IS NOT NULL THEN 1 END) AS with_uri
+        RETURN CASE WHEN total > 0 THEN toFloat(with_uri)/total ELSE 0.0 END AS coverage
+
+  I2:
+    name: "(Meta)data use vocabularies that follow FAIR principles"
+    rationale: >-
+      The graph references SNOMED-CT, LOINC, UBERON, HPO, ICD-10 — all
+      themselves FAIR-aligned. Score = fraction of these five present in the
+      OntologyConcept layer.
+    check:
+      type: cypher
+      query: |
+        WITH ['SNOMED-CT','LOINC','UBERON','HPO','ICD-10'] AS expected
+        MATCH (o:OntologyConcept)
+        WITH expected, collect(DISTINCT toUpper(o.source_ontology)) AS seen
+        WITH expected, [x IN expected WHERE toUpper(x) IN seen] AS hits
+        RETURN toFloat(size(hits)) / size(expected) AS coverage
+
+  I3:
+    name: "(Meta)data include qualified references to other (meta)data"
+    rationale: >-
+      MAPS_TO / IS_A / CLASSIFIED_AS / SAME_AS edges form qualified references
+      between data instances and ontology concepts (and across KGs to AlzKB).
+      Score = fraction of these four edge types that exist with non-zero count.
+    check:
+      type: cypher
+      query: |
+        WITH ['MAPS_TO','IS_A','CLASSIFIED_AS','SAME_AS'] AS expected
+        UNWIND expected AS rel
+        CALL {
+          WITH rel
+          MATCH ()-[r]->()
+          WHERE type(r) = rel
+          RETURN count(r) AS n
+        }
+        WITH expected, sum(CASE WHEN n > 0 THEN 1 ELSE 0 END) AS present
+        RETURN toFloat(present) / size(expected) AS coverage
+
+  # =====================================================================
+  # Reusable
+  # =====================================================================
+  R1.1:
+    name: "(Meta)data are released with a clear and accessible data usage license"
+    rationale: >-
+      ADNI data has a defined access policy (DUA) and the project repository
+      should declare a software licence. Manual.
+    check:
+      type: manual
+      default: partial
+
+  R1.2:
+    name: "(Meta)data are associated with detailed provenance"
+    rationale: >-
+      Every node ingested has a :BatchIngestion record (step 7) recording
+      source file, row count and timestamp. Score = fraction of data nodes
+      reachable from a :BatchIngestion via the provenance edge.
+    check:
+      type: cypher
+      query: |
+        MATCH (n)
+        WHERE n:Patient OR n:Visit OR n:Diagnosis OR n:CognitiveAssessment OR n:Biomarker
+        WITH count(n) AS total,
+             count(CASE WHEN exists((n)-[:BATCH_INGESTED_BY|LOADED_FROM*1..2]-(:BatchIngestion))
+                          OR n.batch_id IS NOT NULL
+                          OR n.source_table IS NOT NULL
+                        THEN 1 END) AS with_prov
+        RETURN CASE WHEN total > 0 THEN toFloat(with_prov)/total ELSE 0.0 END AS coverage
+
+  R1.3:
+    name: "(Meta)data meet domain-relevant community standards"
+    rationale: >-
+      The graph uses SNOMED-CT (clinical), LOINC (lab/cog), UBERON (anatomy),
+      HPO (phenotype), ICD-10 (classification) — all WHO / OBO / regulatory
+      standards. Same five-source check as I2.
+    check:
+      type: cypher
+      query: |
+        WITH ['SNOMED-CT','LOINC','UBERON','HPO','ICD-10'] AS expected
+        MATCH (o:OntologyConcept)
+        WITH expected, collect(DISTINCT toUpper(o.source_ontology)) AS seen
+        WITH expected, [x IN expected WHERE toUpper(x) IN seen] AS hits
+        RETURN toFloat(size(hits)) / size(expected) AS coverage

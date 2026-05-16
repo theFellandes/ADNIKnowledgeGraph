@@ -1,0 +1,7 @@
+source_table,source_column,source_value_pattern,target_ontology,target_uri,target_label,mapping_rule,test_fixture_id,last_verified_date
+NEUROBAT,test_name,MMSE,LOINC,loinc:72106-8,Mini-Mental State Examination total score,exact_match,mmse_p1_bl,2026-05-09
+CDR,test_name,CDR,LOINC,loinc:72172-0,Clinical Dementia Rating global score,exact_match,cdr_p2_m06,2026-05-09
+FAQ,test_name,FAQ,LOINC,loinc:71130-0,Functional Activities Questionnaire total score,exact_match,,2026-05-09
+ADAS,test_name,ADAS-Cog,LOINC,loinc:72194-4,Alzheimer's Disease Assessment Scale-Cognitive total score,exact_match,adas_p4_y3,2026-05-09
+MOCA,test_name,MoCA,LOINC,loinc:72133-2,Montreal Cognitive Assessment total score,exact_match,moca_p3_m12,2026-05-09
+NEUROBAT,test_name,Logical Memory,LOINC,loinc:72026-8,Logical Memory - Delayed Recall,exact_match,,2026-05-09

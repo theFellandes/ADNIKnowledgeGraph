@@ -1,0 +1,70 @@
+%% LPG vs KG: Property Graph to Knowledge Graph Evolution
+%% Side-by-side comparison showing the semantic enrichment
+
+graph LR
+
+    subgraph LPG["Property Graph (Before)"]
+        direction LR
+        P1["Patient"]
+        V1["Visit"]
+        D1["Diagnosis"]
+        C1["CognitiveAssessment"]
+        B1["Biomarker"]
+        I1["ImagingStudy"]
+        VM1["VolumetricMeasure"]
+
+        P1 -->|HAS_VISIT| V1
+        V1 -->|HAS_DIAGNOSIS| D1
+        V1 -->|HAS_COGNITIVE_ASSESSMENT| C1
+        V1 -->|HAS_BIOMARKER| B1
+        V1 -->|HAS_IMAGING_STUDY| I1
+        V1 -->|HAS_VOLUMETRIC_MEASURE| VM1
+
+        D1 -.-x|"text matching only"| NONE1[" "]
+    end
+
+    subgraph KG["Knowledge Graph (After)"]
+        direction LR
+        P2["Patient"]
+        V2["Visit"]
+        D2["Diagnosis"]
+        C2["CognitiveAssessment"]
+        B2["Biomarker"]
+        I2["ImagingStudy"]
+        VM2["VolumetricMeasure"]
+
+        OC["OntologyConcept\n(SNOMED / LOINC / UBERON)"]
+        AKB["AlzKBConcept"]
+        CV1["CausalVariable"]
+        CV2["CausalVariable"]
+        ICD["OntologyConcept\n(ICD-10)"]
+
+        P2 -->|HAS_VISIT| V2
+        V2 -->|HAS_DIAGNOSIS| D2
+        V2 -->|HAS_COGNITIVE_ASSESSMENT| C2
+        V2 -->|HAS_BIOMARKER| B2
+        V2 -->|HAS_IMAGING_STUDY| I2
+        V2 -->|HAS_VOLUMETRIC_MEASURE| VM2
+
+        D2 -->|MAPS_TO| OC
+        C2 -->|MAPS_TO| OC
+        B2 -->|MAPS_TO| OC
+        D2 -->|CLASSIFIED_AS| ICD
+
+        OC <-->|SAME_AS| AKB
+        CV1 -->|CAUSES| CV2
+        CV1 -->|MAPS_TO| OC
+    end
+
+    %% Styling
+    classDef lpgNode fill:#E74C3C,stroke:#C0392B,color:#fff,stroke-width:2px
+    classDef kgNode fill:#4A90D9,stroke:#2C5F9E,color:#fff,stroke-width:2px
+    classDef semanticNode fill:#8E44AD,stroke:#6C3483,color:#fff,stroke-width:2px
+    classDef causalNode fill:#27AE60,stroke:#1E8449,color:#fff,stroke-width:2px
+    classDef hidden fill:none,stroke:none,color:#C0392B
+
+    class P1,V1,D1,C1,B1,I1,VM1 lpgNode
+    class P2,V2,D2,C2,B2,I2,VM2 kgNode
+    class OC,AKB,ICD semanticNode
+    class CV1,CV2 causalNode
+    class NONE1 hidden

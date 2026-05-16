@@ -1,0 +1,273 @@
+[
+  {
+    "alzkb_id": "alzkb:gene_APOE",
+    "label": "APOE",
+    "source_type": "Gene",
+    "gene_id": "348"
+  },
+  {
+    "alzkb_id": "alzkb:gene_APP",
+    "label": "APP",
+    "source_type": "Gene",
+    "gene_id": "351"
+  },
+  {
+    "alzkb_id": "alzkb:gene_PSEN1",
+    "label": "PSEN1",
+    "source_type": "Gene",
+    "gene_id": "5663"
+  },
+  {
+    "alzkb_id": "alzkb:gene_PSEN2",
+    "label": "PSEN2",
+    "source_type": "Gene",
+    "gene_id": "5664"
+  },
+  {
+    "alzkb_id": "alzkb:gene_MAPT",
+    "label": "MAPT",
+    "source_type": "Gene",
+    "gene_id": "4137"
+  },
+  {
+    "alzkb_id": "alzkb:gene_TREM2",
+    "label": "TREM2",
+    "source_type": "Gene",
+    "gene_id": "54209"
+  },
+  {
+    "alzkb_id": "alzkb:gene_CLU",
+    "label": "CLU",
+    "source_type": "Gene",
+    "gene_id": "1191"
+  },
+  {
+    "alzkb_id": "alzkb:gene_BIN1",
+    "label": "BIN1",
+    "source_type": "Gene",
+    "gene_id": "274"
+  },
+  {
+    "alzkb_id": "alzkb:gene_ABCA7",
+    "label": "ABCA7",
+    "source_type": "Gene",
+    "gene_id": "10347"
+  },
+  {
+    "alzkb_id": "alzkb:gene_CD33",
+    "label": "CD33",
+    "source_type": "Gene",
+    "gene_id": "945"
+  },
+  {
+    "alzkb_id": "alzkb:gene_CR1",
+    "label": "CR1",
+    "source_type": "Gene",
+    "gene_id": "1378"
+  },
+  {
+    "alzkb_id": "alzkb:gene_SORL1",
+    "label": "SORL1",
+    "source_type": "Gene",
+    "gene_id": "6653"
+  },
+  {
+    "alzkb_id": "alzkb:gene_ADAM10",
+    "label": "ADAM10",
+    "source_type": "Gene",
+    "gene_id": "102"
+  },
+  {
+    "alzkb_id": "alzkb:gene_BACE1",
+    "label": "BACE1",
+    "source_type": "Gene",
+    "gene_id": "23621"
+  },
+  {
+    "alzkb_id": "alzkb:gene_BDNF",
+    "label": "BDNF",
+    "source_type": "Gene",
+    "gene_id": "627"
+  },
+  {
+    "alzkb_id": "alzkb:disease_AD",
+    "label": "Alzheimer's disease",
+    "source_type": "Disease",
+    "disease_id": "DOID:10652"
+  },
+  {
+    "alzkb_id": "alzkb:disease_EOAD",
+    "label": "Early-onset Alzheimer disease",
+    "source_type": "Disease",
+    "disease_id": "DOID:0110041"
+  },
+  {
+    "alzkb_id": "alzkb:disease_LOAD",
+    "label": "Late-onset Alzheimer disease",
+    "source_type": "Disease",
+    "disease_id": "DOID:0110042"
+  },
+  {
+    "alzkb_id": "alzkb:disease_dementia",
+    "label": "Dementia",
+    "source_type": "Disease",
+    "disease_id": "DOID:1307"
+  },
+  {
+    "alzkb_id": "alzkb:disease_MCI",
+    "label": "Mild cognitive impairment",
+    "source_type": "Disease",
+    "disease_id": "DOID:0060903"
+  },
+  {
+    "alzkb_id": "alzkb:disease_tauopathy",
+    "label": "Tauopathy",
+    "source_type": "Disease",
+    "disease_id": "DOID:680"
+  },
+  {
+    "alzkb_id": "alzkb:anatomy_hippocampus",
+    "label": "Hippocampus",
+    "source_type": "Anatomy",
+    "mesh_id": "D006624"
+  },
+  {
+    "alzkb_id": "alzkb:anatomy_entorhinal",
+    "label": "Entorhinal cortex",
+    "source_type": "Anatomy",
+    "mesh_id": "D018728"
+  },
+  {
+    "alzkb_id": "alzkb:anatomy_temporal_lobe",
+    "label": "Temporal lobe",
+    "source_type": "Anatomy",
+    "mesh_id": "D013702"
+  },
+  {
+    "alzkb_id": "alzkb:anatomy_frontal_lobe",
+    "label": "Frontal lobe",
+    "source_type": "Anatomy",
+    "mesh_id": "D005625"
+  },
+  {
+    "alzkb_id": "alzkb:anatomy_amygdala",
+    "label": "Amygdala",
+    "source_type": "Anatomy",
+    "mesh_id": "D000679"
+  },
+  {
+    "alzkb_id": "alzkb:anatomy_cerebral_cortex",
+    "label": "Cerebral cortex",
+    "source_type": "Anatomy",
+    "mesh_id": "D002540"
+  },
+  {
+    "alzkb_id": "alzkb:anatomy_csf",
+    "label": "Cerebrospinal fluid",
+    "source_type": "Anatomy",
+    "mesh_id": "D002555"
+  },
+  {
+    "alzkb_id": "alzkb:bp_amyloid_beta",
+    "label": "Amyloid-beta formation",
+    "source_type": "BiologicalProcess",
+    "go_id": "GO:0034205"
+  },
+  {
+    "alzkb_id": "alzkb:bp_tau_phosph",
+    "label": "Tau protein phosphorylation",
+    "source_type": "BiologicalProcess",
+    "go_id": "GO:0050886"
+  },
+  {
+    "alzkb_id": "alzkb:bp_neuroinflammation",
+    "label": "Neuroinflammatory response",
+    "source_type": "BiologicalProcess",
+    "go_id": "GO:0150076"
+  },
+  {
+    "alzkb_id": "alzkb:bp_apoptosis",
+    "label": "Neuronal apoptotic process",
+    "source_type": "BiologicalProcess",
+    "go_id": "GO:0051402"
+  },
+  {
+    "alzkb_id": "alzkb:bp_synaptic",
+    "label": "Synaptic transmission",
+    "source_type": "BiologicalProcess",
+    "go_id": "GO:0007268"
+  },
+  {
+    "alzkb_id": "alzkb:bp_autophagy",
+    "label": "Autophagy",
+    "source_type": "BiologicalProcess",
+    "go_id": "GO:0006914"
+  },
+  {
+    "alzkb_id": "alzkb:bp_oxidative_stress",
+    "label": "Response to oxidative stress",
+    "source_type": "BiologicalProcess",
+    "go_id": "GO:0006979"
+  },
+  {
+    "alzkb_id": "alzkb:pw_amyloid_precursor",
+    "label": "Amyloid precursor protein pathway",
+    "source_type": "Pathway"
+  },
+  {
+    "alzkb_id": "alzkb:pw_wnt_signaling",
+    "label": "Wnt signaling pathway",
+    "source_type": "Pathway"
+  },
+  {
+    "alzkb_id": "alzkb:pw_pi3k_akt",
+    "label": "PI3K-Akt signaling pathway",
+    "source_type": "Pathway"
+  },
+  {
+    "alzkb_id": "alzkb:pw_mapk",
+    "label": "MAPK signaling pathway",
+    "source_type": "Pathway"
+  },
+  {
+    "alzkb_id": "alzkb:pw_notch",
+    "label": "Notch signaling pathway",
+    "source_type": "Pathway"
+  },
+  {
+    "alzkb_id": "alzkb:drug_donepezil",
+    "label": "Donepezil",
+    "source_type": "Drug",
+    "drugbank_id": "DB00843"
+  },
+  {
+    "alzkb_id": "alzkb:drug_memantine",
+    "label": "Memantine",
+    "source_type": "Drug",
+    "drugbank_id": "DB01043"
+  },
+  {
+    "alzkb_id": "alzkb:drug_rivastigmine",
+    "label": "Rivastigmine",
+    "source_type": "Drug",
+    "drugbank_id": "DB00989"
+  },
+  {
+    "alzkb_id": "alzkb:drug_galantamine",
+    "label": "Galantamine",
+    "source_type": "Drug",
+    "drugbank_id": "DB00674"
+  },
+  {
+    "alzkb_id": "alzkb:drug_aducanumab",
+    "label": "Aducanumab",
+    "source_type": "Drug",
+    "drugbank_id": "DB14580"
+  },
+  {
+    "alzkb_id": "alzkb:drug_lecanemab",
+    "label": "Lecanemab",
+    "source_type": "Drug",
+    "drugbank_id": "DB16649"
+  }
+]

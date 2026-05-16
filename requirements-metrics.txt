@@ -1,0 +1,38 @@
+# Metrics + figures pipeline (c7_plan_v2)
+# Layered on top of the base requirements.txt — install both:
+#   pip install -r requirements.txt -r requirements-metrics.txt
+
+# Already in requirements.txt (re-listed here for self-documentation):
+#   neo4j==5.24.0       — DB driver (used by metrics/validity.py)
+#   pyyaml==6.0.1       — rubric parsing
+#   pandas==2.1.3       — step_audit.csv assembly
+#   matplotlib==3.8.2   — F3 / F4 charts
+#   seaborn==0.13.0     — F3 / F4 styling
+
+# New deps for the metric / figure work:
+rdflib>=7.0.0           # AlzKB RDF parsing (M4.* — used alongside step24's CYPHERL parser)
+graphviz>=0.20          # F2 schema rendering
+pytest>=7.4             # tests/test_validity.py and friends
+pytest-cov>=4.1         # coverage on the metrics package
+
+# Markdown → PDF (used by tools/md_to_pdf.py and the thesis-report PDF
+# backend in metrics/thesis_report.py). All four backends are tried in
+# priority order; install whichever set you prefer:
+#
+#   pandoc                       — external binary (https://pandoc.org/install.html)
+#                                  best output quality, supports LaTeX maths
+#   pip install weasyprint       — pure-Python on Linux/macOS; on Windows
+#                                  needs GTK runtime separately
+#   pip install xhtml2pdf        — pure Python, cross-platform (recommended
+#                                  Windows fallback)
+#   pip install markdown         — required for any of the Python backends;
+#                                  also enables the HTML-only fallback so
+#                                  the thesis report always has *some*
+#                                  deliverable.
+#
+# These are listed below as commented-out so installing requirements-metrics
+# doesn't pull in xhtml2pdf+reportlab unless the user opts in.
+# markdown>=3.4
+# xhtml2pdf>=0.2.13
+# svglib>=1.5             # optional: SVG embedding when using xhtml2pdf
+# reportlab>=4.0          # transitive dep of svglib / xhtml2pdf

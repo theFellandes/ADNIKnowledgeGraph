@@ -1,0 +1,53 @@
+%% F2 — Schema before / after Steps 17–20 (c7_plan_v2)
+flowchart TB
+    subgraph Before["Before Steps 17–20 — LPG"]
+        direction LR
+        bP[":Patient"]
+        bV[":Visit"]
+        bD[":Diagnosis<br/>(string codes only)"]
+        bC[":CognitiveAssessment"]
+        bB[":Biomarker"]
+        bR[":BrainRegion"]
+        bP --> bV
+        bV --> bD
+        bV --> bC
+        bV --> bB
+        bC -. observed at .-> bR
+    end
+
+    subgraph After["After Steps 17–20 — KG"]
+        direction LR
+        aP[":Patient"]
+        aV[":Visit"]
+        aD[":Diagnosis<br/>+snomed_code +icd10_code"]
+        aC[":CognitiveAssessment<br/>+loinc_code"]
+        aB[":Biomarker<br/>+loinc_code"]
+        aR[":BrainRegion<br/>+uberon_code"]
+        aP --> aV
+        aV --> aD
+        aV --> aC
+        aV --> aB
+        aC -. observed at .-> aR
+
+        subgraph Layer["Ontology layer (NEW)"]
+            direction LR
+            oS[":OntologyConcept<br/>SNOMED-CT"]
+            oL[":OntologyConcept<br/>LOINC"]
+            oU[":OntologyConcept<br/>UBERON"]
+            oH[":OntologyConcept<br/>HPO"]
+            oI[":OntologyConcept<br/>ICD-10"]
+            oS -. IS_A .-> oS
+            oL -. IS_A .-> oL
+        end
+
+        aD ==>|MAPS_TO| oS
+        aC ==>|MAPS_TO| oL
+        aB ==>|MAPS_TO| oL
+        aR ==>|MAPS_TO| oU
+        aD ==>|CLASSIFIED_AS| oI
+    end
+
+    classDef ontology fill:#fef3c7,stroke:#b8b90c,color:#3f3f00;
+    classDef enriched fill:#dbeafe,stroke:#184a7c,color:#0f1d3a;
+    class oS,oL,oU,oH,oI ontology
+    class aD,aC,aB,aR enriched

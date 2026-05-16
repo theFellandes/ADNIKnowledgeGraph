@@ -1,0 +1,40 @@
+digraph ATN_Cascade {
+	graph [bgcolor="#1a1a2e" fontcolor=white fontname=Helvetica fontsize=16 label="ATN Biomarker Cascade with Causal Annotations" labelloc=t nodesep=1.2 pad=0.5 rankdir=LR ranksep=1.5]
+	subgraph cluster_A {
+		color="#F39C12" fontcolor="#F39C12" fontsize=14 label="A (Amyloid)" style=dashed
+		APOE4 [label="APOE ε4" fillcolor="#4A90D9" fontcolor=white fontname=Helvetica shape=ellipse style=filled]
+		CSF_AB42 [label="CSF Aβ42" fillcolor="#F39C12" fontcolor=white fontname=Helvetica shape=box style="filled,rounded"]
+		AV45 [label="Amyloid PET
+(AV45 SUVR)" fillcolor="#E67E22" fontcolor=white fontname=Helvetica shape=box style="filled,rounded"]
+	}
+	subgraph cluster_T {
+		color="#E74C3C" fontcolor="#E74C3C" fontsize=14 label="T (Tau)" style=dashed
+		CSF_TAU [label="CSF Total Tau" fillcolor="#E74C3C" fontcolor=white fontname=Helvetica shape=box style="filled,rounded"]
+		CSF_PTAU [label="CSF p-Tau" fillcolor="#C0392B" fontcolor=white fontname=Helvetica shape=box style="filled,rounded"]
+	}
+	subgraph cluster_N {
+		color="#1ABC9C" fontcolor="#1ABC9C" fontsize=14 label="N (Neurodegeneration)" style=dashed
+		Hippocampus [label="Hippocampal
+Volume" fillcolor="#1ABC9C" fontcolor=white fontname=Helvetica shape=box style="filled,rounded"]
+		Entorhinal [label="Entorhinal
+Cortex" fillcolor="#16A085" fontcolor=white fontname=Helvetica shape=box style="filled,rounded"]
+		FDG [label="FDG PET
+(Metabolism)" fillcolor="#E67E22" fontcolor=white fontname=Helvetica shape=box style="filled,rounded"]
+	}
+	subgraph cluster_outcome {
+		color="#27AE60" fontcolor="#27AE60" fontsize=14 label="Clinical Outcome" style=dashed
+		MMSE [label=MMSE fillcolor="#27AE60" fontcolor=white fontname=Helvetica shape=box style="filled,rounded"]
+		ADAS13 [label="ADAS-Cog 13" fillcolor="#2ECC71" fontcolor=white fontname=Helvetica shape=box style="filled,rounded"]
+		DX [label="Diagnosis
+(CN→MCI→AD)" fillcolor="#9B59B6" fontcolor=white fontname=Helvetica shape=box style="filled,rounded"]
+	}
+	APOE4 -> CSF_AB42 [label=CAUSES color="#E74C3C" fontcolor="#E74C3C" fontname=Helvetica fontsize=9 penwidth=2.0 style=bold]
+	CSF_AB42 -> CSF_TAU [label=CAUSES color="#E74C3C" fontcolor="#E74C3C" fontname=Helvetica fontsize=9 penwidth=2.0 style=bold]
+	CSF_AB42 -> CSF_PTAU [label=CAUSES color="#E74C3C" fontcolor="#E74C3C" fontname=Helvetica fontsize=9 penwidth=2.0 style=bold]
+	CSF_TAU -> Hippocampus [label=CAUSES color="#E74C3C" fontcolor="#E74C3C" fontname=Helvetica fontsize=9 penwidth=2.0 style=bold]
+	CSF_PTAU -> Hippocampus [label=CAUSES color="#E74C3C" fontcolor="#E74C3C" fontname=Helvetica fontsize=9 penwidth=2.0 style=bold]
+	Hippocampus -> MMSE [label=CAUSES color="#E74C3C" fontcolor="#E74C3C" fontname=Helvetica fontsize=9 penwidth=2.0 style=bold]
+	Hippocampus -> ADAS13 [label=CAUSES color="#7F8C8D" fontcolor="#7F8C8D" fontname=Helvetica fontsize=9 penwidth=1.0 style=dashed]
+	AV45 -> CSF_AB42 [label=reflects color="#95A5A6" fontcolor="#95A5A6" fontname=Helvetica fontsize=9 penwidth=1.0 style=dotted]
+	MMSE -> DX [label=defines color="#95A5A6" fontcolor="#95A5A6" fontname=Helvetica fontsize=9 penwidth=1.0 style=dotted]
+}

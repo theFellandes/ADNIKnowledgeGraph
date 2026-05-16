@@ -1,0 +1,6 @@
+source_table,source_column,source_value_pattern,target_ontology,target_uri,target_label,mapping_rule,test_fixture_id,last_verified_date
+UPENNBIOMK,analyte,ABETA42,LOINC,loinc:13967-5,Beta-amyloid 42 in CSF,exact_match,abeta42_p1_bl,2026-05-09
+UPENNBIOMK,analyte,ABETA40,LOINC,loinc:83235-5,Beta-amyloid 40 in CSF,exact_match,,2026-05-09
+UPENNBIOMK,analyte,TAU,LOINC,loinc:15201-7,Total tau in CSF,exact_match,tau_p2_m06,2026-05-09
+UPENNBIOMK,analyte,PTAU,LOINC,loinc:62731-6,Phosphorylated tau in CSF,exact_match,ptau_p3_m12,2026-05-09
+UPENNBIOMK,analyte,PTAU181,LOINC,loinc:62731-6,Phosphorylated tau 181 in CSF,exact_match,,2026-05-09

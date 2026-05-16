@@ -92,6 +92,34 @@ class PatientCreator:
                         if field in row and pd.notna(row[field]):
                             self.patient_data_cache[patient_id]['age'] = DataValidator.clean_numeric(row[field])
 
+                    # Fallback: calculate age from birth year + visit date
+                    # ADNI PTDEMOG has PTDOBYY (birth year) and VISDATE, not a direct AGE column
+                    if 'age' not in self.patient_data_cache[patient_id]:
+                        birth_year = None
+                        if 'PTDOBYY' in row and pd.notna(row['PTDOBYY']):
+                            try:
+                                birth_year = int(float(row['PTDOBYY']))
+                            except (ValueError, TypeError):
+                                pass
+                        elif 'PTDOB' in row and pd.notna(row['PTDOB']):
+                            # PTDOB format: "mm/yyyy"
+                            try:
+                                birth_year = int(str(row['PTDOB']).split('/')[-1])
+                            except (ValueError, IndexError):
+                                pass
+
+                        if birth_year:
+                            visit_year = None
+                            if 'VISDATE' in row and pd.notna(row['VISDATE']):
+                                try:
+                                    visit_year = int(str(row['VISDATE']).split('-')[0])
+                                except (ValueError, IndexError):
+                                    pass
+                            if visit_year:
+                                age = visit_year - birth_year
+                                if 40 <= age <= 120:  # Sanity check for ADNI age range
+                                    self.patient_data_cache[patient_id]['age'] = float(age)
+
                     for field in ['PTEDUCAT', 'EDUCATION', 'EDUC']:
                         if field in row and pd.notna(row[field]):
                             self.patient_data_cache[patient_id]['education'] = DataValidator.clean_numeric(row[field])
@@ -118,13 +146,20 @@ class PatientCreator:
                 if not patient_id or not DataValidator.validate_patient_id(patient_id):
                     continue
 
-                # Extract APOE alleles
+                # Extract APOE alleles (try separate allele columns first)
                 allele1 = str(row.get('APGEN1', '')).strip() if 'APGEN1' in row else ''
                 allele2 = str(row.get('APGEN2', '')).strip() if 'APGEN2' in row else ''
 
                 if allele1 and allele2:
                     apoe_genotype = f"E{allele1}/E{allele2}"
                     self.patient_data_cache[patient_id]['apoe_genotype'] = apoe_genotype
+                # Fallback: parse single GENOTYPE column (ADNI APOERES format: "3/3", "3/4", etc.)
+                elif 'GENOTYPE' in row and pd.notna(row['GENOTYPE']):
+                    genotype_str = str(row['GENOTYPE']).strip()
+                    parts = genotype_str.replace(' ', '').split('/')
+                    if len(parts) == 2 and all(p.isdigit() for p in parts):
+                        apoe_genotype = f"E{parts[0]}/E{parts[1]}"
+                        self.patient_data_cache[patient_id]['apoe_genotype'] = apoe_genotype
 
     def execute(self) -> Dict[str, Any]:
         """
@@ -223,7 +258,9 @@ class PatientCreator:
         visit_info = {}  # Key: (ptid, viscode), Value: visit data
 
         # Visit code columns to check
-        viscode_columns = ['VISCODE', 'VISCODE2', 'VISIT', 'VISITNO', 'VISITCODE']
+        # VISCODE2 preferred: ADNI standardized month-based codes (bl, m06, m12, m24...)
+        # VISCODE uses protocol codes (bl, v01, v06, v11...) which don't match step6's IDs
+        viscode_columns = ['VISCODE2', 'VISCODE', 'VISIT', 'VISITNO', 'VISITCODE']
 
         # Process tables in parallel chunks for better performance
         for table_name, df in self.table_data.items():

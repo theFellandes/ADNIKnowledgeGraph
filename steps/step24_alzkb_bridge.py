@@ -139,6 +139,22 @@ SAME_AS_RULES = [
     # CSF biomarkers → CausalVariable
     {'alzkb_id': 'alzkb:bp_amyloid_beta', 'target_label': 'CausalVariable', 'target_key': 'variable_id', 'target_value': 'BIO_ABETA',  'method': 'manual_biomarker'},
     {'alzkb_id': 'alzkb:bp_tau_phosph',   'target_label': 'CausalVariable', 'target_key': 'variable_id', 'target_value': 'BIO_PTAU',  'method': 'manual_biomarker'},
+
+    # Phenotypes → HPO OntologyConcept (B-08).
+    # AlzKB stores these as Symptom or BiologicalProcess nodes; we map each
+    # to the closest HPO concept already in our OntologyConcept layer (per
+    # step 20 + the hierarchy_roots list in metrics/validity_rubric.yaml).
+    # SAME_AS direction is (AlzKBConcept)-[:SAME_AS]->(OntologyConcept),
+    # so target_label='OntologyConcept' / target_key='uri'.
+    {'alzkb_id': 'alzkb:disease_dementia',     'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0000726',  'method': 'manual_phenotype'},
+    {'alzkb_id': 'alzkb:symptom_dementia',     'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0000726',  'method': 'manual_phenotype'},
+    {'alzkb_id': 'alzkb:symptom_memory_loss',  'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0002354',  'method': 'manual_phenotype'},
+    {'alzkb_id': 'alzkb:symptom_memory_impairment', 'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0002354', 'method': 'manual_phenotype'},
+    {'alzkb_id': 'alzkb:symptom_cognitive_decline', 'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0001268', 'method': 'manual_phenotype'},
+    {'alzkb_id': 'alzkb:symptom_mental_deterioration', 'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0001268', 'method': 'manual_phenotype'},
+    {'alzkb_id': 'alzkb:symptom_behavioral_abnormality', 'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0000708', 'method': 'manual_phenotype'},
+    {'alzkb_id': 'alzkb:bp_neuroinflammation', 'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0002354',  'method': 'manual_phenotype_proxy'},
+    {'alzkb_id': 'alzkb:bp_neurodegeneration', 'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0001268',  'method': 'manual_phenotype_proxy'},
 ]
 
 
@@ -239,7 +255,29 @@ UNWIND $rels AS rel
 MATCH (src:AlzKBConcept {alzkb_id: rel.source})
 MATCH (tgt:AlzKBConcept {alzkb_id: rel.target})
 MERGE (src)-[r:ALZKB_RELATES_TO {type: rel.type}]->(tgt)
-SET r.created_at = datetime()
+SET r.created_at = datetime(),
+    r.uri = CASE rel.type
+                WHEN 'GENEASSOCIATESWITHDISEASE' THEN 'ro:RO_0003302'
+                WHEN 'GENEPARTICIPATESBP'       THEN 'ro:RO_0002331'
+                WHEN 'DISEASELOCALIZESTOANATOMY' THEN 'ro:RO_0004026'
+                WHEN 'DRUGTREATSDISEASE'        THEN 'ro:RO_0002606'
+                ELSE 'ro:RO_0002610'  // generic 'correlated_with' fallback
+            END
+"""
+
+# One-shot back-fill query for ALZKB_RELATES_TO edges that pre-date the
+# uri-setting MERGE above. Idempotent — only sets uri where it's NULL.
+BACKFILL_ALZKB_RELATIONSHIP_URI = """
+MATCH ()-[r:ALZKB_RELATES_TO]->()
+WHERE r.uri IS NULL
+SET r.uri = CASE r.type
+                WHEN 'GENEASSOCIATESWITHDISEASE' THEN 'ro:RO_0003302'
+                WHEN 'GENEPARTICIPATESBP'       THEN 'ro:RO_0002331'
+                WHEN 'DISEASELOCALIZESTOANATOMY' THEN 'ro:RO_0004026'
+                WHEN 'DRUGTREATSDISEASE'        THEN 'ro:RO_0002606'
+                ELSE 'ro:RO_0002610'
+            END
+RETURN count(r) AS updated
 """
 
 MERGE_SAME_AS_ONTOLOGY = """
@@ -438,7 +476,7 @@ class AlzKBBridge:
         logger.info(f"  Created {len(records)} AlzKBConcept nodes")
 
     def _create_alzkb_relationships(self) -> None:
-        """Create internal AlzKB relationships."""
+        """Create internal AlzKB relationships, with RO URIs (B-01)."""
         logger.info("  Creating AlzKB internal relationships...")
 
         self.connector.run_query(
@@ -446,6 +484,14 @@ class AlzKBBridge:
             {'rels': MANUAL_ALZKB_RELATIONSHIPS}
         )
         logger.info(f"  Created {len(MANUAL_ALZKB_RELATIONSHIPS)} AlzKB relationships")
+
+        # Back-fill any pre-existing ALZKB_RELATES_TO edges that lack r.uri
+        # (edges created by an older step 24 before the URI mapping landed).
+        backfill_rows = self.connector.run_query(BACKFILL_ALZKB_RELATIONSHIP_URI)
+        if backfill_rows:
+            updated = backfill_rows[0].get('updated', 0)
+            if updated:
+                logger.info(f"  Back-filled uri on {updated} legacy ALZKB_RELATES_TO edges")
 
     def _create_same_as_edges(self) -> int:
         """Create SAME_AS edges using manual mapping rules."""
@@ -514,34 +560,67 @@ class AlzKBBridge:
 # CLI + pipeline integration
 # ────────────────────────────────────────────────────────────────
 
+def _resolve_neo4j_creds(config: Dict[str, Any]) -> tuple:
+    """Accept either flat (neo4j_uri / neo4j_user / neo4j_password — what
+    env_loader produces) or nested (config['neo4j']['uri'] etc.) shapes."""
+    nested = config.get('neo4j') or {}
+    uri = nested.get('uri') or config.get('neo4j_uri') or 'bolt://localhost:7687'
+    user = nested.get('user') or config.get('neo4j_user') or 'neo4j'
+    password = nested.get('password') or config.get('neo4j_password')
+    if not password:
+        raise RuntimeError(
+            "Neo4j password missing. Set NEO4J_PASSWORD in .env or pass --neo4j-password."
+        )
+    return uri, user, password
+
+
 def execute_alzkb_bridge(config: Dict[str, Any],
                          connector=None) -> Dict[str, Any]:
     """Pipeline entry-point for Step 24."""
     if connector is None:
         from utils.neo4j_connector import Neo4jConnector
-        connector = Neo4jConnector(
-            config['neo4j']['uri'],
-            config['neo4j']['user'],
-            config['neo4j']['password']
-        )
+        uri, user, password = _resolve_neo4j_creds(config)
+        connector = Neo4jConnector(uri, user, password)
 
     bridge = AlzKBBridge(connector, config)
     return bridge.execute()
 
 
 if __name__ == '__main__':
-    import yaml
+    import argparse
+
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s | %(levelname)-8s | %(name)s | %(message)s'
     )
 
-    config_path = Path(__file__).parent.parent / 'config.yaml'
-    if config_path.exists():
-        with open(config_path) as f:
-            config = yaml.safe_load(f)
-    else:
-        config = {}
+    parser = argparse.ArgumentParser(description="Step 24: AlzKB Bridge")
+    parser.add_argument("--neo4j-uri", default=None)
+    parser.add_argument("--neo4j-user", default=None)
+    parser.add_argument("--neo4j-password", default=None)
+    args = parser.parse_args()
+
+    # Load config via env_loader so .env secrets get merged.
+    try:
+        from utils.env_loader import load_config
+        config = load_config()
+    except Exception:
+        # Fallback: raw yaml load (no .env merge)
+        import yaml
+        config_path = Path(__file__).parent.parent / 'config.yaml'
+        if config_path.exists():
+            with open(config_path) as f:
+                config = yaml.safe_load(f) or {}
+        else:
+            config = {}
+
+    # CLI overrides (highest priority)
+    if args.neo4j_uri:
+        config['neo4j_uri'] = args.neo4j_uri
+    if args.neo4j_user:
+        config['neo4j_user'] = args.neo4j_user
+    if args.neo4j_password:
+        config['neo4j_password'] = args.neo4j_password
 
     result = execute_alzkb_bridge(config)
     print(json.dumps(result, indent=2, default=str))

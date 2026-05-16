@@ -1,0 +1,101 @@
+source_csv,source_table,source_column,source_value_pattern,target_ontology,target_uri,target_label,mapping_rule,test_fixture_id,last_verified_date
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,CN,SNOMED-CT,snomed:17621005,Normal (finding),exact_match,dx_p3_m12,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,CN,ICD-10,icd10:Z03.89,No diagnosis or condition,exact_match,dx_p3_m12,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,CN,NCIt,ncit:C94342,Cognitively Normal,exact_match,dx_p3_m12,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,SMC,SNOMED-CT,snomed:386807006,Subjective memory complaint,exact_match,,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,SMC,ICD-10,icd10:R41.3,Other amnesia,exact_match,,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,SMC,NCIt,ncit:C176715,Subjective Cognitive Complaint,exact_match,,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,EMCI,SNOMED-CT,snomed:386806002,Mild cognitive impairment (early),exact_match,,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,EMCI,ICD-10,icd10:F06.7,Mild cognitive disorder,exact_match,,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,EMCI,MONDO,MONDO:0024647,Mild cognitive impairment,exact_match,,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,EMCI,NCIt,ncit:C100044,Mild Cognitive Impairment,exact_match,,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,LMCI,SNOMED-CT,snomed:386806002,Mild cognitive impairment (late),exact_match,,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,LMCI,ICD-10,icd10:F06.7,Mild cognitive disorder,exact_match,,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,LMCI,MONDO,MONDO:0024647,Mild cognitive impairment,exact_match,,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,LMCI,NCIt,ncit:C100044,Mild Cognitive Impairment,exact_match,,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,MCI,SNOMED-CT,snomed:386806002,Mild cognitive impairment,exact_match,dx_p2_m06,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,MCI,ICD-10,icd10:F06.7,Mild cognitive disorder,exact_match,dx_p2_m06,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,MCI,MONDO,MONDO:0024647,Mild cognitive impairment,exact_match,dx_p2_m06,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,AD,SNOMED-CT,snomed:26929004,Alzheimer's disease,exact_match,dx_p1_bl,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,AD,ICD-10,icd10:G30.9,"Alzheimer disease, unspecified",exact_match,dx_p1_bl,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,AD,MONDO,MONDO:0004975,Alzheimer disease,exact_match,dx_p1_bl,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,AD,NCIt,ncit:C2866,Alzheimer's Disease,exact_match,dx_p1_bl,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,Dementia,SNOMED-CT,snomed:52448006,Dementia,exact_match,,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,Dementia,ICD-10,icd10:F03.9,Unspecified dementia,exact_match,,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,Dementia,MONDO,MONDO:0001627,Dementia,exact_match,,2026-05-09
+diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,Dementia,NCIt,ncit:C4786,Dementia,exact_match,,2026-05-09
+cognitive_to_loinc.csv,NEUROBAT,test_name,MMSE,LOINC,loinc:72106-8,Mini-Mental State Examination total score,exact_match,mmse_p1_bl,2026-05-09
+cognitive_to_loinc.csv,CDR,test_name,CDR,LOINC,loinc:72172-0,Clinical Dementia Rating global score,exact_match,cdr_p2_m06,2026-05-09
+cognitive_to_loinc.csv,FAQ,test_name,FAQ,LOINC,loinc:71130-0,Functional Activities Questionnaire total score,exact_match,,2026-05-09
+cognitive_to_loinc.csv,ADAS,test_name,ADAS-Cog,LOINC,loinc:72194-4,Alzheimer's Disease Assessment Scale-Cognitive total score,exact_match,adas_p4_y3,2026-05-09
+cognitive_to_loinc.csv,MOCA,test_name,MoCA,LOINC,loinc:72133-2,Montreal Cognitive Assessment total score,exact_match,moca_p3_m12,2026-05-09
+cognitive_to_loinc.csv,NEUROBAT,test_name,Logical Memory,LOINC,loinc:72026-8,Logical Memory - Delayed Recall,exact_match,,2026-05-09
+biomarker_to_loinc.csv,UPENNBIOMK,analyte,ABETA42,LOINC,loinc:13967-5,Beta-amyloid 42 in CSF,exact_match,abeta42_p1_bl,2026-05-09
+biomarker_to_loinc.csv,UPENNBIOMK,analyte,ABETA40,LOINC,loinc:83235-5,Beta-amyloid 40 in CSF,exact_match,,2026-05-09
+biomarker_to_loinc.csv,UPENNBIOMK,analyte,TAU,LOINC,loinc:15201-7,Total tau in CSF,exact_match,tau_p2_m06,2026-05-09
+biomarker_to_loinc.csv,UPENNBIOMK,analyte,PTAU,LOINC,loinc:62731-6,Phosphorylated tau in CSF,exact_match,ptau_p3_m12,2026-05-09
+biomarker_to_loinc.csv,UPENNBIOMK,analyte,PTAU181,LOINC,loinc:62731-6,Phosphorylated tau 181 in CSF,exact_match,,2026-05-09
+brain_region_to_uberon.csv,UCSFFSX7,region_name,Hippocampus,UBERON,uberon:UBERON:0002421,hippocampal formation,case_insensitive,,2026-05-09
+brain_region_to_uberon.csv,UCSFFSX7,region_name,Cerebral Cortex,UBERON,uberon:UBERON:0000956,cerebral cortex,case_insensitive,,2026-05-09
+brain_region_to_uberon.csv,UCSFFSX7,region_name,Ventricles,UBERON,uberon:UBERON:0004086,brain ventricle,case_insensitive,,2026-05-09
+brain_region_to_uberon.csv,UCSFFSX7,region_name,Cerebellum,UBERON,uberon:UBERON:0002037,cerebellum,case_insensitive,,2026-05-09
+brain_region_to_uberon.csv,UCSFFSX7,region_name,Frontal Lobe,UBERON,uberon:UBERON:0000203,frontal lobe,case_insensitive,,2026-05-09
+brain_region_to_uberon.csv,UCSFFSX7,region_name,Temporal Lobe,UBERON,uberon:UBERON:0001871,temporal lobe,case_insensitive,,2026-05-09
+brain_region_to_uberon.csv,UCSFFSX7,region_name,Parietal Lobe,UBERON,uberon:UBERON:0001872,parietal lobe,case_insensitive,,2026-05-09
+brain_region_to_uberon.csv,UCSFFSX7,region_name,Occipital Lobe,UBERON,uberon:UBERON:0002021,occipital lobe,case_insensitive,,2026-05-09
+brain_region_to_uberon.csv,UCSFFSX7,region_name,Brainstem,UBERON,uberon:UBERON:0002298,brainstem,case_insensitive,,2026-05-09
+brain_region_to_uberon.csv,UCSFFSX7,region_name,Thalamus,UBERON,uberon:UBERON:0001897,thalamus,case_insensitive,,2026-05-09
+brain_region_to_uberon.csv,UCSFFSX7,region_name,Basal Ganglia,UBERON,uberon:UBERON:0002420,basal ganglion,case_insensitive,,2026-05-09
+brain_region_to_uberon.csv,UCSFFSX7,region_name,Whole Brain,UBERON,uberon:UBERON:0000955,brain,case_insensitive,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_VISIT,RO,ro:RO_0000056,participates_in,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_COGNITIVE_ASSESSMENT,RO,ro:RO_0002234,has_output,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,UNDERWENT_ASSESSMENT,RO,ro:RO_0002234,has_output,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,INCLUDES_ASSESSMENT,RO,ro:RO_0002234,has_output,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,FOLLOWED_BY,OWL-Time,time:intervalBefore,interval before,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,PRECEDES,OWL-Time,time:intervalBefore,interval before,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,PROGRESSED_TO,RO,ro:RO_0002411,causally_upstream_of,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_DIAGNOSIS,RO,ro:RO_0000091,has_disposition,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,SUPPORTS_DIAGNOSIS,RO,ro:RO_0000091,has_disposition,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,IS_CLINICAL_FINDING,RO,ro:RO_0000052,inheres_in,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,RESULTED_IN,RO,ro:RO_0002234,has_output,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_CLINICAL_FINDING,RO,ro:RO_0000052,inheres_in,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_BIOMARKER,RO,ro:RO_0000056,participates_in,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_IMAGE,RO,ro:RO_0000056,participates_in,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_FAMILY_MEMBER,RO,ro:RO_0002351,has_member,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_SIBLING,RO,ro:RO_0002351,has_member,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_PARENT,RO,ro:RO_0002351,has_member,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,IS_TYPE,RDFS,rdfs:subClassOf,subclass of,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,BELONGS_TO_CATEGORY,RDFS,rdfs:subClassOf,subclass of,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_ATN_PROFILE,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_MULTIMODAL_ASSESSMENT,RO,ro:RO_0002234,has_output,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_COGNITIVE_TRAJECTORY,RO,ro:RO_0002234,has_output,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,CORRELATES_WITH,RO,ro:RO_0002610,correlated_with,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,INDICATES_PATHWAY,RO,ro:RO_0002610,correlated_with,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,ASSOCIATED_WITH_STAGE,RO,ro:RO_0002610,correlated_with,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,BELONGS_TO_COHORT,RO,ro:RO_0001015,location_of,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,IN_COHORT,RO,ro:RO_0001015,location_of,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,EXPERIENCED_PROGRESSION,RO,ro:RO_0002411,causally_upstream_of,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_TRAJECTORY,RO,ro:RO_0002234,has_output,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_PHENOTYPE,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,MAPS_TO,SKOS,skos:exactMatch,exact match,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,IS_A,RDFS,rdfs:subClassOf,subclass of,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,CLASSIFIED_AS,SKOS,skos:closeMatch,close match,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,SAME_AS,OWL,owl:sameAs,same as,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,CAUSES,RO,ro:RO_0002411,causally_upstream_of,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_RISK_FACTOR,RO,ro:RO_0002500,causal_relation_with_disposition,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_FAMILY_RISK,RO,ro:RO_0002500,causal_relation_with_disposition,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_GENETIC_RISK,RO,ro:RO_0002500,causal_relation_with_disposition,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_GENETIC_MARKER,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_BIOMARKER_PROFILE,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_DEMOGRAPHICS,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_AMYLOID_STATUS,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_TAU_STATUS,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_NEURODEGENERATION_STATUS,RO,ro:RO_0000086,has_quality,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,AT_DISEASE_STAGE,RO,ro:RO_0002092,happens_during,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,AT_STAGE,RO,ro:RO_0002092,happens_during,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,PROGRESSES_TO,RO,ro:RO_0002411,causally_upstream_of,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,CAN_PROGRESS_TO,RO,ro:RO_0002411,causally_upstream_of,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,FOLLOWS_PROGRESSION,RO,ro:RO_0002086,preceded_by,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,INDICATES,RO,ro:RO_0002610,correlated_with,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,HAS_SUBTYPE,RDFS,rdfs:subClassOf,subclass of,exact_match,,2026-05-09
+relationship_to_ro_uri.csv,_synthetic,_relationship_type,ALZKB_RELATES_TO,RO,ro:RO_0002610,correlated_with (generic; specific predicate in r.type),exact_match,,2026-05-09

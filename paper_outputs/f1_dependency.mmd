@@ -1,0 +1,27 @@
+%% F1 — MAKO functional dependency diagram (c7_plan_v2)
+%% C7 (cross-vocabulary AlzKB alignment) sits at the centre.
+%% Steps A–D feed into C7. C4 is removed (faded). C6 is future work.
+flowchart LR
+    subgraph Steps["Methodological Steps"]
+        A["Step A<br/>Three-axis ontology selection<br/>(was C1)"]
+        B["Step B<br/>In-place semantic migration<br/>(was C2)"]
+        C["Step C<br/>Column-to-concept mapping<br/>(was C3, renamed)"]
+        D["Step D<br/>Relation normalisation<br/>(was C5)"]
+    end
+
+    C7[["C7 — Cross-Vocabulary Alignment<br/>(MAKO ↔ AlzKB)"]]
+    C6(["C6 — Comparative Benchmark<br/>(future work)"])
+    C4(["C4 — Gene Ontology integration<br/>(REMOVED)"]):::removed
+
+    A --> C7
+    B --> C7
+    C --> C7
+    D --> C7
+    C7 --> C6
+    C4 -. dropped .-> C7
+
+    classDef removed fill:#f3f4f6,stroke:#9ca3af,stroke-dasharray:4 3,color:#6b7280;
+    classDef future fill:#fef3c7,stroke:#b8b90c,color:#3f3f00;
+    classDef hub fill:#184a7c,stroke:#0f1d3a,color:#ffffff;
+    class C7 hub
+    class C6 future

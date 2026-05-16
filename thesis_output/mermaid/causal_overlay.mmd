@@ -1,0 +1,80 @@
+%% Causal Discovery -- Consensus Graph
+%% Representative edges from the ATN framework causal discovery pipeline
+%% Node prefixes: BIO_ (CSF), COG_ (cognitive), VOL_ (volumetric), PET_ (imaging), DX_ (diagnosis)
+
+graph LR
+
+    %% ── Demographics ──
+    age["age"]
+    education["education"]
+    gender["gender"]
+    apoe_e4["apoe_e4_count"]
+
+    %% ── Biomarkers (CSF) ──
+    BIO_ABETA["BIO_ABETA"]
+    BIO_TAU["BIO_TAU"]
+    BIO_PTAU["BIO_PTAU"]
+
+    %% ── Cognitive scores ──
+    COG_MMSE["COG_MMSE"]
+    COG_ADAS13["COG_ADAS13"]
+    COG_CDRSB["COG_CDRSB"]
+    COG_RAVLT["COG_RAVLT"]
+
+    %% ── Volumetric measures ──
+    VOL_HIPPOCAMPUS["VOL_HIPPOCAMPUS"]
+    VOL_ENTORHINAL["VOL_ENTORHINAL"]
+    VOL_VENTRICLES["VOL_VENTRICLES"]
+
+    %% ── PET ──
+    PET_AV45["PET_AV45"]
+    PET_FDG["PET_FDG"]
+
+    %% ── ATN classification ──
+    ATN_A["ATN_A"]
+    ATN_T["ATN_T"]
+    ATN_N["ATN_N"]
+
+    %% ── Diagnosis ──
+    DX_LABEL["DX_LABEL"]
+
+    %% ── Consensus causal edges ──
+    apoe_e4 -->|CAUSES| BIO_ABETA
+    BIO_ABETA -->|CAUSES| DX_LABEL
+    BIO_ABETA -->|CAUSES| BIO_TAU
+    BIO_ABETA -->|CAUSES| BIO_PTAU
+    BIO_TAU -->|CAUSES| COG_MMSE
+    BIO_TAU -->|CAUSES| VOL_HIPPOCAMPUS
+    BIO_PTAU -->|CAUSES| VOL_ENTORHINAL
+    VOL_HIPPOCAMPUS -->|CAUSES| COG_ADAS13
+    VOL_HIPPOCAMPUS -->|CAUSES| COG_MMSE
+    VOL_ENTORHINAL -->|CAUSES| COG_CDRSB
+    VOL_VENTRICLES -->|CAUSES| COG_RAVLT
+    PET_AV45 -->|CAUSES| ATN_A
+    BIO_ABETA -->|CAUSES| ATN_A
+    BIO_TAU -->|CAUSES| ATN_T
+    BIO_PTAU -->|CAUSES| ATN_T
+    VOL_HIPPOCAMPUS -->|CAUSES| ATN_N
+    PET_FDG -->|CAUSES| ATN_N
+    COG_MMSE -->|CAUSES| DX_LABEL
+    COG_ADAS13 -->|CAUSES| DX_LABEL
+    COG_CDRSB -->|CAUSES| DX_LABEL
+    age -->|CAUSES| VOL_HIPPOCAMPUS
+    education -->|CAUSES| COG_MMSE
+
+    %% ── Styles ──
+    classDef demographics fill:#4A90D9,stroke:#2C5F9E,color:#fff,stroke-width:2px
+    classDef biomarker fill:#F39C12,stroke:#C87F0A,color:#fff,stroke-width:2px
+    classDef cognitive fill:#27AE60,stroke:#1E8449,color:#fff,stroke-width:2px
+    classDef volumetric fill:#1ABC9C,stroke:#148F77,color:#fff,stroke-width:2px
+    classDef pet fill:#E67E22,stroke:#BA6914,color:#fff,stroke-width:2px
+    classDef atn fill:#2C3E50,stroke:#1A252F,color:#fff,stroke-width:2px
+    classDef diagnosis fill:#E74C3C,stroke:#C0392B,color:#fff,stroke-width:2px
+
+    class age,education,gender,apoe_e4 demographics
+    class BIO_ABETA,BIO_TAU,BIO_PTAU biomarker
+    class COG_MMSE,COG_ADAS13,COG_CDRSB,COG_RAVLT cognitive
+    class VOL_HIPPOCAMPUS,VOL_ENTORHINAL,VOL_VENTRICLES volumetric
+    class PET_AV45,PET_FDG pet
+    class ATN_A,ATN_T,ATN_N atn
+    class DX_LABEL diagnosis

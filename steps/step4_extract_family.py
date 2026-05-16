@@ -8,6 +8,7 @@ import pandas as pd
 from typing import Dict, List, Any, Optional, Tuple
 import re
 import uuid
+import hashlib
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -126,7 +127,7 @@ class FixedFamilyRelationshipExtractor:
                     continue
 
                 # Process each column that might contain family data
-                family_member = self._extract_family_member_from_column(row, col, table_name)
+                family_member = self._extract_family_member_from_column(row, col, table_name, ptid)
                 if family_member:
                     # Update patient_id
                     family_member.patient_id = ptid
@@ -168,7 +169,7 @@ class FixedFamilyRelationshipExtractor:
 
             # Process each family column
             for col in family_cols:
-                family_member = self._extract_family_member_from_column(row, col, table_name)
+                family_member = self._extract_family_member_from_column(row, col, table_name, ptid)
                 if family_member:
                     family_member.patient_id = ptid
 
@@ -181,7 +182,7 @@ class FixedFamilyRelationshipExtractor:
             self.extraction_stats['family_members_extracted'] += processed_count
 
     def _extract_family_member_from_column(self, row: pd.Series, column: str,
-                                          table_name: str) -> Optional[FamilyMember]:
+                                          table_name: str, ptid: str) -> Optional[FamilyMember]:
         """Extract family member information from a specific column"""
 
         value = row.get(column)
@@ -210,7 +211,8 @@ class FixedFamilyRelationshipExtractor:
         age_at_onset = self._extract_age_from_column(row, column)
 
         # Create family member
-        member_id = f"fm_{uuid.uuid4().hex[:8]}"
+        deterministic_key = f"{ptid}_{relationship_type}_{column}"
+        member_id = f"fm_{hashlib.md5(deterministic_key.encode()).hexdigest()[:12]}"
 
         return FamilyMember(
             member_id=member_id,

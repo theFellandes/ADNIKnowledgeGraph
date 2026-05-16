@@ -1,0 +1,85 @@
+%% ADNI Knowledge Graph Schema
+%% All node types and relationships, color-coded by category
+
+graph LR
+
+    %% --- Clinical (blue) ---
+    Patient["Patient"]
+    Visit["Visit"]
+    Diagnosis["Diagnosis"]
+
+    %% --- Assessment (purple) ---
+    CognitiveAssessment["CognitiveAssessment"]
+
+    %% --- Biomarker (orange) ---
+    Biomarker["Biomarker"]
+    ATNProfile["ATNProfile"]
+    PETBinding["PETBinding"]
+
+    %% --- Imaging (teal) ---
+    ImagingStudy["ImagingStudy"]
+    ImageNode["ImageNode"]
+    VolumetricMeasure["VolumetricMeasure"]
+    BrainRegion["BrainRegion"]
+
+    %% --- Ontology (gold) ---
+    OntologyConcept["OntologyConcept"]
+    AlzKBConcept["AlzKBConcept"]
+    DiseaseStage["DiseaseStage"]
+    ClinicalFinding["ClinicalFinding"]
+
+    %% --- Causal (green) ---
+    CausalVariable["CausalVariable"]
+    FamilyMember["FamilyMember"]
+
+    %% ── Clinical layer relationships ──
+    Patient -->|HAS_VISIT| Visit
+    Visit -->|HAS_DIAGNOSIS| Diagnosis
+    Visit -->|HAS_COGNITIVE_ASSESSMENT| CognitiveAssessment
+    Visit -->|HAS_BIOMARKER| Biomarker
+    Visit -->|HAS_IMAGING_STUDY| ImagingStudy
+    ImagingStudy -->|HAS_IMAGE| ImageNode
+    Visit -->|HAS_VOLUMETRIC_MEASURE| VolumetricMeasure
+    Visit -->|HAS_PET_BINDING| PETBinding
+    Patient -->|HAS_ATN_PROFILE| ATNProfile
+    Patient -->|HAS_DISEASE_STAGE| DiseaseStage
+    Visit -->|HAS_CLINICAL_FINDING| ClinicalFinding
+    Patient -->|HAS_FAMILY_MEMBER| FamilyMember
+
+    %% ── Imaging detail ──
+    VolumetricMeasure -->|MEASURED_IN| BrainRegion
+    PETBinding -->|MEASURED_IN| BrainRegion
+
+    %% ── Semantic layer (MAPS_TO) ──
+    Diagnosis -->|MAPS_TO| OntologyConcept
+    CognitiveAssessment -->|MAPS_TO| OntologyConcept
+    Biomarker -->|MAPS_TO| OntologyConcept
+    VolumetricMeasure -->|MAPS_TO| OntologyConcept
+    PETBinding -->|MAPS_TO| OntologyConcept
+    BrainRegion -->|MAPS_TO| OntologyConcept
+
+    %% ── Ontology hierarchy ──
+    OntologyConcept -->|IS_A| OntologyConcept
+    Diagnosis -->|CLASSIFIED_AS| OntologyConcept
+
+    %% ── Integration layer ──
+    AlzKBConcept <-->|SAME_AS| OntologyConcept
+    CausalVariable -->|MAPS_TO| OntologyConcept
+
+    %% ── Causal layer ──
+    CausalVariable -->|CAUSES| CausalVariable
+
+    %% ── Class definitions ──
+    classDef clinical fill:#4A90D9,stroke:#2C5F9E,color:#fff,stroke-width:2px
+    classDef assessment fill:#9B59B6,stroke:#6C3483,color:#fff,stroke-width:2px
+    classDef biomarker fill:#F39C12,stroke:#C87F0A,color:#fff,stroke-width:2px
+    classDef imaging fill:#1ABC9C,stroke:#148F77,color:#fff,stroke-width:2px
+    classDef ontology fill:#D4AC0D,stroke:#B7950B,color:#fff,stroke-width:2px
+    classDef causal fill:#27AE60,stroke:#1E8449,color:#fff,stroke-width:2px
+
+    class Patient,Visit,Diagnosis clinical
+    class CognitiveAssessment assessment
+    class Biomarker,ATNProfile,PETBinding biomarker
+    class ImagingStudy,ImageNode,VolumetricMeasure,BrainRegion imaging
+    class OntologyConcept,AlzKBConcept,DiseaseStage,ClinicalFinding ontology
+    class CausalVariable,FamilyMember causal

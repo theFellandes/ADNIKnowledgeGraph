@@ -228,6 +228,23 @@ RELATIONSHIP_URIS: Dict[str, str] = {
     "CLASSIFIED_AS": "skos:closeMatch",
     "SAME_AS": "owl:sameAs",
     "CAUSES": "ro:RO_0002411",
+    # Risk / status / progression (added 2026-05-09 to close A5 gap)
+    "HAS_RISK_FACTOR": "ro:RO_0002500",            # causal_relation_with_disposition
+    "HAS_FAMILY_RISK": "ro:RO_0002500",            # causal_relation_with_disposition
+    "HAS_GENETIC_RISK": "ro:RO_0002500",
+    "HAS_GENETIC_MARKER": "ro:RO_0000086",         # has_quality
+    "HAS_BIOMARKER_PROFILE": "ro:RO_0000086",      # has_quality
+    "HAS_DEMOGRAPHICS": "ro:RO_0000086",           # has_quality (demographics bundle)
+    "HAS_AMYLOID_STATUS": "ro:RO_0000086",         # has_quality
+    "HAS_TAU_STATUS": "ro:RO_0000086",
+    "HAS_NEURODEGENERATION_STATUS": "ro:RO_0000086",
+    "AT_DISEASE_STAGE": "ro:RO_0002092",           # happens_during
+    "AT_STAGE": "ro:RO_0002092",
+    "PROGRESSES_TO": "ro:RO_0002411",              # causally_upstream_of
+    "CAN_PROGRESS_TO": "ro:RO_0002411",
+    "FOLLOWS_PROGRESSION": "ro:RO_0002086",        # preceded_by
+    "INDICATES": "ro:RO_0002610",                  # correlated_with
+    "HAS_SUBTYPE": "rdfs:subClassOf",
 }
 
 

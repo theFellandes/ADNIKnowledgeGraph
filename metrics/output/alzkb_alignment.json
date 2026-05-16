@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-05-09T16:31:58+00:00",
+  "graph_uri": "bolt://localhost:7687",
+  "alzkb_concept_total": 46,
+  "same_as_edge_total": 5,
+  "categories": [
+    {
+      "name": "Disease",
+      "total": 17,
+      "strong_matches": 2,
+      "match_rate": 0.1176,
+      "not_implemented": false,
+      "note": "SNOMED-CT diagnoses ↔ AlzKB Disease nodes"
+    },
+    {
+      "name": "Anatomy",
+      "total": 14,
+      "strong_matches": 2,
+      "match_rate": 0.1429,
+      "not_implemented": false,
+      "note": "UBERON brain regions ↔ AlzKB Anatomy nodes"
+    },
+    {
+      "name": "Phenotype",
+      "total": 5,
+      "strong_matches": 0,
+      "match_rate": 0.0,
+      "not_implemented": false,
+      "note": "HPO phenotypes ↔ AlzKB Symptom / BiologicalProcess nodes"
+    },
+    {
+      "name": "Gene",
+      "total": 0,
+      "strong_matches": 0,
+      "match_rate": 0.0,
+      "not_implemented": true,
+      "note": "Gene Ontology integration deferred (the removed C4); see Future Work."
+    }
+  ],
+  "duration_seconds": 0.065
+}

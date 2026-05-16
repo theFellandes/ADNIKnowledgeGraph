@@ -1,0 +1,1 @@
+ MAKO — Multimodal Alzheimer's Knowledge graph with Ontology grounding

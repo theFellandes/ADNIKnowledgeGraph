@@ -255,62 +255,150 @@ def _create_causal_overlay(output_dir: Path, causal_dir: Path) -> None:
 # FIGURE 3: LPG vs KG Query Comparison
 # ────────────────────────────────────────────────────────────────
 
+def _draw_node(ax, x, y, label, color, width=1.6, height=0.55):
+    """Draw a rounded-rectangle node with centred label."""
+    from matplotlib.patches import FancyBboxPatch
+    box = FancyBboxPatch(
+        (x - width / 2, y - height / 2), width, height,
+        boxstyle="round,pad=0.12",
+        facecolor=color, edgecolor='#333333', linewidth=1.4,
+        zorder=3,
+    )
+    ax.add_patch(box)
+    ax.text(x, y, label, ha='center', va='center',
+            fontsize=9, fontweight='bold', color='white', zorder=4)
+    return (x, y)
+
+
+def _draw_edge(ax, start, end, label, style='solid', color='#555555',
+               connectionstyle='arc3,rad=0.0'):
+    """Draw a labelled arrow between two (x, y) positions."""
+    ax.annotate(
+        '', xy=end, xytext=start,
+        arrowprops=dict(
+            arrowstyle='-|>',
+            color=color,
+            lw=1.5,
+            linestyle=style,
+            connectionstyle=connectionstyle,
+            shrinkA=12, shrinkB=12,
+        ),
+        zorder=2,
+    )
+    mid_x = (start[0] + end[0]) / 2
+    mid_y = (start[1] + end[1]) / 2
+    ax.text(mid_x, mid_y + 0.18, label, ha='center', va='bottom',
+            fontsize=7, fontstyle='italic', color=color,
+            bbox=dict(boxstyle='round,pad=0.15', facecolor='white',
+                      edgecolor='none', alpha=0.85),
+            zorder=5)
+
+
 def _create_lpg_vs_kg(output_dir: Path) -> None:
-    """Generate before/after query comparison diagram."""
+    """Generate before/after visual graph comparison diagram."""
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
-    fig.patch.set_facecolor('#FAFAFA')
+    fig.patch.set_facecolor('white')
 
-    # ── Left: LPG (Before) ──
-    ax1.set_facecolor('#FFF5F5')
-    lpg_query = (
-        "MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)\n"
-        "-[:HAS_DIAGNOSIS]->(d:Diagnosis)\n"
-        "WHERE d.diagnosis_text CONTAINS 'Alzheimer'\n"
-        "// No semantic link — text matching only\n"
-        "// Cannot traverse to related ontology\n"
-        "// No causal reasoning possible\n"
-        "RETURN p.ptid, d.diagnosis_text"
-    )
-    ax1.text(0.5, 0.85, 'Before: Property Graph Query',
-             transform=ax1.transAxes, ha='center', fontsize=14,
-             fontweight='bold', color='#C0392B')
-    ax1.text(0.05, 0.1, lpg_query, transform=ax1.transAxes,
-             fontsize=9, fontfamily='monospace', va='bottom',
-             bbox=dict(boxstyle='round,pad=0.5', facecolor='#FFEAEA',
-                       edgecolor='#C0392B', alpha=0.8))
-    ax1.text(0.5, 0.03, '[X] Text matching only - No ontology - No causal links',
-             transform=ax1.transAxes, ha='center', fontsize=10, color='#C0392B')
+    # ── Colour palette ──
+    C_PATIENT   = '#2980B9'   # blue
+    C_VISIT     = '#7F8C8D'   # gray
+    C_DIAGNOSIS = '#C0392B'   # red
+    C_ONTOLOGY  = '#8E44AD'   # purple
+    C_ALZKB     = '#E67E22'   # orange
+    C_CAUSAL    = '#27AE60'   # green
+
+    # ================================================================
+    # LEFT PANEL — LPG (Before)
+    # ================================================================
+    ax1.set_xlim(-1, 7)
+    ax1.set_ylim(-1.5, 5.5)
+    ax1.set_aspect('equal')
     ax1.axis('off')
+    ax1.set_facecolor('white')
 
-    # ── Right: KG (After) ──
-    ax2.set_facecolor('#F5FFF5')
-    kg_query = (
-        "MATCH (p:Patient)-[:HAS_VISIT]->(v:Visit)\n"
-        "-[:HAS_DIAGNOSIS]->(d:Diagnosis)\n"
-        "-[:MAPS_TO]->(c:OntologyConcept\n"
-        "  {uri: 'snomed:26929004'})\n"
-        "// Semantic: SNOMED-coded Alzheimer's\n"
-        "OPTIONAL MATCH (c)<-[:SAME_AS]-(a:AlzKBConcept)\n"
-        "// Cross-graph: AlzKB integration\n"
-        "OPTIONAL MATCH (cv:CausalVariable)-[:CAUSES]->(cv2)\n"
-        "WHERE cv.variable_id IN ['BIO_ABETA','BIO_TAU']\n"
-        "// Causal: discovered CAUSES edges\n"
-        "RETURN p.ptid, c.label, a.label, cv2.variable_id"
-    )
-    ax2.text(0.5, 0.85, 'After: Knowledge Graph Query',
-             transform=ax2.transAxes, ha='center', fontsize=14,
-             fontweight='bold', color='#27AE60')
-    ax2.text(0.05, 0.05, kg_query, transform=ax2.transAxes,
-             fontsize=8, fontfamily='monospace', va='bottom',
-             bbox=dict(boxstyle='round,pad=0.5', facecolor='#EAFFEA',
-                       edgecolor='#27AE60', alpha=0.8))
-    ax2.text(0.5, 0.03, '[OK] SNOMED codes + AlzKB links + Causal reasoning',
-             transform=ax2.transAxes, ha='center', fontsize=10, color='#27AE60')
+    ax1.set_title('Property Graph (LPG)', fontsize=14,
+                  fontweight='bold', color='#333333', pad=12)
+
+    # Nodes — simple linear chain
+    p1 = _draw_node(ax1, 1.0, 3.5, 'Patient',   C_PATIENT)
+    v1 = _draw_node(ax1, 3.0, 3.5, 'Visit',     C_VISIT)
+    d1 = _draw_node(ax1, 5.0, 3.5, 'Diagnosis', C_DIAGNOSIS)
+
+    # Edges
+    _draw_edge(ax1, p1, v1, 'HAS_VISIT')
+    _draw_edge(ax1, v1, d1, 'HAS_DIAGNOSIS')
+
+    # Faded "dead-end" indicator
+    ax1.text(5.0, 2.6, '(no further links)',
+             ha='center', va='top', fontsize=8,
+             color='#AAAAAA', fontstyle='italic')
+
+    # Limitation bullets
+    limitations = [
+        'Text-matching only (no coded semantics)',
+        'No ontology or cross-graph traversal',
+        'No causal reasoning capability',
+    ]
+    for i, txt in enumerate(limitations):
+        ax1.text(0.5, 0.7 - i * 0.45, f'\u2716  {txt}',
+                 ha='center', va='center', fontsize=9.5, color='#C0392B',
+                 transform=ax1.transAxes)
+
+    # ================================================================
+    # RIGHT PANEL — KG (After)
+    # ================================================================
+    ax2.set_xlim(-1.5, 8.5)
+    ax2.set_ylim(-2.0, 6.0)
+    ax2.set_aspect('equal')
     ax2.axis('off')
+    ax2.set_facecolor('white')
 
-    fig.suptitle('Property Graph → Knowledge Graph: Query Evolution',
-                 fontsize=18, fontweight='bold', y=0.98)
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    ax2.set_title('Knowledge Graph (KG)', fontsize=14,
+                  fontweight='bold', color='#333333', pad=12)
+
+    # Core chain (same as LPG)
+    p2 = _draw_node(ax2, 0.5, 4.0, 'Patient',   C_PATIENT)
+    v2 = _draw_node(ax2, 2.8, 4.0, 'Visit',     C_VISIT)
+    d2 = _draw_node(ax2, 5.1, 4.0, 'Diagnosis', C_DIAGNOSIS)
+
+    _draw_edge(ax2, p2, v2, 'HAS_VISIT')
+    _draw_edge(ax2, v2, d2, 'HAS_DIAGNOSIS')
+
+    # Ontology layer
+    o2 = _draw_node(ax2, 5.1, 2.2, 'OntologyConcept', C_ONTOLOGY,
+                    width=2.0)
+    _draw_edge(ax2, d2, o2, 'MAPS_TO', color=C_ONTOLOGY)
+
+    # AlzKB bridge
+    a2 = _draw_node(ax2, 2.2, 2.2, 'AlzKBConcept', C_ALZKB,
+                    width=1.9)
+    _draw_edge(ax2, o2, a2, 'SAME_AS', color=C_ALZKB,
+               connectionstyle='arc3,rad=0.0')
+
+    # Causal variables
+    cv1 = _draw_node(ax2, 1.5, 0.3, 'CausalVar\n(Abeta)', C_CAUSAL,
+                     width=1.7, height=0.65)
+    cv2 = _draw_node(ax2, 5.1, 0.3, 'CausalVar\n(Tau)', C_CAUSAL,
+                     width=1.7, height=0.65)
+    _draw_edge(ax2, cv1, cv2, 'CAUSES', style='dashed', color=C_CAUSAL)
+
+    # Capability bullets
+    capabilities = [
+        'SNOMED / LOINC coded semantics',
+        'Cross-graph AlzKB integration',
+        'Discovered causal edges (DoWhy)',
+    ]
+    for i, txt in enumerate(capabilities):
+        ax2.text(0.5, 0.78 - i * 0.06, f'\u2714  {txt}',
+                 ha='center', va='center', fontsize=9.5, color=C_CAUSAL,
+                 transform=ax2.transAxes)
+
+    # ── Global title ──
+    fig.suptitle(
+        u'Property Graph \u2192 Knowledge Graph: Query Evolution',
+        fontsize=18, fontweight='bold', y=0.97, color='#222222',
+    )
+    plt.tight_layout(rect=[0, 0, 1, 0.93])
 
     fig.savefig(output_dir / 'lpg_vs_kg_query.svg', format='svg', dpi=150)
     fig.savefig(output_dir / 'lpg_vs_kg_query.png', format='png', dpi=150)

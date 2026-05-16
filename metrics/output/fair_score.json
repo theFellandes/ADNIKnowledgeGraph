@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-05-09T16:31:53+00:00",
+  "graph_uri": "bolt://localhost:7687",
+  "rubric_version": 1,
+  "overall_score": 0.9231,
+  "by_dimension": {
+    "Findable": 1.0,
+    "Accessible": 1.0,
+    "Interoperable": 1.0,
+    "Reusable": 0.6667
+  },
+  "principles": {
+    "F1": {
+      "id": "F1",
+      "name": "(Meta)data are assigned a globally unique and persistent identifier",
+      "level": "yes",
+      "score": 1.0,
+      "measured": {
+        "value": 0.9754,
+        "column": "coverage"
+      },
+      "threshold": {
+        "partial_threshold": 0.5,
+        "full_threshold": 0.95
+      },
+      "notes": []
+    },
+    "F2": {
+      "id": "F2",
+      "name": "Data are described with rich metadata",
+      "level": "yes",
+      "score": 1.0,
+      "measured": {
+        "value": 12.2479,
+        "column": "avg_properties"
+      },
+      "threshold": {
+        "partial_threshold": 4.0,
+        "full_threshold": 8.0
+      },
+      "notes": []
+    },
+    "F3": {
+      "id": "F3",
+      "name": "Metadata clearly and explicitly include the identifier of the data they describe",
+      "level": "yes",
+      "score": 1.0,
+      "measured": {
+        "value": 1.0,
+        "column": "coverage"
+      },
+      "threshold": {
+        "partial_threshold": 0.5,
+        "full_threshold": 0.95
+      },
+      "notes": []
+    },
+    "F4": {
+      "id": "F4",
+      "name": "(Meta)data are registered or indexed in a searchable resource",
+      "level": "yes",
+      "score": 1.0,
+      "measured": {
+        "value": 153.0,
+        "column": "index_count"
+      },
+      "threshold": {
+        "partial_threshold": 8.0,
+        "full_threshold": 15.0
+      },
+      "notes": []
+    },
+    "A1.1": {
+      "id": "A1.1",
+      "name": "Protocol is open, free, and universally implementable",
+      "level": "yes",
+      "score": 1.0,
+      "measured": {
+        "default": true
+      },
+      "threshold": {},
+      "notes": [
+        "Manual review — default applied"
+      ]
+    },
+    "A1.2": {
+      "id": "A1.2",
+      "name": "Protocol allows for an authentication and authorization procedure where necessary",
+      "level": "yes",
+      "score": 1.0,
+      "measured": {
+        "default": true
+      },
+      "threshold": {},
+      "notes": [
+        "Manual review — default applied"
+      ]
+    },
+    "A2": {
+      "id": "A2",
+      "name": "Metadata are accessible, even when the data are no longer available",
+      "level": "yes",
+      "score": 1.0,
+      "measured": {
+        "present": [
+          "ontology\\mappings",
+          "ontology\\icd10_mappings.json"
+        ],
+        "missing": []
+      },
+      "threshold": {
+        "full_if_all": true,
+        "partial_if_any": true
+      },
+      "notes": []
+    },
+    "I1": {
+      "id": "I1",
+      "name": "(Meta)data use a formal, accessible, shared, and broadly applicable language for knowledge representation",
+      "level": "yes",
+      "score": 1.0,
+      "measured": {
+        "value": 0.9957,
+        "column": "coverage"
+      },
+      "threshold": {
+        "partial_threshold": 0.5,
+        "full_threshold": 0.95
+      },
+      "notes": []
+    },
+    "I2": {
+      "id": "I2",
+      "name": "(Meta)data use vocabularies that follow FAIR principles",
+      "level": "yes",
+      "score": 1.0,
+      "measured": {
+        "value": 1.0,
+        "column": "coverage"
+      },
+      "threshold": {
+        "partial_threshold": 0.5,
+        "full_threshold": 0.95
+      },
+      "notes": []
+    },
+    "I3": {
+      "id": "I3",
+      "name": "(Meta)data include qualified references to other (meta)data",
+      "level": "yes",
+      "score": 1.0,
+      "measured": {
+        "value": 1.0,
+        "column": "coverage"
+      },
+      "threshold": {
+        "partial_threshold": 0.5,
+        "full_threshold": 0.95
+      },
+      "notes": []
+    },
+    "R1.1": {
+      "id": "R1.1",
+      "name": "(Meta)data are released with a clear and accessible data usage license",
+      "level": "partial",
+      "score": 0.5,
+      "measured": {
+        "default": "partial"
+      },
+      "threshold": {},
+      "notes": [
+        "Manual review — default applied"
+      ]
+    },
+    "R1.2": {
+      "id": "R1.2",
+      "name": "(Meta)data are associated with detailed provenance",
+      "level": "partial",
+      "score": 0.5,
+      "measured": {
+        "value": 0.5536,
+        "column": "coverage"
+      },
+      "threshold": {
+        "partial_threshold": 0.5,
+        "full_threshold": 0.95
+      },
+      "notes": []
+    },
+    "R1.3": {
+      "id": "R1.3",
+      "name": "(Meta)data meet domain-relevant community standards",
+      "level": "yes",
+      "score": 1.0,
+      "measured": {
+        "value": 1.0,
+        "column": "coverage"
+      },
+      "threshold": {
+        "partial_threshold": 0.5,
+        "full_threshold": 0.95
+      },
+      "notes": []
+    }
+  },
+  "duration_seconds": 1.152,
+  "config": {
+    "defaults": {
+      "partial_threshold": 0.5,
+      "full_threshold": 0.95
+    },
+    "project_root": "D:\\Programming\\Python\\ADNIKnowledgeGraph"
+  }
+}

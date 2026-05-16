@@ -244,6 +244,21 @@ class ADNIPipeline:
             if self.config.get('run_kg_eda', False):
                 self._run_step(29, "KG Exploratory Data Analysis", self._execute_kg_eda)
 
+            # ── Step 18 finalization ─────────────────────────────────
+            # Step 18 also runs at its original position (after 17) for
+            # ontology property enrichment of nodes. Re-running it HERE,
+            # after every edge-creating step has finished, ensures any
+            # newly-created relationships of known types receive their
+            # `r.uri` annotation. Step 18 is fully idempotent — it only
+            # SETs `r.uri` where IS NULL, never overwrites or deletes.
+            # See BACKLOGS.md B-04 for the rationale.
+            if self.config.get('run_ontology_properties', False):
+                self._run_step(
+                    18,
+                    "Add Ontology Properties (finalization)",
+                    self._execute_ontology_properties,
+                )
+
             # Generate final report
             self._generate_final_report()
 
