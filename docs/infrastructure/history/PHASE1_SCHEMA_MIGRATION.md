@@ -5,6 +5,11 @@
 
 ---
 
+> **Historical document — captured 2026-02-24.**
+> For *current* canonical counts (node total, edge total, per-label coverage, OntologyConcept counts per source, etc.) see [`outputs/metrics/canonical_snapshot.json`](../../../outputs/metrics/canonical_snapshot.json), regenerated via `python -m metrics.reconcile` and timestamped per run. The thesis Chapter 4 cites the canonical snapshot, not this document. Since this file was written, visit count, OntologyConcept count, and biomarker LOINC coverage have all been refined; the **2026-05-16 snapshot** also adds **MONDO + DOID OntologyConcepts (steps 33–34) and an expanded HPO concept layer + Biolink Model annotation (step 33)** — see [`docs/final_report/c7_plan_v3/history/IMPLEMENTATION_HISTORY_2026-05-16.md`](../../final_report/c7_plan_v3/history/IMPLEMENTATION_HISTORY_2026-05-16.md). The Biomarker LOINC coverage figure (`100%`) below refers to the **CSF subset only** (9,467 / 9,467); the broader Biomarker pool reaches 78.84 % (9,467 / 12,008).
+
+---
+
 ## What Was Done
 
 ### Step 17: Apply Composite Unique Constraints

@@ -1,13 +1,29 @@
 """
 Test script to verify Step 12 fixes work correctly
 Run this before running the full pipeline to test the fixed queries
+
+NOTE: this module is a manual smoke-test that talks to a live Neo4j
+instance. It is skipped by default during ``pytest`` runs (no fixture
+provides ``neo4j_uri``/``neo4j_user``/``neo4j_password``). Invoke
+directly with ``python tests/test_step12.py`` if you need to exercise
+it against your local database.
 """
 
 import logging
+import os
+
+import pytest
+
 from utils.neo4j_connector import Neo4jConnector
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+pytestmark = pytest.mark.skipif(
+    not os.getenv("NEO4J_PASSWORD"),
+    reason="live-Neo4j smoke test; set NEO4J_PASSWORD to enable",
+)
 
 
 def test_cypher_queries(neo4j_uri: str, neo4j_user: str, neo4j_password: str):

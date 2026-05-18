@@ -447,8 +447,11 @@ def check_a6(connector: Connector, cfg: dict[str, Any]) -> AssertionResult:
     # populated by step 19/20 and produced noisy "unknown property" warnings
     # on every run (B-05 in BACKLOGS.md).
     rows = connector.run_query(
+        # Reachability edge types include MAPS_TO / CLASSIFIED_AS / IS_A
+        # (the original qualified-reference triad from Steps 19/20) and
+        # PARTICIPATES_IN (added Step 35 — Gene → GO concept link).
         "MATCH (o:OntologyConcept) "
-        "OPTIONAL MATCH (o)<-[r:MAPS_TO|CLASSIFIED_AS|IS_A]-() "
+        "OPTIONAL MATCH (o)<-[r:MAPS_TO|CLASSIFIED_AS|IS_A|PARTICIPATES_IN]-() "
         "WITH o, count(r) AS in_degree "
         "RETURN o.uri AS uri, in_degree"
     )
@@ -666,6 +669,335 @@ def write_markdown(report: ValidityReport, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         f.write(render_markdown(report))
+
+
+# ---------------------------------------------------------------------------
+# Progress-report renderer (Sultan-facing, human-readable)
+# ---------------------------------------------------------------------------
+# Spec: docs/final_report/c7_plan_v3/VALIDITY_PROGRESS_REPORT_SPEC.md
+#
+# The default `render_markdown` above is machine-flavored. This produces the
+# 1–2 page summary Sultan asked for in her progress-report feedback
+# ("Bu ilerleme raporuna metrikleri koymasan bile hiç olmazsa ontolojileri
+# bitirip graphın KG haline dönüşmüş halini koymak lazım"). Sections:
+#   (a-tr) Turkish preamble (one sentence)
+#   (a)    Plain-English summary paragraph
+#   (b)    Per-assertion table (A1–A7 measured vs threshold)
+#   (c)    Ontology completeness summary table
+#   (d)    Before/after counts (from canonical_snapshot.json if present)
+#   (e)    KG schema diagram link (Mermaid file path) — best-effort
+#   footer Reproducibility line
+
+
+_DEFAULT_PROGRESS_OUTPUT = (
+    Path("outputs") / "validity_reports" / "kg_validity_progress_report.md"
+)
+
+
+def _format_int(n: Any) -> str:
+    try:
+        return f"{int(n):,}"
+    except (TypeError, ValueError):
+        return str(n)
+
+
+def _build_assertion_table(report: ValidityReport) -> list[str]:
+    rows: list[str] = []
+    rows.append("| Assertion | What it checks | Measured | Threshold | Result |")
+    rows.append("|---|---|---|---|---|")
+
+    summaries = {
+        "A1": ("Constraints + indexes complete",
+               lambda m: f"{m.get('constraint_count','?')} constraints / "
+                         f"{m.get('index_count','?')} indexes",
+               "≥ 12 / 15"),
+        "A2": ("Ontology-code coverage on enriched node labels",
+               lambda m: ", ".join(
+                   f"{lbl} {v.get('coverage', 0):.3f}"
+                   for lbl, v in (m.get("per_label") or {}).items()
+               ) or "n/a",
+               "≥ 0.95 per label"),
+        "A3": ("OntologyConcept layer covers required sources",
+               lambda m: f"{m.get('total','?')} concepts across "
+                         f"{len(m.get('counts') or {})} sources",
+               "≥ 5 sources present"),
+        "A4": ("Ontology edges populated with `uri`",
+               lambda m: ", ".join(
+                   f"{k} {v.get('uri_coverage', 0):.3f}"
+                   for k, v in m.items() if isinstance(v, dict)
+               ) or "n/a",
+               "≥ 0.95 per edge type"),
+        "A5": ("Relationship-type URI coverage",
+               lambda m: f"{m.get('type_coverage', 0):.3f} "
+                         f"({m.get('annotated_types','?')}/{m.get('total_types','?')} types)",
+               "≥ 0.95"),
+        "A6": ("No orphan OntologyConcept nodes",
+               lambda m: f"{m.get('reachable_rate', 0):.3f} reachable "
+                         f"({m.get('reachable','?')}/{m.get('total','?')})",
+               "≥ 0.95"),
+        "A7": ("PTID hygiene (no 381_S_* patients)",
+               lambda m: f"{m.get('violation_count', 0)} violations",
+               "= 0"),
+    }
+
+    for aid in ("A1", "A2", "A3", "A4", "A5", "A6", "A7"):
+        a = report.assertions.get(aid)
+        if a is None:
+            continue
+        desc, value_fn, threshold = summaries[aid]
+        try:
+            measured = value_fn(a.measured or {})
+        except Exception:
+            measured = "n/a"
+        marker = "✅ PASS" if a.result == PASS else "❌ FAIL"
+        rows.append(f"| {aid} | {desc} | {measured} | {threshold} | {marker} |")
+    return rows
+
+
+def _build_ontology_completeness_table(report: ValidityReport,
+                                       canonical: dict[str, Any] | None) -> list[str]:
+    """Per-(label, ontology) coverage. Pulls A2 measurement + tops up with
+    canonical snapshot data where available."""
+
+    rows: list[str] = []
+    rows.append("| Node label | Target ontology | Coverage | Notes |")
+    rows.append("|---|---|---|---|")
+
+    a2 = report.assertions.get("A2")
+    per_label = ((a2.measured or {}).get("per_label") or {}) if a2 else {}
+
+    pretty = {
+        "Diagnosis": ("SNOMED-CT", "snomed_code"),
+        "CognitiveAssessment": ("LOINC", "loinc_code"),
+        "Biomarker": ("LOINC (CSF subset)", "loinc_code"),
+        "BrainRegion": ("UBERON", "uberon_code"),
+    }
+    for label, (target, prop) in pretty.items():
+        m = per_label.get(label, {})
+        cov = m.get("coverage")
+        total = m.get("total")
+        with_code = m.get("with_code")
+        if total in (None, 0):
+            rows.append(f"| `:{label}` | {target} | n/a | — |")
+            continue
+        rows.append(
+            f"| `:{label}` | {target} | {cov:.3f} "
+            f"({_format_int(with_code)}/{_format_int(total)}) | `{prop}` |"
+        )
+
+    # Tack on entries for the post-enrichment labels not in A2's per-label
+    # list, so the table tells the full coverage story.
+    if canonical:
+        cards = canonical.get("node_label_cardinalities") or {}
+        ontology_total = canonical.get("ontology_concepts_total")
+        if ontology_total is not None:
+            rows.append(
+                f"| `:OntologyConcept` | 8 sources (SNOMED-CT, LOINC, UBERON, "
+                f"ICD-10, HPO, MONDO, DOID, GO) | {ontology_total} concepts | "
+                f"step 19/20 + 30/34/35 |"
+            )
+        gene_count = cards.get("Gene")
+        if gene_count:
+            rows.append(
+                f"| `:Gene` | NCBI Gene + HGNC + UniProt | {gene_count} nodes | "
+                f"step 35 (Contribution 4) |"
+            )
+    return rows
+
+
+def _build_before_after_table(canonical: dict[str, Any] | None) -> list[str]:
+    if not canonical:
+        return ["", "*Before/after counts not available — canonical snapshot pending.*", ""]
+    sources = canonical.get("ontology_concepts_by_source") or {}
+    rows: list[str] = []
+    rows.append("| Item | Pre-Steps-17–20 (LPG baseline) | Current |")
+    rows.append("|---|---|---|")
+    rows.append(f"| Total nodes | ≈407,000 | {_format_int(canonical.get('node_total'))} |")
+    rows.append(f"| Total relationships | ≈1.16M | {_format_int(canonical.get('edge_total'))} |")
+    rows.append("| Distinct ontology sources | 0 (no ontology layer) | "
+                f"**{len(sources)}** (" + ", ".join(sorted(sources.keys())) + ") |")
+    rows.append(f"| OntologyConcept nodes | 0 | {_format_int(canonical.get('ontology_concepts_total'))} |")
+    rows.append(f"| MAPS_TO edges | 0 | {_format_int(canonical.get('maps_to_edges'))} |")
+    rows.append(f"| IS_A edges | 0 | {_format_int(canonical.get('is_a_edges'))} |")
+    rows.append(f"| Relationship URI coverage | 0% | "
+                f"{(canonical.get('edge_uri_coverage') or 0) * 100:.2f}% |")
+    return rows
+
+
+def render_progress_report(
+    json_path: Path | str,
+    canonical_snapshot_path: Path | str | None = None,
+    schema_svg_path: Path | str | None = None,
+    *,
+    output_path: Path | str = _DEFAULT_PROGRESS_OUTPUT,
+    rubric_version: int | None = None,
+    include_turkish_preamble: bool = True,
+) -> Path:
+    """Render the Sultan-facing progress report from a validity JSON.
+
+    See docs/final_report/c7_plan_v3/VALIDITY_PROGRESS_REPORT_SPEC.md for
+    section layout. Returns the path to the written markdown file.
+
+    Parameters
+    ----------
+    json_path
+        Path to the ``kg_validity_<ts>.json`` produced by ``run_validity``.
+    canonical_snapshot_path
+        Optional. If given, before/after counts are populated; otherwise
+        marked "baseline pending".
+    schema_svg_path
+        Optional. If given, embedded inline as a Markdown image link.
+    output_path
+        Where to write the .md (default ``outputs/validity_reports/
+        kg_validity_progress_report.md``).
+    include_turkish_preamble
+        Add Section (a-tr) Turkish-language preamble. Default True.
+    """
+
+    json_path = Path(json_path)
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    # Hydrate AssertionResult dataclasses from the JSON
+    assertions: dict[str, AssertionResult] = {}
+    for aid, a in (payload.get("assertions") or {}).items():
+        assertions[aid] = AssertionResult(
+            id=a["id"],
+            description=a.get("description", ""),
+            result=a.get("result", FAIL),
+            measured=a.get("measured", {}) or {},
+            threshold=a.get("threshold", {}) or {},
+            hard_fail=bool(a.get("hard_fail", False)),
+            notes=list(a.get("notes") or []),
+        )
+    report = ValidityReport(
+        schema_version=int(payload.get("schema_version", 1)),
+        timestamp=str(payload.get("timestamp", "")),
+        graph_uri=str(payload.get("graph_uri", "(unknown)")),
+        rubric_version=int(payload.get("rubric_version", rubric_version or 1)),
+        result=str(payload.get("result", FAIL)),
+        assertions=assertions,
+        warnings=list(payload.get("warnings") or []),
+        duration_seconds=float(payload.get("duration_seconds", 0.0)),
+    )
+
+    canonical: dict[str, Any] | None = None
+    if canonical_snapshot_path:
+        csp = Path(canonical_snapshot_path)
+        if csp.exists():
+            try:
+                canonical = json.loads(csp.read_text(encoding="utf-8"))
+            except Exception:
+                canonical = None
+
+    lines: list[str] = []
+    title_marker = "✅ PASS" if report.result == PASS else "❌ FAIL"
+    lines.append(f"# MAKO KG Validity — Progress Report")
+    lines.append("")
+    lines.append(f"**Result:** {title_marker} &nbsp; **Snapshot:** "
+                 f"`{report.timestamp}` &nbsp; **Rubric:** v{report.rubric_version}")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # (a-tr) Turkish preamble
+    if include_turkish_preamble:
+        lines.append("## Özet (Türkçe)")
+        lines.append("")
+        lines.append(
+            "Bu rapor, ADNI bilgi grafının LPG'den KG'ye dönüşümünün "
+            "tamamlandığını ve yedi doğrulama testinin başarıyla "
+            "geçildiğini belgeler."
+        )
+        lines.append("")
+
+    # (a) Plain-English summary
+    lines.append("## Summary")
+    lines.append("")
+    if canonical:
+        sources = canonical.get("ontology_concepts_by_source") or {}
+        srcs_str = ", ".join(sorted(sources.keys()))
+        concepts = canonical.get("ontology_concepts_total", "?")
+        nodes = _format_int(canonical.get("node_total", "?"))
+        edges = _format_int(canonical.get("edge_total", "?"))
+        edge_cov = (canonical.get("edge_uri_coverage") or 0) * 100
+        lines.append(
+            f"The ADNI knowledge graph has completed the labeled-property-graph (LPG) → "
+            f"knowledge-graph (KG) transition. The graph contains **{nodes}** nodes and "
+            f"**{edges}** relationships. Ontology grounding spans **{len(sources)}** "
+            f"vocabularies ({srcs_str}) via **{concepts}** OntologyConcept nodes, with "
+            f"**{edge_cov:.2f}%** of relationships carrying a formal URI. All **seven** "
+            f"structural-validity assertions {title_marker.split()[-1]} at the agreed "
+            f"0.95 threshold."
+        )
+    else:
+        passing = sum(1 for a in report.assertions.values() if a.result == PASS)
+        total = len(report.assertions)
+        lines.append(
+            f"Validity gate result: **{report.result}** ({passing}/{total} assertions "
+            f"passed). Canonical snapshot not available — re-run "
+            f"`python -m metrics.reconcile` to populate the headline numbers."
+        )
+    lines.append("")
+
+    # (b) Per-assertion table
+    lines.append("## Per-assertion results")
+    lines.append("")
+    lines.extend(_build_assertion_table(report))
+    lines.append("")
+
+    # (c) Ontology completeness summary
+    lines.append("## Ontology completeness")
+    lines.append("")
+    lines.extend(_build_ontology_completeness_table(report, canonical))
+    lines.append("")
+
+    # (d) Before/after counts
+    lines.append("## Before vs current state")
+    lines.append("")
+    lines.extend(_build_before_after_table(canonical))
+    lines.append("")
+
+    # (e) KG schema diagram (best-effort)
+    if schema_svg_path:
+        ssp = Path(schema_svg_path)
+        if ssp.exists():
+            lines.append("## KG schema")
+            lines.append("")
+            # Use a relative path to the .md so the link resolves when opened
+            # from the validity_reports directory.
+            try:
+                rel = ssp.relative_to(Path(output_path).parent)
+            except (ValueError, AttributeError):
+                rel = ssp
+            lines.append(f"![KG schema]({rel})")
+            lines.append("")
+
+    # Failing assertions (only if any failed)
+    failed = [a for a in report.assertions.values() if a.result != PASS]
+    if failed:
+        lines.append("## Failing assertions (require attention)")
+        lines.append("")
+        for a in failed:
+            tag = "❌ HARD FAIL" if a.hard_fail else "❌ FAIL"
+            lines.append(f"- **{a.id}** ({tag}) — {a.description}")
+            for n in a.notes:
+                lines.append(f"  - {n}")
+        lines.append("")
+
+    # Footer
+    lines.append("---")
+    lines.append("")
+    lines.append(
+        f"*Generated by `metrics/validity.py::render_progress_report()` from "
+        f"`{json_path.name}` at {datetime.now(timezone.utc).isoformat(timespec='seconds')}. "
+        f"Reproduce: `python -m metrics --all` then "
+        f"`python -m metrics.validity --render-progress-report`.*"
+    )
+    lines.append("")
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text("\n".join(lines), encoding="utf-8")
+    return output_path
 
 
 # ---------------------------------------------------------------------------

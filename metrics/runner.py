@@ -58,6 +58,7 @@ def _run_validity(connector, output_dir: Path) -> StepOutcome:
         run_validity,
         write_json,
         write_markdown,
+        render_progress_report,
     )
 
     rubric_path = PROJECT_ROOT / "metrics" / "validity_rubric.yaml"
@@ -69,6 +70,18 @@ def _run_validity(connector, output_dir: Path) -> StepOutcome:
     md_path = output_dir / "validity_reports" / f"kg_validity_{ts}.md"
     write_json(report, json_path)
     write_markdown(report, md_path)
+
+    # Sultan-facing progress report (human-readable; updated each run).
+    canonical_path = output_dir / "metrics" / "canonical_snapshot.json"
+    progress_md = output_dir / "validity_reports" / "kg_validity_progress_report.md"
+    try:
+        render_progress_report(
+            json_path=json_path,
+            canonical_snapshot_path=canonical_path if canonical_path.exists() else None,
+            output_path=progress_md,
+        )
+    except Exception as exc:
+        logger.warning("Could not render progress report: %s", exc)
 
     notes = [f"Result: {report.result}"]
     failed = [a.id for a in report.assertions.values() if a.result != "PASS"]

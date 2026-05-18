@@ -188,6 +188,15 @@ run_final_stats: true # Step 27: Graph statistics report
 run_thesis_figures: true # Step 28: Publication-quality figures
 run_kg_eda: true # Step 29: KG Exploratory Data Analysis (13 figures)
 
+# Phase 1.5 — post-defence enrichment (added 2026-05-16). All idempotent
+# (MERGE-only); safe to re-run on an already-enriched graph. Default off
+# to keep existing pipeline runs unchanged; flip to true to include in
+# `python pipeline.py` end-to-end runs.
+run_hpo_expansion: false       # Step 30: HPO 5→24 schema + FamilyMember dementia MAPS_TO
+run_biolink_categories: false  # Step 33: biolink_category on nodes, biolink_predicate on edges
+run_mondo_doid_wiring: false   # Step 34: MONDO + DOID OntologyConcept layer wiring
+run_gene_ontology_integration: false  # Step 35: Contribution 4 — Gene + GO OntologyConcepts + ENCODES/PARTICIPATES_IN
+
 # ============================================================================
 # EXTERNAL API SETTINGS (keys loaded from .env via utils/env_loader.py)
 # ============================================================================

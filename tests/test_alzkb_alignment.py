@@ -35,11 +35,15 @@ class FakeConnector:
         *,
         alzkb_total=10,
         same_as_total=8,
-        per_ontology=None,  # {source_ontology: (total, strong)}
+        per_ontology=None,    # {source_ontology: (total, strong)} for OntologyConcept-routed categories
+        gene_total=0,         # Step 35 — number of :Gene nodes on the MAKO side
+        gene_strong=0,        # Step 35 — AlzKBConcept(Gene)→:Gene SAME_AS count
     ):
         self.alzkb_total = alzkb_total
         self.same_as_total = same_as_total
         self.per_ontology = per_ontology or {}
+        self.gene_total = gene_total
+        self.gene_strong = gene_strong
         self.calls = []
 
     def run_query(self, query, parameters=None):
@@ -49,6 +53,12 @@ class FakeConnector:
             return [{"n": self.alzkb_total}]
         if "MATCH ()-[r:SAME_AS]->() RETURN count(r)" in query:
             return [{"n": self.same_as_total}]
+        # Gene-specific queries (Step 35)
+        if "MATCH (g:Gene) RETURN count(DISTINCT g) AS total" in query:
+            return [{"total": self.gene_total}]
+        if "MATCH (a:AlzKBConcept)-[:SAME_AS]->(g:Gene)" in query:
+            return [{"strong": self.gene_strong}]
+        # Ontology-concept-routed queries (Disease, Anatomy, Phenotype)
         if "RETURN count(DISTINCT o) AS total" in query:
             ont = parameters.get("source_ontology", "")
             total, _ = self.per_ontology.get(ont, (0, 0))
@@ -73,15 +83,25 @@ def test_category_result_to_dict():
     assert d["not_implemented"] is False
 
 
-def test_in_scope_categories_have_source_ontology():
+def test_in_scope_categories_have_alzkb_source_types():
+    # Every in-scope category must declare at least one AlzKB source_type
+    # to match against. The cauad_source_ontology may be None for entities
+    # routed via a dedicated node label (e.g. Gene → :Gene).
     for spec in IN_SCOPE_CATEGORIES:
-        assert spec.cauad_source_ontology is not None
-        assert spec.alzkb_source_types
+        assert spec.alzkb_source_types, f"{spec.name} has no alzkb_source_types"
 
 
-def test_out_of_scope_includes_gene():
-    names = {c.name for c in OUT_OF_SCOPE_CATEGORIES}
-    assert "Gene" in names
+def test_gene_moved_in_scope_via_step35():
+    # Step 35 (Gene Ontology integration) moved Gene from OUT_OF_SCOPE to
+    # IN_SCOPE. The category uses :Gene as the MAKO-side anchor, not an
+    # OntologyConcept, so cauad_source_ontology is None for Gene.
+    by_name = {c.name: c for c in IN_SCOPE_CATEGORIES}
+    assert "Gene" in by_name
+    assert by_name["Gene"].cauad_source_ontology is None
+    assert "Gene" in by_name["Gene"].alzkb_source_types
+    # And the OUT_OF_SCOPE bucket should now be empty (or at least not
+    # contain Gene).
+    assert "Gene" not in {c.name for c in OUT_OF_SCOPE_CATEGORIES}
 
 
 # ---------------------------------------------------------------------------
@@ -90,6 +110,8 @@ def test_out_of_scope_includes_gene():
 
 
 def test_alignment_full_match():
+    # Default fake has no :Gene nodes (gene_total=0), so the Gene category
+    # falls back to not_implemented=True — mirroring the pre-Step-35 state.
     fake = FakeConnector(
         alzkb_total=20,
         same_as_total=15,
@@ -105,11 +127,39 @@ def test_alignment_full_match():
     assert by["Disease"].match_rate == pytest.approx(1.0)
     assert by["Anatomy"].match_rate == pytest.approx(1.0)
     assert by["Phenotype"].match_rate == pytest.approx(1.0)
+    # Gene falls back to not_implemented because gene_total=0 (no Step 35
+    # data yet in this fake).
     assert by["Gene"].not_implemented is True
     assert by["Gene"].strong_matches == 0
-    # 3 of 4 in-scope categories have strong matches; Gene is N/A
+    # 3 of 4 in-scope categories have strong matches; Gene is N/A in the fake.
     assert report.in_scope_strong_count == 3
     assert report.in_scope_total_count == 3  # only the implemented ones
+
+
+def test_alignment_with_gene_via_step35():
+    """When Step 35 has run, :Gene nodes exist and the Gene category
+    reports a real match rate instead of not_implemented."""
+
+    fake = FakeConnector(
+        alzkb_total=20,
+        same_as_total=15,
+        per_ontology={
+            "SNOMED-CT": (5, 5),
+            "UBERON": (4, 4),
+            "HPO": (3, 3),
+        },
+        gene_total=5,    # Step 35 created 5 Gene nodes
+        gene_strong=5,   # All 5 matched to AlzKB Gene entries
+    )
+    report = compute_alignment(fake)
+    by = {c.name: c for c in report.categories}
+    assert by["Gene"].not_implemented is False
+    assert by["Gene"].total == 5
+    assert by["Gene"].strong_matches == 5
+    assert by["Gene"].match_rate == pytest.approx(1.0)
+    # All 4 in-scope categories now have strong matches.
+    assert report.in_scope_strong_count == 4
+    assert report.in_scope_total_count == 4
 
 
 def test_alignment_partial_match():

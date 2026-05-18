@@ -39,7 +39,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-_CANONICAL_ORDER = ["pre", "17", "18", "19", "20"]
+_CANONICAL_ORDER = ["pre", "17", "18", "19", "20", "30", "33", "34"]
 
 
 def _load_per_step(path: Path) -> dict[str, dict[str, float]]:

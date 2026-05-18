@@ -9,9 +9,17 @@ Prerequisites:
 
 Usage:
     python tests/test_idempotency.py
+
+The module-level ``pytestmark`` below skips the file during ``pytest``
+runs when ``NEO4J_PASSWORD`` is not set. Hash-determinism tests that do
+not need a live DB are still skipped to keep this file self-consistent;
+to exercise them, run the file directly via the ``__main__`` block at
+the bottom or set ``NEO4J_PASSWORD`` for pytest collection.
 """
 import sys
 import os
+
+import pytest
 
 # Project root
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -25,6 +33,12 @@ load_dotenv()
 URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 USER = os.getenv("NEO4J_USER", "neo4j")
 PWD = os.getenv("NEO4J_PASSWORD", "")
+
+
+pytestmark = pytest.mark.skipif(
+    not PWD,
+    reason="live-Neo4j idempotency test; set NEO4J_PASSWORD to enable",
+)
 
 
 class FakeDiagnosis:

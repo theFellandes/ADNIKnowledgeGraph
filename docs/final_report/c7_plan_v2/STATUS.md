@@ -1,5 +1,7 @@
 # Status Ledger — c7_plan_v2
 
+> **⚠️ Continuation note (2026-05-16).** Defense-prep work continued in [`docs/final_report/c7_plan_v3/`](../c7_plan_v3/) — see [`DEFENSE_TASKS.md`](../c7_plan_v3/DEFENSE_TASKS.md) for the active May-22 checklist and [`history/IMPLEMENTATION_HISTORY_2026-05-16.md`](../c7_plan_v3/history/IMPLEMENTATION_HISTORY_2026-05-16.md) for the May-16 enrichment landing (steps 30/33/34: HPO partial + Biolink + MONDO/DOID; LOINC vitals and MEDHIST Comorbidity remain data-blocked). Backlog items **B-17 partial, B-20, B-21 are now ✅ closed**; **B-18 and B-19 remain ⏸️ pending source-data ingestion**. This file is retained as the May-9 baseline.
+>
 > **Purpose.** Scannable companion to [TASKS.md](TASKS.md). Every row in TASKS.md falls into one of four buckets below. A row appears here only if it has changed status (e.g. is new or already done) — open work that's "expected to be missing" is not duplicated unless it adds clarity.
 >
 > **Last reviewed.** 2026-05-09 (matches conversation date).

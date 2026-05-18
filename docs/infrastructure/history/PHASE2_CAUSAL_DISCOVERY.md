@@ -5,6 +5,11 @@
 
 ---
 
+> **Historical document — captured 2026-02-25. Code is paused.**
+> The causal-discovery prototypes (steps 21–26 and the `causal/` directory) are intentionally retained but not run, per [`docs/final_report/c7_plan_v2/CAUSALITY_NOTE.md`](../../final_report/c7_plan_v2/CAUSALITY_NOTE.md). Causal claims appear in the thesis only in Chapter 2 (literature review) and §5.4 (Future Work). Causal layer will resume post-defence. For current canonical state see [`outputs/metrics/canonical_snapshot.json`](../../../outputs/metrics/canonical_snapshot.json).
+
+---
+
 ## What Was Done
 
 ### Step 21: Extract Causal Feature Matrix

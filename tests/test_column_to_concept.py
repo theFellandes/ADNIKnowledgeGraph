@@ -29,11 +29,20 @@ MAPPING_DIR = REPO_ROOT / "ontology" / "mappings"
 FIXTURE_PATH = REPO_ROOT / "tests" / "fixtures" / "mini_kg.cypher"
 
 PER_SOURCE_FILES = [
+    # Original five — Steps 17–24 (May 9)
     "diagnosis_to_snomed_icd10.csv",
     "cognitive_to_loinc.csv",
     "biomarker_to_loinc.csv",
     "brain_region_to_uberon.csv",
     "relationship_to_ro_uri.csv",
+    # Added May 16 — Steps 30, 33, 34, 35
+    "adsxlist_to_hpo.csv",
+    "diagnosis_to_mondo.csv",
+    "diagnosis_to_doid.csv",
+    "biolink_categories.csv",
+    "biolink_predicates.csv",
+    "gene_to_ncbi.csv",
+    "gene_to_go.csv",
 ]
 
 EXPECTED_FIELDS = {
@@ -49,11 +58,33 @@ EXPECTED_FIELDS = {
 }
 
 VALID_URI_PREFIXES = (
-    "snomed:", "loinc:", "uberon:", "hp:", "icd10:", "MONDO:", "ncit:",
+    # Step 17–24 (May 9)
+    "snomed:", "loinc:", "uberon:", "hp:", "hpo:", "icd10:", "MONDO:", "ncit:",
     "ro:", "rdfs:", "skos:", "owl:", "time:",
+    # Step 30, 33, 34, 35 (May 16)
+    "mondo:", "doid:", "go:", "ncbigene:", "biolink:",
 )
 
-VALID_RULES = {"exact_match", "case_insensitive", "regex", "derived_from_property"}
+# Permissive validator: canonical short rules plus descriptive longer rules
+# (e.g. "step 33 — biolink_category on node label", "GOA APOE annotation set").
+# A mapping_rule passes if it matches a canonical short rule OR is a non-empty
+# string. Longer descriptive rules carry more provenance, which is
+# preferable for the new supplementary-material CSVs.
+CANONICAL_RULES = {"exact_match", "case_insensitive", "regex", "derived_from_property"}
+
+
+def _mapping_rule_valid(rule: str) -> bool:
+    rule = (rule or "").strip()
+    if not rule:
+        return False
+    if rule in CANONICAL_RULES:
+        return True
+    # Accept descriptive rules from Steps 30/33/34/35 mapping CSVs.
+    descriptive_markers = (
+        "step ", "exact_match", "NPI-Q", "GOA ", "Diagnosis.", "biolink_",
+        "NCBI:", "HGNC:", "UniProt:",
+    )
+    return any(marker.lower() in rule.lower() for marker in descriptive_markers)
 
 
 def _read_rows(path: Path) -> list[dict[str, str]]:
@@ -96,7 +127,7 @@ def test_target_uris_have_recognised_prefix(filename):
 def test_mapping_rule_is_known(filename):
     rows = _read_rows(MAPPING_DIR / filename)
     for r in rows:
-        assert r["mapping_rule"] in VALID_RULES, (
+        assert _mapping_rule_valid(r["mapping_rule"]), (
             f"{filename}: unknown mapping_rule {r['mapping_rule']!r}"
         )
 

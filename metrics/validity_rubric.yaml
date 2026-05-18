@@ -39,15 +39,18 @@ assertions:
     hard_fail_if_label_missing: true
 
   A3:
-    description: "OntologyConcept layer materialised across five sources (steps 19, 20)"
-    required_sources: [SNOMED-CT, LOINC, UBERON, HPO, ICD-10]
+    description: "OntologyConcept layer materialised across eight sources (steps 19, 20, 30, 34, 35)"
+    required_sources: [SNOMED-CT, LOINC, UBERON, HPO, ICD-10, MONDO, DOID, GO]
     # Optional tolerance bands — leave commented out to skip count enforcement.
     # expected_counts:
     #   SNOMED-CT: { min: 15, max: 25 }
     #   LOINC:     { min: 8,  max: 14 }
     #   UBERON:    { min: 12, max: 18 }
-    #   HPO:       { min: 4,  max: 8 }
+    #   HPO:       { min: 20, max: 30 }  # widened post-Step-30 (NPI-Q symptoms)
     #   ICD-10:    { min: 4,  max: 8 }
+    #   MONDO:     { min: 2,  max: 5 }   # added post-Step-34
+    #   DOID:      { min: 3,  max: 6 }   # added post-Step-34
+    #   GO:        { min: 10, max: 15 }  # added post-Step-35
     hard_fail_if_zero: true
 
   A4:
@@ -89,11 +92,38 @@ assertions:
       - "icd10:F00"          # Dementia chapter
       # SNOMED top-level
       - "snomed:64572001"    # Disease (root)
-      # HPO — pending ADSXLIST → HPO column-to-concept mapping (future work)
+      # HPO core 5 concepts from step 20 — kept exempt; HP:0000708 and
+      # HP:0000726 now gain in-degree from step 30 (IS_A children +
+      # FamilyMember MAPS_TO) and could be removed, but exempting them is
+      # harmless and forward-compatible if those edges are ever rolled back.
       - "hpo:HP:0000708"     # Behavioral abnormality
       - "hpo:HP:0000726"     # Dementia
       - "hpo:HP:0001268"     # Mental deterioration
       - "hpo:HP:0002354"     # Memory impairment
+      # Step 30 — symptom-level HPO concepts added as schema. A-Box
+      # mapping requires ADSXLIST data ingestion (deferred post-defense).
+      # Each is IS_A → HP:0000708 (Behavioral abnormality) or HP:0100543
+      # (Cognitive impairment) outgoing; they have no incoming edges
+      # until ADSXLIST flags are loaded into Visit / ClinicalFinding nodes.
+      - "hpo:HP:0000713"     # Agitation
+      - "hpo:HP:0000716"     # Depression
+      - "hpo:HP:0000737"     # Irritability
+      - "hpo:HP:0000738"     # Hallucinations
+      - "hpo:HP:0000739"     # Anxiety
+      - "hpo:HP:0000741"     # Apathy
+      - "hpo:HP:0000744"     # Social and occupational deterioration
+      - "hpo:HP:0000746"     # Delusions
+      - "hpo:HP:0000749"     # Euphoria
+      - "hpo:HP:0000752"     # Hyperactivity
+      - "hpo:HP:0001262"     # Behavioural abnormality of childhood onset
+      - "hpo:HP:0002360"     # Sleep disturbance
+      - "hpo:HP:0004324"     # Abnormality of body weight
+      - "hpo:HP:0010522"     # Loss of consciousness
+      - "hpo:HP:0010529"     # Echolalia
+      - "hpo:HP:0010864"     # Intellectual disability, severe
+      - "hpo:HP:0011446"     # Abnormality of higher mental function
+      - "hpo:HP:0030223"     # Wandering
+      - "hpo:HP:0100785"     # Insomnia
       # LOINC — analyte not present in current dataset
       - "loinc:83235-5"      # Beta-amyloid 40 in CSF
       # SNOMED — demographic / protein / SMC concepts (no data nodes map here)
@@ -108,6 +138,12 @@ assertions:
       # use these region names yet
       - "uberon:0001876"     # Amygdala
       - "uberon:0002728"     # Entorhinal cortex
+      # DOID — step 34 creates three concepts (AD, MCI, Dementia); the
+      # "Dementia" concept currently has no matching Diagnosis instances
+      # (diagnosis_code 'Dementia' doesn't appear in this dataset), so it
+      # is intentionally orphan-exempt as a hierarchy-anchor for the
+      # post-defense expansion described in c7_plan_v3/STALE_DOC_FIXES.md.
+      - "doid:1307"          # Dementia (top-of-tree for MCI/AD subtypes)
 
   A7:
     description: "PTID hygiene — no 381_S_* patients (ADNI March 2026 advisory)"

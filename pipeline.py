@@ -45,6 +45,10 @@ from steps.step26_dowhy_inference import execute_dowhy_inference
 from steps.step27_final_stats import execute_final_stats
 from steps.step28_thesis_figures import execute_thesis_figures
 from steps.step29_kg_eda import execute_kg_eda
+from steps.step30_hpo_expansion import execute_hpo_expansion
+from steps.step33_biolink_categories import execute_biolink_categories
+from steps.step34_mondo_doid_wiring import execute_mondo_doid_wiring
+from steps.step35_gene_ontology_integration import execute_gene_ontology_integration
 from utils.quality_aware_logger import QualityAwarePipeline
 
 LOG_FMT = "%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s"
@@ -243,6 +247,27 @@ class ADNIPipeline:
             # ── Step 29: Knowledge Graph EDA ──────────────────────────
             if self.config.get('run_kg_eda', False):
                 self._run_step(29, "KG Exploratory Data Analysis", self._execute_kg_eda)
+
+            # ── Phase 1.5: Post-defence enrichment (Steps 30, 33, 34) ──
+            # Added 2026-05-16: closes the contribution-table B-17 / B-20 / B-21
+            # items. Idempotent — re-running on an already-enriched graph is
+            # a no-op. Default-off in config so existing pipeline runs are
+            # unaffected; flip the run_* toggles to include in `python pipeline.py`.
+            if self.config.get('run_hpo_expansion', False):
+                self._run_step(30, "HPO Concept Expansion + FamilyMember Mapping",
+                               self._execute_hpo_expansion)
+
+            if self.config.get('run_biolink_categories', False):
+                self._run_step(33, "Biolink Model Annotation",
+                               self._execute_biolink_categories)
+
+            if self.config.get('run_mondo_doid_wiring', False):
+                self._run_step(34, "MONDO + DOID OntologyConcept Wiring",
+                               self._execute_mondo_doid_wiring)
+
+            if self.config.get('run_gene_ontology_integration', False):
+                self._run_step(35, "Gene Ontology Integration (Contribution 4)",
+                               self._execute_gene_ontology_integration)
 
             # ── Step 18 finalization ─────────────────────────────────
             # Step 18 also runs at its original position (after 17) for
@@ -637,6 +662,38 @@ class ADNIPipeline:
             neo4j_user=self.config['neo4j_user'],
             neo4j_password=self.config['neo4j_password'],
             output_dir=str(Path(self.config.get('output_dir', 'outputs')) / 'eda_figures'),
+        )
+
+    def _execute_hpo_expansion(self) -> Dict[str, Any]:
+        """Execute Step 30: HPO concept-layer expansion + FamilyMember dementia mapping."""
+        return execute_hpo_expansion(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password'],
+        )
+
+    def _execute_biolink_categories(self) -> Dict[str, Any]:
+        """Execute Step 33: Biolink Model categorisation pass over nodes + edges."""
+        return execute_biolink_categories(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password'],
+        )
+
+    def _execute_mondo_doid_wiring(self) -> Dict[str, Any]:
+        """Execute Step 34: MONDO + DOID OntologyConcept wiring."""
+        return execute_mondo_doid_wiring(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password'],
+        )
+
+    def _execute_gene_ontology_integration(self) -> Dict[str, Any]:
+        """Execute Step 35: Gene + GO OntologyConcept layer + ENCODES/PARTICIPATES_IN."""
+        return execute_gene_ontology_integration(
+            neo4j_uri=self.config['neo4j_uri'],
+            neo4j_user=self.config['neo4j_user'],
+            neo4j_password=self.config['neo4j_password'],
         )
 
     def _generate_final_report(self):

@@ -5,6 +5,11 @@
 
 ---
 
+> **Historical document — captured 2026-03-31.**
+> For current canonical state (post the 2026-05-16 enrichment that added Biolink + MONDO + DOID + partial HPO expansion via steps 30/33/34) see [`outputs/metrics/canonical_snapshot.json`](../../../outputs/metrics/canonical_snapshot.json) and [`docs/final_report/c7_plan_v3/history/IMPLEMENTATION_HISTORY_2026-05-16.md`](../../final_report/c7_plan_v3/history/IMPLEMENTATION_HISTORY_2026-05-16.md). The step-29 EDA figures captured below were generated from the pre-enrichment graph; the underlying counts have since shifted.
+
+---
+
 ## What Was Done
 
 ### Step 29: Knowledge Graph EDA (`step29_kg_eda.py`)

@@ -85,16 +85,19 @@ IN_SCOPE_CATEGORIES: tuple[CategorySpec, ...] = (
         alzkb_source_types=("Symptom", "BiologicalProcess"),
         note="HPO phenotypes ↔ AlzKB Symptom / BiologicalProcess nodes",
     ),
-)
-
-OUT_OF_SCOPE_CATEGORIES: tuple[CategorySpec, ...] = (
+    # Gene category — closed by Step 35 (Gene Ontology integration).
+    # Uses cauad_source_ontology=None as a marker that the CauAD-side
+    # entity is the :Gene node label rather than an OntologyConcept;
+    # compute_alignment() handles this specially.
     CategorySpec(
         name="Gene",
         cauad_source_ontology=None,
         alzkb_source_types=("Gene",),
-        note="Gene Ontology integration deferred (the removed C4); see Future Work.",
+        note="AlzKB Gene entities ↔ MAKO :Gene nodes (Step 35)",
     ),
 )
+
+OUT_OF_SCOPE_CATEGORIES: tuple[CategorySpec, ...] = ()
 
 
 # ---------------------------------------------------------------------------
@@ -179,6 +182,18 @@ _STRONG_MATCH_QUERY = (
     "RETURN count(DISTINCT o) AS strong"
 )
 
+# Gene-specific queries — Step 35 materialises Gene as its own node label
+# (not as an OntologyConcept), so the Disease/Anatomy/Phenotype pattern of
+# routing via :OntologyConcept does not apply. The Gene category uses
+# :Gene on the MAKO side directly.
+_GENE_TOTAL_QUERY = "MATCH (g:Gene) RETURN count(DISTINCT g) AS total"
+
+_GENE_STRONG_QUERY = (
+    "MATCH (a:AlzKBConcept)-[:SAME_AS]->(g:Gene) "
+    "WHERE a.source_type = 'Gene' "
+    "RETURN count(DISTINCT g) AS strong"
+)
+
 _ALZKB_COUNT_QUERY = "MATCH (a:AlzKBConcept) RETURN count(a) AS n"
 _SAME_AS_COUNT_QUERY = "MATCH ()-[r:SAME_AS]->() RETURN count(r) AS n"
 
@@ -215,6 +230,34 @@ def compute_alignment(
     categories: list[CategoryResult] = []
 
     for spec in in_scope:
+        # Gene category — uses :Gene node label, not :OntologyConcept.
+        # Identified by cauad_source_ontology=None + alzkb_types containing
+        # 'Gene'. Falls back to "not_implemented" if no :Gene nodes exist
+        # (i.e. Step 35 has not run yet).
+        if spec.cauad_source_ontology is None and "Gene" in spec.alzkb_source_types:
+            total = _scalar(connector.run_query(_GENE_TOTAL_QUERY), "total")
+            if total == 0:
+                categories.append(
+                    CategoryResult(
+                        name=spec.name, total=0, strong_matches=0, match_rate=0.0,
+                        not_implemented=True,
+                        note=spec.note + " (no :Gene nodes — run Step 35 to enable).",
+                    )
+                )
+                continue
+            strong = _scalar(connector.run_query(_GENE_STRONG_QUERY), "strong")
+            rate = (strong / total) if total > 0 else 0.0
+            categories.append(
+                CategoryResult(
+                    name=spec.name,
+                    total=total,
+                    strong_matches=strong,
+                    match_rate=rate,
+                    note=spec.note,
+                )
+            )
+            continue
+        # Normal ontology-routed categories (Disease, Anatomy, Phenotype)
         if spec.cauad_source_ontology is None:
             continue
         total = _scalar(
