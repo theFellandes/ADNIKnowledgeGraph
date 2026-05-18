@@ -1,0 +1,3 @@
+source_table,source_column,source_value_pattern,target_ontology,target_uri,target_label,mapping_rule,test_fixture_id,last_verified_date
+DXSUM,mondo_code,MONDO:0024647,MONDO,mondo:0024647,Mild cognitive impairment,exact_match via Diagnosis.mondo_code,,2026-05-16
+DXSUM,mondo_code,MONDO:0004975,MONDO,mondo:0004975,Alzheimer's disease,exact_match via Diagnosis.mondo_code,,2026-05-16

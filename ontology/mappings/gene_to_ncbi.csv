@@ -1,0 +1,6 @@
+source_table,source_column,source_value_pattern,target_ontology,target_uri,target_label,mapping_rule,test_fixture_id,last_verified_date
+GeneticMarker,gene,APOE,NCBI Gene,ncbigene:348,Apolipoprotein E,"step 35 — NCBI:348, HGNC:HGNC:613, UniProt:P02649",,2026-05-16
+GeneticMarker,gene,APP,NCBI Gene,ncbigene:351,Amyloid beta precursor protein,"step 35 — NCBI:351, HGNC:HGNC:620, UniProt:P05067",,2026-05-16
+GeneticMarker,gene,PSEN1,NCBI Gene,ncbigene:5663,Presenilin 1,"step 35 — NCBI:5663, HGNC:HGNC:9508, UniProt:P49768",,2026-05-16
+GeneticMarker,gene,PSEN2,NCBI Gene,ncbigene:5664,Presenilin 2,"step 35 — NCBI:5664, HGNC:HGNC:9509, UniProt:P49810",,2026-05-16
+GeneticMarker,gene,MAPT,NCBI Gene,ncbigene:4137,Microtubule associated protein tau,"step 35 — NCBI:4137, HGNC:HGNC:6893, UniProt:P10636",,2026-05-16

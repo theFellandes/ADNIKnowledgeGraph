@@ -166,6 +166,104 @@ def _run_step_audit(output_dir: Path) -> StepOutcome:
     return StepOutcome(name="step_audit", status="ok", output_path=out, notes=notes)
 
 
+def _run_tbox_abox(connector, output_dir: Path) -> StepOutcome:
+    from metrics.tbox_abox import compute, write_json
+
+    report = compute(connector, graph_uri=getattr(connector, "uri", "(connected)"))
+    out = output_dir / "metrics" / "tbox_abox.json"
+    write_json(report, out)
+    d = report.to_dict()
+    return StepOutcome(
+        name="tbox_abox",
+        status="ok",
+        output_path=out,
+        notes=[f"tbox_total={d['tbox_total']}", f"abox_total={d['abox_total']}"],
+    )
+
+
+def _run_mapping_rules(output_dir: Path) -> StepOutcome:
+    from metrics.mapping_rules import compute, write_json
+
+    payload = compute(PROJECT_ROOT / "ontology" / "mappings")
+    out = output_dir / "metrics" / "mapping_rules.json"
+    write_json(payload, out)
+    return StepOutcome(
+        name="mapping_rules",
+        status="ok",
+        output_path=out,
+        notes=[
+            f"files={len(payload['files'])}",
+            f"per_file_sum={payload['per_file_sum']}",
+            f"index_total={payload.get('index_total')}",
+        ],
+    )
+
+
+def _run_duplicity(connector, output_dir: Path) -> StepOutcome:
+    from metrics.duplicity_check import compute, write_json
+
+    report = compute(connector, graph_uri=getattr(connector, "uri", "(connected)"))
+    out = output_dir / "metrics" / "duplicity_check.json"
+    write_json(report, out)
+    failed = [p.label for p in report.probes if not p.ok]
+    notes = [
+        f"probes={len(report.probes)}",
+        f"duplicates_total={sum(p.duplicates for p in report.probes)}",
+    ]
+    if failed:
+        notes.append(f"failed_probes={failed}")
+    return StepOutcome(
+        name="duplicity",
+        status="ok" if report.all_ok else "fail",
+        output_path=out,
+        notes=notes,
+    )
+
+
+def _run_source_contribution(connector, output_dir: Path) -> StepOutcome:
+    from metrics.source_ontology_contribution import compute, write_json
+
+    report = compute(connector, graph_uri=getattr(connector, "uri", "(connected)"))
+    out = output_dir / "metrics" / "source_ontology_contribution.json"
+    write_json(report, out)
+    d = report.to_dict()
+    top_source = d["sources"][0]["source"] if d.get("sources") else "(none)"
+    return StepOutcome(
+        name="source_contribution",
+        status="ok",
+        output_path=out,
+        notes=[
+            f"total_edges_with_uri={d['total_edges_with_uri']}",
+            f"top_source={top_source}",
+            f"sources={len(d.get('sources', []))}",
+        ],
+    )
+
+
+def _run_graph_topology(connector, output_dir: Path) -> StepOutcome:
+    from metrics.graph_topology import compute, write_json
+
+    report = compute(connector, top_k=25, graph_uri=getattr(connector, "uri", "(connected)"))
+    out = output_dir / "metrics" / "graph_topology.json"
+    write_json(report, out)
+    d = report.to_dict()
+    top_hub = d["top_25_hubs"][0] if d.get("top_25_hubs") else None
+    notes = [
+        f"hubs={len(d.get('top_25_hubs', []))}",
+        f"orphan_labels={len(d.get('orphans_by_label', []))}",
+    ]
+    if top_hub:
+        notes.append(f"top_hub={top_hub.get('source_ontology', '')}:{top_hub.get('label', '')} indegree={top_hub.get('indegree', 0)}")
+    cc_avail = d.get("connected_components", {}).get("available", False)
+    notes.append(f"cc_available={cc_avail}")
+    return StepOutcome(
+        name="graph_topology",
+        status="ok",
+        output_path=out,
+        notes=notes,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Orchestration
 # ---------------------------------------------------------------------------
@@ -195,6 +293,11 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--density", action="store_true", help="Compute semantic density")
     p.add_argument("--fair", action="store_true", help="Score FAIR principles")
     p.add_argument("--alignment", action="store_true", help="Compute AlzKB alignment")
+    p.add_argument("--tbox-abox", action="store_true", help="Compute T-Box vs A-Box weight per source ontology")
+    p.add_argument("--mapping-rules", action="store_true", help="Count mapping rules per source CSV")
+    p.add_argument("--duplicity", action="store_true", help="Audit composite uniqueness on every label")
+    p.add_argument("--source-contribution", action="store_true", help="Decompose edge URI coverage by source ontology namespace")
+    p.add_argument("--graph-topology", action="store_true", help="Top-25 concept hubs, orphan inventory, connected components")
     p.add_argument("--step-audit", action="store_true", help="Assemble per-step audit CSV")
     p.add_argument(
         "--output-dir",
@@ -215,7 +318,12 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 
 def _selected(args: argparse.Namespace) -> list[str]:
     if args.all:
-        return ["validity", "density", "fair", "alignment", "step_audit"]
+        return [
+            "validity", "density", "fair", "alignment",
+            "tbox_abox", "mapping_rules", "duplicity",
+            "source_contribution", "graph_topology",
+            "step_audit",
+        ]
     selected: list[str] = []
     if args.validity:
         selected.append("validity")
@@ -225,6 +333,16 @@ def _selected(args: argparse.Namespace) -> list[str]:
         selected.append("fair")
     if args.alignment:
         selected.append("alignment")
+    if args.tbox_abox:
+        selected.append("tbox_abox")
+    if args.mapping_rules:
+        selected.append("mapping_rules")
+    if args.duplicity:
+        selected.append("duplicity")
+    if args.source_contribution:
+        selected.append("source_contribution")
+    if args.graph_topology:
+        selected.append("graph_topology")
     if args.step_audit:
         selected.append("step_audit")
     return selected
@@ -239,14 +357,24 @@ def main(argv: list[str] | None = None) -> int:
 
     selected = _selected(args)
     if not selected:
-        print("Nothing to do — pass --all or one of --validity / --density / --fair / "
-              "--alignment / --step-audit", file=sys.stderr)
+        print(
+            "Nothing to do — pass --all or one of --validity / --density / --fair / "
+            "--alignment / --tbox-abox / --mapping-rules / --duplicity / "
+            "--source-contribution / --graph-topology / --step-audit",
+            file=sys.stderr,
+        )
         return 2
 
     output_dir = Path(args.output_dir)
     if not output_dir.is_absolute():
         output_dir = PROJECT_ROOT / output_dir
-    needs_connector = any(s in selected for s in ("validity", "density", "fair", "alignment"))
+    needs_connector = any(
+        s in selected
+        for s in (
+            "validity", "density", "fair", "alignment",
+            "tbox_abox", "duplicity", "source_contribution", "graph_topology",
+        )
+    )
 
     connector = None
     if needs_connector:
@@ -272,6 +400,16 @@ def main(argv: list[str] | None = None) -> int:
                     outcome = _run_fair(connector, output_dir)
                 elif step == "alignment":
                     outcome = _run_alignment(connector, output_dir)
+                elif step == "tbox_abox":
+                    outcome = _run_tbox_abox(connector, output_dir)
+                elif step == "mapping_rules":
+                    outcome = _run_mapping_rules(output_dir)
+                elif step == "duplicity":
+                    outcome = _run_duplicity(connector, output_dir)
+                elif step == "source_contribution":
+                    outcome = _run_source_contribution(connector, output_dir)
+                elif step == "graph_topology":
+                    outcome = _run_graph_topology(connector, output_dir)
                 elif step == "step_audit":
                     outcome = _run_step_audit(output_dir)
                 else:  # pragma: no cover

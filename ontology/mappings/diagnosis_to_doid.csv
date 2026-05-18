@@ -1,0 +1,4 @@
+source_table,source_column,source_value_pattern,target_ontology,target_uri,target_label,mapping_rule,test_fixture_id,last_verified_date
+DXSUM,diagnosis_code,AD,DOID,doid:10652,Alzheimer's disease,step 34 — Diagnosis.diagnosis_code IN ['AD'],,2026-05-16
+DXSUM,diagnosis_code,Dementia,DOID,doid:1307,Dementia,step 34 — Diagnosis.diagnosis_code IN ['Dementia'],,2026-05-16
+DXSUM,diagnosis_code,MCI|LMCI|EMCI,DOID,doid:0080832,Mild cognitive impairment,"step 34 — Diagnosis.diagnosis_code IN ['MCI', 'LMCI', 'EMCI']",,2026-05-16
