@@ -915,7 +915,7 @@ class KnowledgeGraphEDA:
             ("Visits", n_visits, "Longitudinal timepoints (bl to m96)"),
             ("Diagnoses", n_diagnoses, "CN, MCI, AD classifications"),
             ("Medical Images", n_images, "MRI + PET scans (lossless)"),
-            ("Ontology Concepts", n_ontology, "SNOMED, LOINC, UBERON, ICD-10, HPO"),
+            ("Ontology Concepts", n_ontology, "SNOMED, LOINC, UBERON, ICD-10, HPO, MONDO, DOID, GO"),
         ]
 
         y_start = 5.0

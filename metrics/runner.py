@@ -264,6 +264,22 @@ def _run_graph_topology(connector, output_dir: Path) -> StepOutcome:
     )
 
 
+def _run_render_prompts(output_dir: Path) -> StepOutcome:
+    from metrics.render_audit_prompts import render_prompts
+
+    rendered = render_prompts(
+        metrics_dir=output_dir / "metrics",
+        audit_dir=output_dir / "audit",
+        validity_dir=output_dir / "validity_reports",
+    )
+    return StepOutcome(
+        name="render_prompts",
+        status="ok",
+        output_path=rendered[0] if rendered else None,
+        notes=[f"rendered={len(rendered)}"] + [f"  {p}" for p in rendered],
+    )
+
+
 # ---------------------------------------------------------------------------
 # Orchestration
 # ---------------------------------------------------------------------------
@@ -299,6 +315,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--source-contribution", action="store_true", help="Decompose edge URI coverage by source ontology namespace")
     p.add_argument("--graph-topology", action="store_true", help="Top-25 concept hubs, orphan inventory, connected components")
     p.add_argument("--step-audit", action="store_true", help="Assemble per-step audit CSV")
+    p.add_argument("--render-prompts", action="store_true", help="Render outputs/audit/*.md.j2 templates against the current JSONs")
     p.add_argument(
         "--output-dir",
         default="outputs",
@@ -322,7 +339,7 @@ def _selected(args: argparse.Namespace) -> list[str]:
             "validity", "density", "fair", "alignment",
             "tbox_abox", "mapping_rules", "duplicity",
             "source_contribution", "graph_topology",
-            "step_audit",
+            "step_audit", "render_prompts",
         ]
     selected: list[str] = []
     if args.validity:
@@ -345,6 +362,8 @@ def _selected(args: argparse.Namespace) -> list[str]:
         selected.append("graph_topology")
     if args.step_audit:
         selected.append("step_audit")
+    if args.render_prompts:
+        selected.append("render_prompts")
     return selected
 
 
@@ -360,7 +379,7 @@ def main(argv: list[str] | None = None) -> int:
         print(
             "Nothing to do — pass --all or one of --validity / --density / --fair / "
             "--alignment / --tbox-abox / --mapping-rules / --duplicity / "
-            "--source-contribution / --graph-topology / --step-audit",
+            "--source-contribution / --graph-topology / --step-audit / --render-prompts",
             file=sys.stderr,
         )
         return 2
@@ -412,6 +431,8 @@ def main(argv: list[str] | None = None) -> int:
                     outcome = _run_graph_topology(connector, output_dir)
                 elif step == "step_audit":
                     outcome = _run_step_audit(output_dir)
+                elif step == "render_prompts":
+                    outcome = _run_render_prompts(output_dir)
                 else:  # pragma: no cover
                     outcome = StepOutcome(name=step, status="skipped",
                                           notes=[f"unknown step: {step}"])

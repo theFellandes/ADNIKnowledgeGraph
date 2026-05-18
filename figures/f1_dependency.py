@@ -23,9 +23,11 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-MERMAID_SOURCE = """%% F1 — MAKO functional dependency diagram (c7_plan_v2)
+MERMAID_SOURCE = """%% F1 — MAKO functional dependency diagram (post-Step-35)
 %% C7 (cross-vocabulary AlzKB alignment) sits at the centre.
-%% Steps A–D feed into C7. C4 is removed (faded). C6 is future work.
+%% Steps A–D feed into C7. C4 (Gene Ontology) landed at Step 35 and now also
+%% feeds C7, taking the AlzKB Gene-category alignment to 5/5. C6 is future
+%% work.
 flowchart LR
     subgraph Steps["Methodological Steps"]
         A["Step A<br/>Three-axis ontology selection<br/>(was C1)"]
@@ -36,16 +38,16 @@ flowchart LR
 
     C7[["C7 — Cross-Vocabulary Alignment<br/>(MAKO ↔ AlzKB)"]]
     C6(["C6 — Comparative Benchmark<br/>(future work)"])
-    C4(["C4 — Gene Ontology integration<br/>(REMOVED)"]):::removed
+    C4(["C4 — Gene Ontology integration<br/>(added at Step 35)"]):::added
 
     A --> C7
     B --> C7
     C --> C7
     D --> C7
+    C4 --> C7
     C7 --> C6
-    C4 -. dropped .-> C7
 
-    classDef removed fill:#f3f4f6,stroke:#9ca3af,stroke-dasharray:4 3,color:#6b7280;
+    classDef added fill:#dcfce7,stroke:#16a34a,color:#14532d;
     classDef future fill:#fef3c7,stroke:#b8b90c,color:#3f3f00;
     classDef hub fill:#184a7c,stroke:#0f1d3a,color:#ffffff;
     class C7 hub
