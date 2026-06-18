@@ -36,7 +36,8 @@ logger = logging.getLogger(__name__)
 # so completeness is independent of this dict; the lookup just adds a
 # human-readable label.
 MONDO_LABELS: Dict[str, str] = {
-    "MONDO:0024647": "Mild cognitive impairment",
+    # MONDO:0024647 removed 2026-06-17 — it is "urolithiasis", not MCI (OLS4-verified).
+    # MCI has no MONDO disease term; it stays grounded by SNOMED 386806002 / ICD-10 F06.7 / DOID:0080832.
     "MONDO:0004975": "Alzheimer's disease",
     "MONDO:0001627": "Dementia",
     "MONDO:0011913": "Alzheimer disease, late-onset",

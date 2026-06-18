@@ -5,7 +5,7 @@ GeneOntology,gene_symbol,APOE,GO,go:GO:0005509,Calcium ion binding,step 35 — G
 GeneOntology,gene_symbol,APOE,GO,go:GO:0042632,Cholesterol homeostasis,step 35 — GOA APOE BP (Biological Process),,2026-05-16
 GeneOntology,gene_symbol,APOE,GO,go:GO:0006869,Lipid transport,step 35 — GOA APOE BP (Biological Process),,2026-05-16
 GeneOntology,gene_symbol,APOE,GO,go:GO:0042157,Lipoprotein metabolic process,step 35 — GOA APOE BP (Biological Process),,2026-05-16
-GeneOntology,gene_symbol,APOE,GO,go:GO:0007568,Aging,step 35 — GOA APOE BP (Biological Process),,2026-05-16
+GeneOntology,gene_symbol,APOE,GO,go:GO:0042982,Amyloid precursor protein metabolic process,step 35 — GOA APOE BP (Biological Process); replaced obsolete GO:0007568 Aging 2026-06-06,,2026-06-06
 GeneOntology,gene_symbol,APOE,GO,go:GO:0005576,Extracellular region,step 35 — GOA APOE CC (Cellular Component),,2026-05-16
 GeneOntology,gene_symbol,APOE,GO,go:GO:0034364,High-density lipoprotein particle,step 35 — GOA APOE CC (Cellular Component),,2026-05-16
 GeneOntology,gene_symbol,APOE,GO,go:GO:0034362,Low-density lipoprotein particle,step 35 — GOA APOE CC (Cellular Component),,2026-05-16

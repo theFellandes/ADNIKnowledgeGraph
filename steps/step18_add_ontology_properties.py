@@ -38,7 +38,7 @@ DIAGNOSIS_MAPPINGS: Dict[str, Dict[str, str]] = {
         "snomed_label": "Mild cognitive impairment",
         "icd10_code": "F06.7",
         "icd10_label": "Mild cognitive disorder",
-        "mondo_code": "MONDO:0024647",
+        "mondo_code": "",  # MCI has no MONDO disease term; MONDO:0024647 is urolithiasis. MCI is grounded by SNOMED 386806002 + ICD-10 F06.7 + DOID:0080832.
         "rdf_type": "ncit:C100044",
     },
     "LMCI": {
@@ -46,7 +46,7 @@ DIAGNOSIS_MAPPINGS: Dict[str, Dict[str, str]] = {
         "snomed_label": "Mild cognitive impairment (late)",
         "icd10_code": "F06.7",
         "icd10_label": "Mild cognitive disorder",
-        "mondo_code": "MONDO:0024647",
+        "mondo_code": "",  # MCI has no MONDO disease term; MONDO:0024647 is urolithiasis. MCI is grounded by SNOMED 386806002 + ICD-10 F06.7 + DOID:0080832.
         "rdf_type": "ncit:C100044",
     },
     "EMCI": {
@@ -54,7 +54,7 @@ DIAGNOSIS_MAPPINGS: Dict[str, Dict[str, str]] = {
         "snomed_label": "Mild cognitive impairment (early)",
         "icd10_code": "F06.7",
         "icd10_label": "Mild cognitive disorder",
-        "mondo_code": "MONDO:0024647",
+        "mondo_code": "",  # MCI has no MONDO disease term; MONDO:0024647 is urolithiasis. MCI is grounded by SNOMED 386806002 + ICD-10 F06.7 + DOID:0080832.
         "rdf_type": "ncit:C100044",
     },
     "AD": {
@@ -157,7 +157,7 @@ BRAIN_REGION_UBERON: Dict[str, Dict[str, str]] = {
         "uberon_label": "cerebellum",
     },
     "Frontal Lobe": {
-        "uberon_code": "UBERON:0000203",
+        "uberon_code": "UBERON:0016525",  # was UBERON:0000203 (=pallium); corrected (OLS4-verified)
         "uberon_label": "frontal lobe",
     },
     "Temporal Lobe": {

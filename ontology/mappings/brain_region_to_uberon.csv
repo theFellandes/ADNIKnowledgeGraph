@@ -3,7 +3,7 @@ UCSFFSX7,region_name,Hippocampus,UBERON,uberon:UBERON:0002421,hippocampal format
 UCSFFSX7,region_name,Cerebral Cortex,UBERON,uberon:UBERON:0000956,cerebral cortex,case_insensitive,,2026-05-09
 UCSFFSX7,region_name,Ventricles,UBERON,uberon:UBERON:0004086,brain ventricle,case_insensitive,,2026-05-09
 UCSFFSX7,region_name,Cerebellum,UBERON,uberon:UBERON:0002037,cerebellum,case_insensitive,,2026-05-09
-UCSFFSX7,region_name,Frontal Lobe,UBERON,uberon:UBERON:0000203,frontal lobe,case_insensitive,,2026-05-09
+UCSFFSX7,region_name,Frontal Lobe,UBERON,uberon:UBERON:0016525,frontal lobe,case_insensitive,,2026-06-17
 UCSFFSX7,region_name,Temporal Lobe,UBERON,uberon:UBERON:0001871,temporal lobe,case_insensitive,,2026-05-09
 UCSFFSX7,region_name,Parietal Lobe,UBERON,uberon:UBERON:0001872,parietal lobe,case_insensitive,,2026-05-09
 UCSFFSX7,region_name,Occipital Lobe,UBERON,uberon:UBERON:0002021,occipital lobe,case_insensitive,,2026-05-09

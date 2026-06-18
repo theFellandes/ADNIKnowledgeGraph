@@ -18,7 +18,8 @@ In-scope (reported with measured numbers)::
     Anatomy    — CauAD :OntologyConcept(source_ontology='UBERON')
                  ↔ AlzKB :AlzKBConcept(source_type='Anatomy')
     Phenotype  — CauAD :OntologyConcept(source_ontology='HPO')
-                 ↔ AlzKB :AlzKBConcept(source_type IN ['Symptom','BiologicalProcess'])
+                 ↔ AlzKB :AlzKBConcept(source_type='Symptom')   # MeSH-coded; GO
+                   BiologicalProcess dropped 2026-06-17 (a process is not a phenotype)
 
 Out-of-scope (reported with ``not_implemented: true``)::
 
@@ -82,8 +83,13 @@ IN_SCOPE_CATEGORIES: tuple[CategorySpec, ...] = (
     CategorySpec(
         name="Phenotype",
         cauad_source_ontology="HPO",
-        alzkb_source_types=("Symptom", "BiologicalProcess"),
-        note="HPO phenotypes ↔ AlzKB Symptom / BiologicalProcess nodes",
+        alzkb_source_types=("Symptom",),
+        note=("HPO phenotypes ↔ AlzKB Symptom (MeSH-coded) nodes. "
+              "GO BiologicalProcess was dropped from this category on 2026-06-17 (M3): "
+              "a GO process is not a phenotype, and the only such 'match' was an invalid "
+              "proxy (GO:0150076 → HP:0002354). AlzKB exposes no HPO-coded phenotype node, "
+              "so this category is 0 until a real MeSH Symptom node is bridged via a "
+              "verified UMLS CUI crosswalk."),
     ),
     # Gene category — closed by Step 35 (Gene Ontology integration).
     # Uses cauad_source_ontology=None as a marker that the CauAD-side

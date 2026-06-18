@@ -128,7 +128,10 @@ SAME_AS_RULES = [
     # Diseases → OntologyConcept
     {'alzkb_id': 'alzkb:disease_AD',      'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'snomed:26929004', 'method': 'manual_disease'},
     {'alzkb_id': 'alzkb:disease_dementia','target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'snomed:52448006', 'method': 'manual_disease'},
-    {'alzkb_id': 'alzkb:disease_MCI',     'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0100543',  'method': 'manual_disease'},
+    # alzkb:disease_MCI -> hpo:HP:0100543 removed (M3, 2026-06-17): a Disease node
+    # must not bridge to an HPO phenotype. AlzKB MCI (DOID:0060903) differs from
+    # MAKO's MCI DOID:0080832 and MONDO has no MCI term, so MCI has no valid
+    # cross-graph Disease bridge; it is left unbridged rather than miswired.
 
     # Anatomy → OntologyConcept (UBERON)
     {'alzkb_id': 'alzkb:anatomy_hippocampus',    'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'uberon:UBERON:0002421', 'method': 'manual_anatomy'},
@@ -140,21 +143,24 @@ SAME_AS_RULES = [
     {'alzkb_id': 'alzkb:bp_amyloid_beta', 'target_label': 'CausalVariable', 'target_key': 'variable_id', 'target_value': 'BIO_ABETA',  'method': 'manual_biomarker'},
     {'alzkb_id': 'alzkb:bp_tau_phosph',   'target_label': 'CausalVariable', 'target_key': 'variable_id', 'target_value': 'BIO_PTAU',  'method': 'manual_biomarker'},
 
-    # Phenotypes → HPO OntologyConcept (B-08).
-    # AlzKB stores these as Symptom or BiologicalProcess nodes; we map each
-    # to the closest HPO concept already in our OntologyConcept layer (per
-    # step 20 + the hierarchy_roots list in metrics/validity_rubric.yaml).
-    # SAME_AS direction is (AlzKBConcept)-[:SAME_AS]->(OntologyConcept),
-    # so target_label='OntologyConcept' / target_key='uri'.
-    {'alzkb_id': 'alzkb:disease_dementia',     'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0000726',  'method': 'manual_phenotype'},
-    {'alzkb_id': 'alzkb:symptom_dementia',     'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0000726',  'method': 'manual_phenotype'},
-    {'alzkb_id': 'alzkb:symptom_memory_loss',  'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0002354',  'method': 'manual_phenotype'},
-    {'alzkb_id': 'alzkb:symptom_memory_impairment', 'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0002354', 'method': 'manual_phenotype'},
-    {'alzkb_id': 'alzkb:symptom_cognitive_decline', 'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0001268', 'method': 'manual_phenotype'},
-    {'alzkb_id': 'alzkb:symptom_mental_deterioration', 'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0001268', 'method': 'manual_phenotype'},
-    {'alzkb_id': 'alzkb:symptom_behavioral_abnormality', 'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0000708', 'method': 'manual_phenotype'},
-    {'alzkb_id': 'alzkb:bp_neuroinflammation', 'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0002354',  'method': 'manual_phenotype_proxy'},
-    {'alzkb_id': 'alzkb:bp_neurodegeneration', 'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0001268',  'method': 'manual_phenotype_proxy'},
+    # Phenotype → HPO: NO valid bridge in the current AlzKB subset (M3, 2026-06-17).
+    # AlzKB's only phenotype class is `Symptom`, keyed by MeSH (`xrefMeSH`, inherited
+    # from Hetionet); AlzKB exposes no HPO-coded phenotype node, and none of MAKO's
+    # AD-relevant HPO terms carries a MeSH dbxref (HPO exposes only SNOMEDCT_US and
+    # UMLS). The earlier rules here proxied GO `BiologicalProcess` nodes and `Disease`
+    # nodes onto HPO phenotypes (`manual_phenotype_proxy` / `manual_phenotype`); those
+    # are cross-category and were removed from both the live graph (M3) and this
+    # source so a pipeline re-run cannot re-introduce them. The dangling
+    # `alzkb:symptom_*` rules (no such nodes in the loaded subset; AlzKB Symptom ids
+    # are MeSH-keyed) were dropped at the same time.
+    #
+    # A *valid* future Phenotype bridge would load a real AlzKB `Symptom` node with
+    # its native MeSH id and SAME_AS it to the co-referent MAKO HPO term via a
+    # verified shared UMLS CUI — e.g. MeSH D008569 "Memory Disorders" <-> UMLS
+    # C0233794 <-> HPO HP:0002354 "Memory impairment", with
+    # match_method='umls_crosswalk_C0233794'. Pair it with the alzkb_alignment.py
+    # Phenotype predicate (now restricted to source_type='Symptom'). Full spec:
+    # docs/final_report/c7_plan_v3/PHENOTYPE_BRIDGE_RESEARCH_2026-06-17.md.
 ]
 
 

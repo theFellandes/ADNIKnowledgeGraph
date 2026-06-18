@@ -7,15 +7,12 @@ DXSUM,DIAGNOSIS,SMC,ICD-10,icd10:R41.3,Other amnesia,exact_match,,2026-05-09
 DXSUM,DIAGNOSIS,SMC,NCIt,ncit:C176715,Subjective Cognitive Complaint,exact_match,,2026-05-09
 DXSUM,DIAGNOSIS,EMCI,SNOMED-CT,snomed:386806002,Mild cognitive impairment (early),exact_match,,2026-05-09
 DXSUM,DIAGNOSIS,EMCI,ICD-10,icd10:F06.7,Mild cognitive disorder,exact_match,,2026-05-09
-DXSUM,DIAGNOSIS,EMCI,MONDO,MONDO:0024647,Mild cognitive impairment,exact_match,,2026-05-09
 DXSUM,DIAGNOSIS,EMCI,NCIt,ncit:C100044,Mild Cognitive Impairment,exact_match,,2026-05-09
 DXSUM,DIAGNOSIS,LMCI,SNOMED-CT,snomed:386806002,Mild cognitive impairment (late),exact_match,,2026-05-09
 DXSUM,DIAGNOSIS,LMCI,ICD-10,icd10:F06.7,Mild cognitive disorder,exact_match,,2026-05-09
-DXSUM,DIAGNOSIS,LMCI,MONDO,MONDO:0024647,Mild cognitive impairment,exact_match,,2026-05-09
 DXSUM,DIAGNOSIS,LMCI,NCIt,ncit:C100044,Mild Cognitive Impairment,exact_match,,2026-05-09
 DXSUM,DIAGNOSIS,MCI,SNOMED-CT,snomed:386806002,Mild cognitive impairment,exact_match,dx_p2_m06,2026-05-09
 DXSUM,DIAGNOSIS,MCI,ICD-10,icd10:F06.7,Mild cognitive disorder,exact_match,dx_p2_m06,2026-05-09
-DXSUM,DIAGNOSIS,MCI,MONDO,MONDO:0024647,Mild cognitive impairment,exact_match,dx_p2_m06,2026-05-09
 DXSUM,DIAGNOSIS,AD,SNOMED-CT,snomed:26929004,Alzheimer's disease,exact_match,dx_p1_bl,2026-05-09
 DXSUM,DIAGNOSIS,AD,ICD-10,icd10:G30.9,"Alzheimer disease, unspecified",exact_match,dx_p1_bl,2026-05-09
 DXSUM,DIAGNOSIS,AD,MONDO,MONDO:0004975,Alzheimer disease,exact_match,dx_p1_bl,2026-05-09

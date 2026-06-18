@@ -75,7 +75,7 @@ UBERON_CONCEPTS: List[Tuple[str, str, str]] = [
     ("0002421", "Hippocampal formation", "0000956"),
     ("0002728", "Entorhinal cortex", "0000956"),
     ("0001876", "Amygdala", "0000955"),
-    ("0000203", "Frontal lobe", "0000956"),
+    ("0016525", "Frontal lobe", "0000956"),  # was 0000203 (=pallium); corrected to UBERON:0016525 (frontal lobe), OLS4-verified 2026-06-17
     ("0001871", "Temporal lobe", "0000956"),
     ("0001872", "Parietal lobe", "0000956"),
     ("0002021", "Occipital lobe", "0000956"),

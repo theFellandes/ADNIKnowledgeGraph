@@ -152,7 +152,7 @@ brain_region_to_uberon.csv,UCSFFSX7,region_name,Hippocampus,UBERON,uberon:UBERON
 brain_region_to_uberon.csv,UCSFFSX7,region_name,Cerebral Cortex,UBERON,uberon:UBERON:0000956,cerebral cortex,case_insensitive,,2026-05-09
 brain_region_to_uberon.csv,UCSFFSX7,region_name,Ventricles,UBERON,uberon:UBERON:0004086,brain ventricle,case_insensitive,,2026-05-09
 brain_region_to_uberon.csv,UCSFFSX7,region_name,Cerebellum,UBERON,uberon:UBERON:0002037,cerebellum,case_insensitive,,2026-05-09
-brain_region_to_uberon.csv,UCSFFSX7,region_name,Frontal Lobe,UBERON,uberon:UBERON:0000203,frontal lobe,case_insensitive,,2026-05-09
+brain_region_to_uberon.csv,UCSFFSX7,region_name,Frontal Lobe,UBERON,uberon:UBERON:0016525,frontal lobe,case_insensitive,,2026-06-17
 brain_region_to_uberon.csv,UCSFFSX7,region_name,Temporal Lobe,UBERON,uberon:UBERON:0001871,temporal lobe,case_insensitive,,2026-05-09
 brain_region_to_uberon.csv,UCSFFSX7,region_name,Parietal Lobe,UBERON,uberon:UBERON:0001872,parietal lobe,case_insensitive,,2026-05-09
 brain_region_to_uberon.csv,UCSFFSX7,region_name,Occipital Lobe,UBERON,uberon:UBERON:0002021,occipital lobe,case_insensitive,,2026-05-09
@@ -169,8 +169,7 @@ cognitive_to_loinc.csv,NEUROBAT,test_name,Logical Memory,LOINC,loinc:72026-8,Log
 diagnosis_to_doid.csv,DXSUM,diagnosis_code,AD,DOID,doid:10652,Alzheimer's disease,step 34 — Diagnosis.diagnosis_code IN ['AD'],,2026-05-16
 diagnosis_to_doid.csv,DXSUM,diagnosis_code,Dementia,DOID,doid:1307,Dementia,step 34 — Diagnosis.diagnosis_code IN ['Dementia'],,2026-05-16
 diagnosis_to_doid.csv,DXSUM,diagnosis_code,MCI|LMCI|EMCI,DOID,doid:0080832,Mild cognitive impairment,"step 34 — Diagnosis.diagnosis_code IN ['MCI', 'LMCI', 'EMCI']",,2026-05-16
-diagnosis_to_mondo.csv,DXSUM,mondo_code,MONDO:0024647,MONDO,mondo:0024647,Mild cognitive impairment,exact_match via Diagnosis.mondo_code,,2026-05-16
-diagnosis_to_mondo.csv,DXSUM,mondo_code,MONDO:0004975,MONDO,mondo:0004975,Alzheimer's disease,exact_match via Diagnosis.mondo_code,,2026-05-16
+diagnosis_to_mondo.csv,DXSUM,mondo_code,MONDO:0004975,MONDO,mondo:0004975,Alzheimer's disease,exact_match via Diagnosis.mondo_code,,2026-06-17
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,CN,SNOMED-CT,snomed:17621005,Normal (finding),exact_match,dx_p3_m12,2026-05-09
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,CN,ICD-10,icd10:Z03.89,No diagnosis or condition,exact_match,dx_p3_m12,2026-05-09
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,CN,NCIt,ncit:C94342,Cognitively Normal,exact_match,dx_p3_m12,2026-05-09
@@ -179,15 +178,12 @@ diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,SMC,ICD-10,icd10:R41.3,Other amnes
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,SMC,NCIt,ncit:C176715,Subjective Cognitive Complaint,exact_match,,2026-05-09
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,EMCI,SNOMED-CT,snomed:386806002,Mild cognitive impairment (early),exact_match,,2026-05-09
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,EMCI,ICD-10,icd10:F06.7,Mild cognitive disorder,exact_match,,2026-05-09
-diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,EMCI,MONDO,MONDO:0024647,Mild cognitive impairment,exact_match,,2026-05-09
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,EMCI,NCIt,ncit:C100044,Mild Cognitive Impairment,exact_match,,2026-05-09
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,LMCI,SNOMED-CT,snomed:386806002,Mild cognitive impairment (late),exact_match,,2026-05-09
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,LMCI,ICD-10,icd10:F06.7,Mild cognitive disorder,exact_match,,2026-05-09
-diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,LMCI,MONDO,MONDO:0024647,Mild cognitive impairment,exact_match,,2026-05-09
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,LMCI,NCIt,ncit:C100044,Mild Cognitive Impairment,exact_match,,2026-05-09
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,MCI,SNOMED-CT,snomed:386806002,Mild cognitive impairment,exact_match,dx_p2_m06,2026-05-09
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,MCI,ICD-10,icd10:F06.7,Mild cognitive disorder,exact_match,dx_p2_m06,2026-05-09
-diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,MCI,MONDO,MONDO:0024647,Mild cognitive impairment,exact_match,dx_p2_m06,2026-05-09
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,AD,SNOMED-CT,snomed:26929004,Alzheimer's disease,exact_match,dx_p1_bl,2026-05-09
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,AD,ICD-10,icd10:G30.9,"Alzheimer disease, unspecified",exact_match,dx_p1_bl,2026-05-09
 diagnosis_to_snomed_icd10.csv,DXSUM,DIAGNOSIS,AD,MONDO,MONDO:0004975,Alzheimer disease,exact_match,dx_p1_bl,2026-05-09
@@ -202,7 +198,7 @@ gene_to_go.csv,GeneOntology,gene_symbol,APOE,GO,go:GO:0005509,Calcium ion bindin
 gene_to_go.csv,GeneOntology,gene_symbol,APOE,GO,go:GO:0042632,Cholesterol homeostasis,step 35 — GOA APOE BP (Biological Process),,2026-05-16
 gene_to_go.csv,GeneOntology,gene_symbol,APOE,GO,go:GO:0006869,Lipid transport,step 35 — GOA APOE BP (Biological Process),,2026-05-16
 gene_to_go.csv,GeneOntology,gene_symbol,APOE,GO,go:GO:0042157,Lipoprotein metabolic process,step 35 — GOA APOE BP (Biological Process),,2026-05-16
-gene_to_go.csv,GeneOntology,gene_symbol,APOE,GO,go:GO:0007568,Aging,step 35 — GOA APOE BP (Biological Process),,2026-05-16
+gene_to_go.csv,GeneOntology,gene_symbol,APOE,GO,go:GO:0042982,Amyloid precursor protein metabolic process,step 35 — GOA APOE BP (Biological Process); replaced obsolete GO:0007568 Aging 2026-06-06,,2026-06-06
 gene_to_go.csv,GeneOntology,gene_symbol,APOE,GO,go:GO:0005576,Extracellular region,step 35 — GOA APOE CC (Cellular Component),,2026-05-16
 gene_to_go.csv,GeneOntology,gene_symbol,APOE,GO,go:GO:0034364,High-density lipoprotein particle,step 35 — GOA APOE CC (Cellular Component),,2026-05-16
 gene_to_go.csv,GeneOntology,gene_symbol,APOE,GO,go:GO:0034362,Low-density lipoprotein particle,step 35 — GOA APOE CC (Cellular Component),,2026-05-16
