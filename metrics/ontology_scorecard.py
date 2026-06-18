@@ -110,7 +110,7 @@ AXIS2: dict[str, tuple[str, str]] = {
     "HPO":       (HIGH, "largest node-coverage driver (119,071 ClinicalFinding); no valid AlzKB Phenotype bridge (AlzKB symptoms are MeSH-coded, not HPO)"),
     "GO":        (HIGH, "sole driver of the AlzKB Gene bridge (5/5 strong, the only saturated category)"),
     "ICD-10":    (MEDIUM, "adds a classification cross-walk on Diagnosis that overlaps the SNOMED-CT Disease bridge"),
-    "MONDO":     (MEDIUM, "disease cross-reference hub on Diagnosis/Comorbidity; overlaps the SNOMED-CT anchor"),
+    "MONDO":     (HIGH, "supplies the cross-reference identifiers that (with DOID) opened the Step-34 strong-match path; the disease cross-walk hub linking Diagnosis to AlzKB's DOID-keyed Disease nodes"),
     "DOID":      (LOW, "disease grounding is largely redundant with the co-included MONDO mapping"),
     "UMLS":      (MEDIUM, "would add Metathesaurus cross-references but largely duplicates included sources"),
     "ChEBI":     (LOW, "chemical-entity scope has no patient-side anchor in the ADNI substrate"),

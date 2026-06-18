@@ -55,16 +55,18 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 METRICS_DIR = PROJECT_ROOT / "outputs" / "metrics"
 
 # Canonical anchors the full-framework row must reproduce (canonical_snapshot.json).
-# Post-M3 (2026-06-17 ontology data-fix migration): M1 dropped the bogus MONDO MCI
-# concept (-1 OntologyConcept, -9,582 MAPS_TO edges) and M3 removed 3 miswired AlzKB
-# SAME_AS edges. Deltas vs the pre-migration snapshot: node_total -1, edge_total
-# -9,585, nodes_with_code -1 (the removed self-grounded MONDO concept), edges_with_uri
-# -9,585. Coverage ratios and FAIR are unchanged at the reported precision.
+# Post-M3 + Phase-1 Phenotype bridge (2026-06-18, D1): on top of the M1/M3 data-fix
+# migration, the 2026-06-18 insert adds ONE AlzKB `Symptom` node ("Memory Disorders",
+# MeSH D008569) and ONE SAME_AS edge to HPO HP:0002354 (UMLS C0233794). Relative to the
+# post-M3 anchor: node_total +1 (the AlzKBConcept), edge_total +1 and edges_with_uri +1
+# (the owl:sameAs edge). nodes_with_code is unchanged (AlzKBConcepts are not
+# self-grounded), so node/edge coverage ratios and FAIR are unchanged at the reported
+# precision. Verified live 2026-06-18.
 CANON = {
-    "node_total": 634753,
-    "edge_total": 2031160,
+    "node_total": 634754,
+    "edge_total": 2031161,
     "nodes_with_code": 328886,
-    "edges_with_uri": 2024656,
+    "edges_with_uri": 2024657,
     "node_cov": 0.5181,
     "edge_cov": 0.9968,
     "fair": 0.9231,
@@ -79,8 +81,8 @@ CSV_RULES: tuple[tuple[int, frozenset[str]], ...] = (
     (5, frozenset({"LOINC"})),                      # biomarker_to_loinc.csv
     (6, frozenset({"LOINC"})),                      # cognitive_to_loinc.csv
     (12, frozenset({"UBERON"})),                    # brain_region_to_uberon.csv
-    (25, frozenset({"SNOMED-CT", "ICD-10"})),       # diagnosis_to_snomed_icd10.csv (shared)
-    (2, frozenset({"MONDO"})),                      # diagnosis_to_mondo.csv
+    (22, frozenset({"SNOMED-CT", "ICD-10"})),       # diagnosis_to_snomed_icd10.csv (shared; post-M1 = 22)
+    (1, frozenset({"MONDO"})),                      # diagnosis_to_mondo.csv (post-M1 = 1; bogus MCI rule removed)
     (3, frozenset({"DOID"})),                       # diagnosis_to_doid.csv
     (10, frozenset({"GO"})),                        # gene_to_go.csv
 )
@@ -90,13 +92,14 @@ def _curation_rules(S: set[str]) -> int:
     return sum(n for n, srcs in CSV_RULES if srcs & S)
 
 # AlzKB category -> (bridge ontology, strong matches) from alzkb_alignment.json.
-# Phenotype is 0 post-M3: its only prior "match" was an invalid proxy edge
-# (AlzKB GO:0150076 neuroinflammation -> HPO HP:0002354 memory impairment),
-# removed on 2026-06-17 because AlzKB exposes no HPO-coded phenotype node to bridge.
+# Phenotype is 1 (2026-06-18, D1): a real AlzKB `Symptom` node "Memory Disorders"
+# (MeSH D008569) SAME_AS MAKO HPO "Memory impairment" (HP:0002354) via the shared UMLS
+# CUI C0233794 (NCBI MedGen / OLS4 verified). This REPLACES the earlier invalid
+# GO:0150076 -> HP:0002354 proxy (a process is not a phenotype), which stays removed.
 ALZKB_BRIDGES = {
     "Disease": ("SNOMED-CT", 2),
     "Anatomy": ("UBERON", 2),
-    "Phenotype": ("HPO", 0),
+    "Phenotype": ("HPO", 1),
     "Gene": ("GO", 5),
 }
 
@@ -273,16 +276,15 @@ def run(connector) -> dict[str, Any]:
     scenarios = []
     for sub in subsets:
         is_full = (sub == frozenset(axes))
-        # The full-framework row is the validation anchor: it must reproduce the
-        # as-built graph, which integrated all of INTEGRATED. After the 2026-06-17
-        # M1 data-fix (removing the bogus MCI->MONDO mappings), MONDO's legitimate
-        # A-Box fell below the Axis-1 "High" threshold (12,420 -> 2,838 instances),
-        # so the resolution rule would now DEFER MONDO even though the graph was
-        # built with it. We pin the full framework to the actually-integrated set
-        # to keep the self-validation exact; the rule-vs-as-built divergence on
-        # MONDO is a pending scorecard-recalibration item (task B / M1 number-sync),
-        # not part of the M3 Phenotype fix. Subsets still apply the rule.
-        selected = sorted(INTEGRATED) if is_full else scenario_includes(sub)
+        # No pin (2026-06-18, D4): MONDO is re-scored Axis-2 = High (it is the
+        # disease cross-walk hub that, with DOID, opened the Step-34 strong-match
+        # path), so the resolution rule now includes MONDO on a value axis and
+        # scenario_includes({A1,A2,A3}) reproduces the as-built eight-source
+        # INTEGRATED set on its own. The earlier full-framework pin (added post-M1,
+        # when MONDO's A-Box fell below the Axis-1 High threshold and the rule would
+        # otherwise have deferred it) is removed; every scenario, full included, now
+        # applies the resolution rule uniformly.
+        selected = scenario_includes(sub)
         m = compute_scenario(selected, node_buckets, edge_buckets, concepts, alzkb_nodes)
         m["scenario"] = _axes_label(sub)
         m["active_axes"] = sorted(sub)
@@ -385,7 +387,7 @@ def main(argv: list[str] | None = None) -> int:
     for s in abl["scenarios"]:
         print(f"{s['scenario']:12s} {s['n_integrated']:>4d} "
               f"{s['node_uri_coverage']:>8.4f} {s['edge_uri_coverage']:>8.4f} "
-              f"{s['fair_overall']:>7.4f} {s['alzkb_strong_total']:>4d}/9  "
+              f"{s['fair_overall']:>7.4f} {s['alzkb_strong_total']:>4d}/10  "
               f"{s['infeasible_sources']}")
     return 0 if abl["validated"] else 1
 

@@ -68,6 +68,11 @@ MANUAL_ALZKB_CONCEPTS = [
     {'alzkb_id': 'alzkb:anatomy_cerebral_cortex','label': 'Cerebral cortex',          'source_type': 'Anatomy', 'mesh_id': 'D002540'},
     {'alzkb_id': 'alzkb:anatomy_csf',            'label': 'Cerebrospinal fluid',      'source_type': 'Anatomy', 'mesh_id': 'D002555'},
 
+    # Symptoms (Phenotype) — MeSH-coded Symptom nodes inherited from Hetionet.
+    # 'Memory Disorders' (MeSH D008569) bridges to MAKO HPO 'Memory impairment'
+    # (HP:0002354) via the shared UMLS CUI C0233794 (verified: NCBI MedGen, OLS4).
+    {'alzkb_id': 'alzkb:symptom_memory_disorders', 'label': 'Memory Disorders', 'source_type': 'Symptom', 'mesh_id': 'D008569'},
+
     # Biological Processes
     {'alzkb_id': 'alzkb:bp_amyloid_beta',    'label': 'Amyloid-beta formation',         'source_type': 'BiologicalProcess', 'go_id': 'GO:0034205'},
     {'alzkb_id': 'alzkb:bp_tau_phosph',      'label': 'Tau protein phosphorylation',    'source_type': 'BiologicalProcess', 'go_id': 'GO:0050886'},
@@ -143,24 +148,19 @@ SAME_AS_RULES = [
     {'alzkb_id': 'alzkb:bp_amyloid_beta', 'target_label': 'CausalVariable', 'target_key': 'variable_id', 'target_value': 'BIO_ABETA',  'method': 'manual_biomarker'},
     {'alzkb_id': 'alzkb:bp_tau_phosph',   'target_label': 'CausalVariable', 'target_key': 'variable_id', 'target_value': 'BIO_PTAU',  'method': 'manual_biomarker'},
 
-    # Phenotype → HPO: NO valid bridge in the current AlzKB subset (M3, 2026-06-17).
-    # AlzKB's only phenotype class is `Symptom`, keyed by MeSH (`xrefMeSH`, inherited
-    # from Hetionet); AlzKB exposes no HPO-coded phenotype node, and none of MAKO's
-    # AD-relevant HPO terms carries a MeSH dbxref (HPO exposes only SNOMEDCT_US and
-    # UMLS). The earlier rules here proxied GO `BiologicalProcess` nodes and `Disease`
-    # nodes onto HPO phenotypes (`manual_phenotype_proxy` / `manual_phenotype`); those
-    # are cross-category and were removed from both the live graph (M3) and this
-    # source so a pipeline re-run cannot re-introduce them. The dangling
-    # `alzkb:symptom_*` rules (no such nodes in the loaded subset; AlzKB Symptom ids
-    # are MeSH-keyed) were dropped at the same time.
-    #
-    # A *valid* future Phenotype bridge would load a real AlzKB `Symptom` node with
-    # its native MeSH id and SAME_AS it to the co-referent MAKO HPO term via a
-    # verified shared UMLS CUI — e.g. MeSH D008569 "Memory Disorders" <-> UMLS
-    # C0233794 <-> HPO HP:0002354 "Memory impairment", with
-    # match_method='umls_crosswalk_C0233794'. Pair it with the alzkb_alignment.py
-    # Phenotype predicate (now restricted to source_type='Symptom'). Full spec:
-    # docs/final_report/c7_plan_v3/PHENOTYPE_BRIDGE_RESEARCH_2026-06-17.md.
+    # Phenotype → HPO: VALID UMLS-crosswalk bridge (2026-06-18, D1).
+    # AlzKB's phenotype class is `Symptom`, keyed by MeSH (`xrefMeSH`, inherited from
+    # Hetionet — verified: `Symptom::D008569` "Memory Disorders" is present in
+    # hetionet-v1.0-nodes.tsv). MAKO's HPO term HP:0002354 "Memory impairment" and
+    # MeSH D008569 unify under UMLS CUI C0233794 (verified THREE ways: NCBI MedGen
+    # by-CUI and by-MeSH-id both resolve to C0233794 listing HP:0002354; OLS4 lists
+    # UMLS:C0233794 among HP:0002354's xrefs). The SAME_AS rests on that shared CUI
+    # (`match_method='umls_crosswalk_C0233794'`), NOT on the earlier GO→HPO / Disease→HPO
+    # proxies (`manual_phenotype_proxy` / `manual_phenotype`), which were cross-category
+    # and stay removed — a pipeline re-run must never re-introduce them. Paired with the
+    # alzkb_alignment.py Phenotype predicate (source_type='Symptom').
+    # Research spec: docs/final_report/c7_plan_v3/PHENOTYPE_BRIDGE_RESEARCH_2026-06-17.md.
+    {'alzkb_id': 'alzkb:symptom_memory_disorders', 'target_label': 'OntologyConcept', 'target_key': 'uri', 'target_value': 'hpo:HP:0002354', 'method': 'umls_crosswalk_C0233794'},
 ]
 
 

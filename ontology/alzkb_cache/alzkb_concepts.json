@@ -269,5 +269,11 @@
     "label": "Lecanemab",
     "source_type": "Drug",
     "drugbank_id": "DB16649"
+  },
+  {
+    "alzkb_id": "alzkb:symptom_memory_disorders",
+    "label": "Memory Disorders",
+    "source_type": "Symptom",
+    "mesh_id": "D008569"
   }
 ]
