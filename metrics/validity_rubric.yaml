@@ -96,33 +96,35 @@ assertions:
       # HP:0000726 now gain in-degree from step 30 (IS_A children +
       # FamilyMember MAPS_TO) and could be removed, but exempting them is
       # harmless and forward-compatible if those edges are ever rolled back.
-      - "hpo:HP:0000708"     # Behavioral abnormality
+      - "hpo:HP:0000708"     # Atypical behavior
       - "hpo:HP:0000726"     # Dementia
       - "hpo:HP:0001268"     # Mental deterioration
       - "hpo:HP:0002354"     # Memory impairment
       # Step 30 — symptom-level HPO concepts added as schema. A-Box
       # mapping requires ADSXLIST data ingestion (deferred post-defense).
-      # Each is IS_A → HP:0000708 (Behavioral abnormality) or HP:0100543
+      # Each is IS_A → HP:0000708 (Atypical behavior) or HP:0100543
       # (Cognitive impairment) outgoing; they have no incoming edges
       # until ADSXLIST flags are loaded into Visit / ClinicalFinding nodes.
+      # (Phase 6, 2026-06-18: several codes OLS4-corrected — see PHASE6_VERIFIED_CODES_2026-06-18.md.
+      #  The remapped Wandering data-node HP:0000711 "Restlessness" is NOT exempt: it has ~4,797 MAPS_TO.)
       - "hpo:HP:0000713"     # Agitation
       - "hpo:HP:0000716"     # Depression
       - "hpo:HP:0000737"     # Irritability
       - "hpo:HP:0000738"     # Hallucinations
       - "hpo:HP:0000739"     # Anxiety
       - "hpo:HP:0000741"     # Apathy
-      - "hpo:HP:0000744"     # Social and occupational deterioration
-      - "hpo:HP:0000746"     # Delusions
-      - "hpo:HP:0000749"     # Euphoria
+      - "hpo:HP:0007086"     # Social and occupational deterioration (Phase6: was HP:0000744)
+      - "hpo:HP:0000746"     # Delusion
+      - "hpo:HP:0031844"     # Euphoria (Phase6: was HP:0000749)
       - "hpo:HP:0000752"     # Hyperactivity
-      - "hpo:HP:0001262"     # Behavioural abnormality of childhood onset
+      - "hpo:HP:0000734"     # Disinhibition (Phase6: repurposed from erroneous HP:0001262)
       - "hpo:HP:0002360"     # Sleep disturbance
-      - "hpo:HP:0004324"     # Abnormality of body weight
-      - "hpo:HP:0010522"     # Loss of consciousness
+      - "hpo:HP:0004323"     # Abnormality of body weight (Phase6: was child HP:0004324)
+      - "hpo:HP:0007185"     # Loss of consciousness (Phase6: was HP:0010522)
       - "hpo:HP:0010529"     # Echolalia
-      - "hpo:HP:0010864"     # Intellectual disability, severe
-      - "hpo:HP:0011446"     # Abnormality of higher mental function
-      - "hpo:HP:0030223"     # Wandering
+      - "hpo:HP:0010864"     # Severe intellectual disability
+      - "hpo:HP:0011446"     # Abnormality of mental function
+      - "hpo:HP:0000733"     # Motor stereotypy (Phase6: repurposed from HP:0030223 "Wandering")
       - "hpo:HP:0100785"     # Insomnia
       # LOINC — analyte not present in current dataset
       - "loinc:83235-5"      # Beta-amyloid 40 in CSF

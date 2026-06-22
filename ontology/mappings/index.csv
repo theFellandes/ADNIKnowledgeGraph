@@ -2,22 +2,22 @@ source_csv,source_table,source_column,source_value_pattern,target_ontology,targe
 adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000739,Anxiety,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
 adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000716,Depression,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
 adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000713,Agitation,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0030223,Wandering,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
+adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000733,Motor stereotypy,NPI-Q symptom → HPO (parent=HP:0000708),,2026-06-18
 adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0100785,Insomnia,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
 adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000738,Hallucinations,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000746,Delusions,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
+adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000746,Delusion,NPI-Q symptom → HPO (parent=HP:0000708),,2026-06-18
 adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000741,Apathy,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
 adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000737,Irritability,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000749,Euphoria,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
+adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0031844,Euphoria,NPI-Q symptom → HPO (parent=HP:0000708),,2026-06-18
 adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000752,Hyperactivity,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000744,Social and occupational deterioration,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0004324,Abnormality of body weight,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
+adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0007086,Social and occupational deterioration,NPI-Q symptom → HPO (parent=HP:0000708),,2026-06-18
+adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0004323,Abnormality of body weight,NPI-Q symptom → HPO (parent=HP:0000708),,2026-06-18
 adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0002360,Sleep disturbance,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
 adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0010529,Echolalia,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0001262,Behavioural abnormality of childhood onset,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0011446,Abnormality of higher mental function,NPI-Q symptom → HPO (parent=HP:0100543),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0010522,Loss of consciousness,NPI-Q symptom → HPO (parent=HP:0100543),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0010864,"Intellectual disability, severe",NPI-Q symptom → HPO (parent=HP:0100543),,2026-05-16
+adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000734,Disinhibition,NPI-Q symptom → HPO (parent=HP:0000708),,2026-06-18
+adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0011446,Abnormality of mental function,NPI-Q symptom → HPO (parent=HP:0100543),,2026-06-18
+adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0007185,Loss of consciousness,NPI-Q symptom → HPO (parent=HP:0100543),,2026-06-18
+adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0010864,Severe intellectual disability,NPI-Q symptom → HPO (parent=HP:0100543),,2026-06-18
 biolink_categories.csv,_synthetic,_node_label,Patient,Biolink,biolink:Case,Case,step 33 — biolink_category on node label,,2026-05-16
 biolink_categories.csv,_synthetic,_node_label,FamilyMember,Biolink,biolink:Case,Case,step 33 — biolink_category on node label,,2026-05-16
 biolink_categories.csv,_synthetic,_node_label,Sibling,Biolink,biolink:Case,Case,step 33 — biolink_category on node label,,2026-05-16

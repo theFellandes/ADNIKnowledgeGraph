@@ -53,29 +53,30 @@ logger = logging.getLogger(__name__)
 # HP:0100543, HP:0000726, HP:0001268, HP:0002354). Children IS_A → parent.
 
 HPO_EXPANSION: List[Tuple[str, str, str | None]] = [
-    # NPI-Q / ADSXLIST behavioural symptoms — all IS_A HP:0000708 Behavioral abnormality
+    # NPI-Q / ADSXLIST behavioural symptoms — all IS_A HP:0000708 Atypical behavior
+    # (Phase 6, 2026-06-18: codes/labels OLS4-verified twice; see PHASE6_VERIFIED_CODES_2026-06-18.md)
     ("HP:0000739", "Anxiety",                 "HP:0000708"),
     ("HP:0000716", "Depression",              "HP:0000708"),
     ("HP:0000713", "Agitation",               "HP:0000708"),
-    ("HP:0030223", "Wandering",               "HP:0000708"),
+    ("HP:0000733", "Motor stereotypy",        "HP:0000708"),  # Phase6: was HP:0030223 "Wandering" (no HPO term) → repurposed to NPI-Q aberrant-motor domain
     ("HP:0100785", "Insomnia",                "HP:0000708"),
     ("HP:0000738", "Hallucinations",          "HP:0000708"),
-    ("HP:0000746", "Delusions",               "HP:0000708"),
+    ("HP:0000746", "Delusion",                "HP:0000708"),  # Phase6: label "Delusions"→"Delusion"
     ("HP:0000741", "Apathy",                  "HP:0000708"),
     ("HP:0000737", "Irritability",            "HP:0000708"),
-    ("HP:0000749", "Euphoria",                "HP:0000708"),
+    ("HP:0031844", "Euphoria",                "HP:0000708"),  # Phase6: was HP:0000749 (="Paroxysmal bursts of laughter")
     ("HP:0000752", "Hyperactivity",           "HP:0000708"),
-    ("HP:0000744", "Social and occupational deterioration", "HP:0000708"),
-    ("HP:0004324", "Abnormality of body weight", "HP:0000708"),
+    ("HP:0007086", "Social and occupational deterioration", "HP:0000708"),  # Phase6: was HP:0000744 (="Low frustration tolerance")
+    ("HP:0004323", "Abnormality of body weight", "HP:0000708"),  # Phase6: was child HP:0004324 ("Increased body weight") → recode to parent
     ("HP:0002360", "Sleep disturbance",       "HP:0000708"),
     ("HP:0010529", "Echolalia",               "HP:0000708"),
+    ("HP:0000734", "Disinhibition",           "HP:0000708"),  # Phase6: was HP:0001262 (erroneous "childhood onset", no data) → repurposed to NPI-Q disinhibition domain
     # Cognitive-domain expansions — IS_A HP:0100543 Cognitive impairment
     ("HP:0002354", "Memory impairment",       "HP:0100543"),  # already present
-    ("HP:0001262", "Behavioural abnormality of childhood onset", "HP:0000708"),
-    ("HP:0011446", "Abnormality of higher mental function",     "HP:0100543"),
-    ("HP:0010522", "Loss of consciousness",   "HP:0100543"),
+    ("HP:0011446", "Abnormality of mental function",     "HP:0100543"),  # Phase6: label "…higher mental function"→"…mental function"
+    ("HP:0007185", "Loss of consciousness",   "HP:0100543"),  # Phase6: was HP:0010522 (="Dyslexia")
     # Family-history phenotype — IS_A HP:0000726 Dementia (already present)
-    ("HP:0010864", "Intellectual disability, severe", "HP:0100543"),
+    ("HP:0010864", "Severe intellectual disability", "HP:0100543"),  # Phase6: label word-order
 ]
 
 

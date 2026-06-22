@@ -240,6 +240,34 @@ def _run_source_contribution(connector, output_dir: Path) -> StepOutcome:
     )
 
 
+def _run_label_correctness(connector, output_dir: Path) -> StepOutcome:
+    """Recurrence-prevention gate (Phase 6): every OBO :OntologyConcept code must
+    resolve to its asserted label. Runs OFFLINE (cache-only) inside the pipeline —
+    a wrong code (cached canonical != graph label) FAILS the step. Refresh/extend
+    the OLS4 cache with a networked ``python -m metrics.verify_ontology_labels``."""
+    from metrics.verify_ontology_labels import run_audit, WHITELIST_CODES, OUT_PATH
+
+    rows = connector.run_query(
+        "MATCH (c:OntologyConcept) WHERE c.code IS NOT NULL AND c.label IS NOT NULL "
+        "RETURN c.source_ontology AS ont, c.code AS code, c.label AS label ORDER BY ont, code"
+    )
+    report = run_audit(rows, allow_network=False, whitelist=WHITELIST_CODES)
+    n_mis = len(report["mismatches"])
+    notes = [
+        f"mismatches={n_mis}",
+        f"checked={report['checked']}",
+        f"unresolved={len(report['unresolved'])} (offline cache-only)",
+    ]
+    for m in report["mismatches"][:10]:
+        notes.append(f"WRONG {m['ont']} {m['code']}: '{m['intended']}' != OLS4 '{m['authoritative']}'")
+    return StepOutcome(
+        name="label_correctness",
+        status="ok" if n_mis == 0 else "fail",
+        output_path=OUT_PATH,
+        notes=notes,
+    )
+
+
 def _run_graph_topology(connector, output_dir: Path) -> StepOutcome:
     from metrics.graph_topology import compute, write_json
 
@@ -314,6 +342,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--duplicity", action="store_true", help="Audit composite uniqueness on every label")
     p.add_argument("--source-contribution", action="store_true", help="Decompose edge URI coverage by source ontology namespace")
     p.add_argument("--graph-topology", action="store_true", help="Top-25 concept hubs, orphan inventory, connected components")
+    p.add_argument("--label-correctness", action="store_true", help="Phase-6 label gate: every OBO concept code must resolve to its asserted label (offline cache-only)")
     p.add_argument("--step-audit", action="store_true", help="Assemble per-step audit CSV")
     p.add_argument("--render-prompts", action="store_true", help="Render outputs/audit/*.md.j2 templates against the current JSONs")
     p.add_argument(
@@ -338,7 +367,7 @@ def _selected(args: argparse.Namespace) -> list[str]:
         return [
             "validity", "density", "fair", "alignment",
             "tbox_abox", "mapping_rules", "duplicity",
-            "source_contribution", "graph_topology",
+            "source_contribution", "graph_topology", "label_correctness",
             "step_audit", "render_prompts",
         ]
     selected: list[str] = []
@@ -360,6 +389,8 @@ def _selected(args: argparse.Namespace) -> list[str]:
         selected.append("source_contribution")
     if args.graph_topology:
         selected.append("graph_topology")
+    if args.label_correctness:
+        selected.append("label_correctness")
     if args.step_audit:
         selected.append("step_audit")
     if args.render_prompts:
@@ -392,6 +423,7 @@ def main(argv: list[str] | None = None) -> int:
         for s in (
             "validity", "density", "fair", "alignment",
             "tbox_abox", "duplicity", "source_contribution", "graph_topology",
+            "label_correctness",
         )
     )
 
@@ -429,6 +461,8 @@ def main(argv: list[str] | None = None) -> int:
                     outcome = _run_source_contribution(connector, output_dir)
                 elif step == "graph_topology":
                     outcome = _run_graph_topology(connector, output_dir)
+                elif step == "label_correctness":
+                    outcome = _run_label_correctness(connector, output_dir)
                 elif step == "step_audit":
                     outcome = _run_step_audit(output_dir)
                 elif step == "render_prompts":

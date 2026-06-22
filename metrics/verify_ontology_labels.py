@@ -39,6 +39,9 @@ OBO_MAP = {
     "GO": ("go", "GO"),
 }
 SKIP = {"SNOMED-CT", "LOINC", "ICD-10", "ICD10"}
+# Codes whose graph label is an intentional title-case/synonym variant of the OLS4
+# canonical (Table-C in PHASE6_LABEL_AUDIT_2026-06-18.md) — never flag these as wrong.
+WHITELIST_CODES = {"DOID:1307", "DOID:0080832", "MONDO:0004975", "UBERON:0001897"}
 
 CACHE_PATH = Path(__file__).resolve().parents[1] / "ontology" / "ols4_label_cache.json"
 OUT_PATH = Path(__file__).resolve().parents[1] / "outputs" / "metrics" / "ontology_label_audit.json"
@@ -68,10 +71,15 @@ def _obo_iri(prefix: str, code: str) -> str:
     return f"http://purl.obolibrary.org/obo/{prefix}_{num}"
 
 
-def _fetch_label(slug: str, prefix: str, code: str, cache: dict, retries: int = 4) -> str | None:
+def _fetch_label(slug: str, prefix: str, code: str, cache: dict, retries: int = 4,
+                 allow_network: bool = True) -> str | None:
     key = f"{slug}:{code}"
     if key in cache:
         return cache[key]
+    if not allow_network:
+        # cache-only (offline) mode — uncached codes are reported 'unresolved',
+        # never networked (so the gate can run net-less without the 4×retry hang).
+        return None
     iri = _obo_iri(prefix, code)
     url = (
         f"https://www.ebi.ac.uk/ols4/api/ontologies/{slug}/terms?iri="
@@ -97,44 +105,31 @@ def _fetch_label(slug: str, prefix: str, code: str, cache: dict, retries: int = 
     return None
 
 
-def main(argv=None) -> int:
-    p = argparse.ArgumentParser(prog="python -m metrics.verify_ontology_labels")
-    p.add_argument("--uri", default="bolt://localhost:7687")
-    p.add_argument("--user", default="neo4j")
-    p.add_argument("--password", default="your_password")
-    args = p.parse_args(argv)
+def run_audit(rows, allow_network: bool = True, whitelist: set | None = None) -> dict:
+    """Audit (ont, code, label) rows against OLS4 canonical labels.
 
-    from neo4j import GraphDatabase  # project dependency
-
-    driver = GraphDatabase.driver(args.uri, auth=(args.user, args.password))
-    with driver.session() as s:
-        rows = s.run(
-            "MATCH (c:OntologyConcept) "
-            "WHERE c.code IS NOT NULL AND c.label IS NOT NULL "
-            "RETURN c.source_ontology AS ont, c.code AS code, c.label AS label "
-            "ORDER BY ont, code"
-        ).data()
-    driver.close()
-
-    cache = {}
+    Reusable by the CLI and by ``metrics.runner``. With ``allow_network=False``
+    it runs cache-only (offline) — uncached OBO codes are reported ``unresolved``
+    rather than networked, so it can run inside the metrics pipeline without net.
+    Returns the report dict; ``report['mismatches']`` is the gate signal.
+    """
+    whitelist = whitelist or set()
+    cache: dict = {}
     if CACHE_PATH.exists():
         cache = json.loads(CACHE_PATH.read_text(encoding="utf-8"))
 
-    results = []
-    mismatches = []
-    skipped = []
-    unresolved = []
+    results, mismatches, skipped, unresolved = [], [], [], []
     for r in rows:
         ont = r["ont"]
         if ont in SKIP or ont not in OBO_MAP:
             skipped.append({"ont": ont, "code": r["code"], "label": r["label"]})
             continue
         slug, prefix = OBO_MAP[ont]
-        auth = _fetch_label(slug, prefix, r["code"], cache)
+        auth = _fetch_label(slug, prefix, r["code"], cache, allow_network=allow_network)
         if auth is None:
             unresolved.append({"ont": ont, "code": r["code"], "intended": r["label"]})
             status = "unresolved"
-        elif _labels_match(r["label"], auth):
+        elif _labels_match(r["label"], auth) or r["code"] in whitelist:
             status = "match"
         else:
             status = "MISMATCH"
@@ -152,6 +147,7 @@ def main(argv=None) -> int:
     report = {
         "schema_version": 1,
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "offline": not allow_network,
         "checked": len([r for r in results if r["status"] != "unresolved"]),
         "mismatches": mismatches,
         "unresolved": unresolved,
@@ -159,14 +155,45 @@ def main(argv=None) -> int:
         "all": results,
     }
     OUT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    return report
 
-    print(f"checked={report['checked']} mismatches={len(mismatches)} "
-          f"unresolved={len(unresolved)} skipped(non-OBO)={len(skipped)}")
-    for m in mismatches:
+
+def _query_rows(uri: str, user: str, password: str) -> list[dict]:
+    from neo4j import GraphDatabase  # project dependency
+
+    driver = GraphDatabase.driver(uri, auth=(user, password))
+    with driver.session() as s:
+        rows = s.run(
+            "MATCH (c:OntologyConcept) "
+            "WHERE c.code IS NOT NULL AND c.label IS NOT NULL "
+            "RETURN c.source_ontology AS ont, c.code AS code, c.label AS label "
+            "ORDER BY ont, code"
+        ).data()
+    driver.close()
+    return rows
+
+
+def main(argv=None) -> int:
+    p = argparse.ArgumentParser(prog="python -m metrics.verify_ontology_labels")
+    p.add_argument("--uri", default="bolt://localhost:7687")
+    p.add_argument("--user", default="neo4j")
+    p.add_argument("--password", default="your_password")
+    p.add_argument("--offline", action="store_true",
+                   help="cache-only: never call OLS4 (uncached codes → unresolved, not networked)")
+    args = p.parse_args(argv)
+
+    rows = _query_rows(args.uri, args.user, args.password)
+    report = run_audit(rows, allow_network=not args.offline, whitelist=WHITELIST_CODES)
+
+    print(f"checked={report['checked']} mismatches={len(report['mismatches'])} "
+          f"unresolved={len(report['unresolved'])} skipped(non-OBO)={len(report['skipped_non_obo'])}"
+          f"{' [offline]' if report['offline'] else ''}")
+    for m in report["mismatches"]:
         print(f"  MISMATCH {m['ont']} {m['code']}: graph='{m['intended']}' OLS4='{m['authoritative']}'")
-    for u in unresolved:
+    for u in report["unresolved"]:
         print(f"  unresolved {u['ont']} {u['code']} (intended '{u['intended']}')")
-    return 0
+    # Gate behaviour: non-zero exit on any wrong code.
+    return 1 if report["mismatches"] else 0
 
 
 if __name__ == "__main__":
