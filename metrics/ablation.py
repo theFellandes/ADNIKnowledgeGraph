@@ -55,18 +55,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 METRICS_DIR = PROJECT_ROOT / "outputs" / "metrics"
 
 # Canonical anchors the full-framework row must reproduce (canonical_snapshot.json).
-# Post-M3 + Phase-1 Phenotype bridge (2026-06-18, D1): on top of the M1/M3 data-fix
-# migration, the 2026-06-18 insert adds ONE AlzKB `Symptom` node ("Memory Disorders",
-# MeSH D008569) and ONE SAME_AS edge to HPO HP:0002354 (UMLS C0233794). Relative to the
-# post-M3 anchor: node_total +1 (the AlzKBConcept), edge_total +1 and edges_with_uri +1
-# (the owl:sameAs edge). nodes_with_code is unchanged (AlzKBConcepts are not
+# Post-M3 + Phase-1/B1 Phenotype bridges: on top of the M1/M3 data-fix migration, two
+# AlzKB `Symptom` bridges are inserted -- "Memory Disorders" (MeSH D008569 -> HPO
+# HP:0002354, UMLS C0233794; 2026-06-18, D1) and "Hallucinations" (MeSH D006212 -> HPO
+# HP:0000738, UMLS C0018524; 2026-06-29, B1). Each adds ONE AlzKBConcept node and ONE
+# SAME_AS (owl:sameAs) edge, so relative to the post-M3 anchor: node_total +2, edge_total
+# +2 and edges_with_uri +2. nodes_with_code is unchanged (AlzKBConcepts are not
 # self-grounded), so node/edge coverage ratios and FAIR are unchanged at the reported
-# precision. Verified live 2026-06-18.
+# precision. Verified live 2026-06-29.
 CANON = {
-    "node_total": 634754,
-    "edge_total": 2031161,
+    "node_total": 634755,
+    "edge_total": 2031162,
     "nodes_with_code": 328886,
-    "edges_with_uri": 2024657,
+    "edges_with_uri": 2024658,
     "node_cov": 0.5181,
     "edge_cov": 0.9968,
     "fair": 0.9231,
@@ -92,14 +93,15 @@ def _curation_rules(S: set[str]) -> int:
     return sum(n for n, srcs in CSV_RULES if srcs & S)
 
 # AlzKB category -> (bridge ontology, strong matches) from alzkb_alignment.json.
-# Phenotype is 1 (2026-06-18, D1): a real AlzKB `Symptom` node "Memory Disorders"
-# (MeSH D008569) SAME_AS MAKO HPO "Memory impairment" (HP:0002354) via the shared UMLS
-# CUI C0233794 (NCBI MedGen / OLS4 verified). This REPLACES the earlier invalid
-# GO:0150076 -> HP:0002354 proxy (a process is not a phenotype), which stays removed.
+# Phenotype is 2: two real AlzKB `Symptom` nodes SAME_AS MAKO HPO terms via shared UMLS
+# CUIs (NCBI MedGen / OLS4 verified) -- "Memory Disorders" (MeSH D008569 -> HP:0002354,
+# UMLS C0233794; 2026-06-18, D1) and "Hallucinations" (MeSH D006212 -> HP:0000738, UMLS
+# C0018524; 2026-06-29, B1). Both REPLACE/extend the earlier invalid GO:0150076 ->
+# HP:0002354 proxy (a process is not a phenotype), which stays removed.
 ALZKB_BRIDGES = {
     "Disease": ("SNOMED-CT", 2),
     "Anatomy": ("UBERON", 2),
-    "Phenotype": ("HPO", 1),
+    "Phenotype": ("HPO", 2),
     "Gene": ("GO", 5),
 }
 
@@ -387,7 +389,7 @@ def main(argv: list[str] | None = None) -> int:
     for s in abl["scenarios"]:
         print(f"{s['scenario']:12s} {s['n_integrated']:>4d} "
               f"{s['node_uri_coverage']:>8.4f} {s['edge_uri_coverage']:>8.4f} "
-              f"{s['fair_overall']:>7.4f} {s['alzkb_strong_total']:>4d}/10  "
+              f"{s['fair_overall']:>7.4f} {s['alzkb_strong_total']:>4d}/11  "
               f"{s['infeasible_sources']}")
     return 0 if abl["validated"] else 1
 
