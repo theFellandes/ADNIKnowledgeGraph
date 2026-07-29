@@ -9,8 +9,8 @@ scenario's include-set (derived from the scorecard via
 ``metrics.ontology_scorecard.scenario_includes``).
 
 The method is self-validating: the full-framework scenario {A1+A2+A3} must
-reproduce the canonical snapshot (634,754 nodes / 2,040,745 edges / node-URI
-0.5181 / edge-URI 0.9968 / FAIR 0.9231) exactly. If it does, every subset row
+reproduce the canonical snapshot (518,330 nodes / 1,737,726 edges / node-URI
+0.6345 / edge-URI 0.9963 / FAIR 0.9231) exactly. If it does, every subset row
 is the metric a real re-enrichment with that include-set would have produced,
 because enrichment is additive: an ontology only ADDS its concepts, its
 created A-Box instances, and its grounding signals.
@@ -55,21 +55,37 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 METRICS_DIR = PROJECT_ROOT / "outputs" / "metrics"
 
 # Canonical anchors the full-framework row must reproduce (canonical_snapshot.json).
-# Post-M3 + Phase-1/B1 Phenotype bridges: on top of the M1/M3 data-fix migration, two
-# AlzKB `Symptom` bridges are inserted -- "Memory Disorders" (MeSH D008569 -> HPO
-# HP:0002354, UMLS C0233794; 2026-06-18, D1) and "Hallucinations" (MeSH D006212 -> HPO
-# HP:0000738, UMLS C0018524; 2026-06-29, B1). Each adds ONE AlzKBConcept node and ONE
-# SAME_AS (owl:sameAs) edge, so relative to the post-M3 anchor: node_total +2, edge_total
-# +2 and edges_with_uri +2. nodes_with_code is unchanged (AlzKBConcepts are not
-# self-grounded), so node/edge coverage ratios and FAIR are unchanged at the reported
-# precision. Verified live 2026-06-29.
+# Post-M3 + Phase-1/B1 Phenotype bridges: two AlzKB `Symptom` bridges are inserted --
+# "Memory Disorders" (MeSH D008569 -> HPO HP:0002354, UMLS C0233794; 2026-06-18, D1) and
+# "Hallucinations" (MeSH D006212 -> HPO HP:0000738, UMLS C0018524; 2026-06-29, B1). Each
+# adds ONE AlzKBConcept node and ONE SAME_AS (owl:sameAs) edge; nodes_with_code is
+# unchanged (AlzKBConcepts are not self-grounded).
+#
+# 2026-07-11 FamilyMember de-duplication: 116,425 re-run duplicate :FamilyMember nodes
+# (old uuid member_id) were removed via DETACH DELETE, leaving the 4,657 distinct
+# relatives (deterministic md5 member_id). Effect on the anchor: node_total -116,425,
+# edge_total -293,436 (116,425 MAPS_TO + 177,011 HAS_* family edges, all URI-bearing),
+# edges_with_uri -293,436. nodes_with_code is UNCHANGED (the removed ghosts carried no
+# node-level code/URI), so node-URI coverage RISES 0.5181 -> 0.6345 (denominator shrinks,
+# numerator held at 328,886) and edge-URI settles at 0.9963. FAIR/alignment unchanged.
+# Re-verified live against the regenerated canonical_snapshot.json.
+#
+# 2026-07-12 edge de-duplication: 179,343 parallel/duplicate relationships (HAS_DIAGNOSIS
+# 63,285 + PROGRESSED_TO 50,232 + HAS_COGNITIVE_ASSESSMENT 34,999 + HAS_BIOMARKER 21,360 +
+# INDICATES_PATHWAY 9,467) were collapsed to one edge per (start,type,end) pair, unioning
+# their properties (0 value conflicts, so lossless). Root cause: bare `MERGE (a)-[:REL]->(b)`
+# and property-carrying `MERGE (a)-[:REL {..}]->(b)` targeted the same pair, so MERGE could not
+# match and spawned parallels (now fixed in steps 8/9/10 to bare-MERGE + SET). Effect on the
+# anchor: edge_total -179,343; edges_with_uri -179,343 (all excess carried a URI); the node side
+# is UNCHANGED (nodes_with_code, node_total, node_cov), so edge-URI settles 0.9963 -> 0.9958 and
+# FAIR/alignment/node-URI are unchanged. Re-verified live against the regenerated snapshot.
 CANON = {
-    "node_total": 634755,
-    "edge_total": 2031162,
+    "node_total": 518330,
+    "edge_total": 1558383,
     "nodes_with_code": 328886,
-    "edges_with_uri": 2024658,
-    "node_cov": 0.5181,
-    "edge_cov": 0.9968,
+    "edges_with_uri": 1551879,
+    "node_cov": 0.6345,
+    "edge_cov": 0.9958,
     "fair": 0.9231,
 }
 

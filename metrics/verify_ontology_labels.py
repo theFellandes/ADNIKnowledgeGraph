@@ -9,9 +9,15 @@ for every OBO-resolvable ``:OntologyConcept`` in the live graph it fetches the
 authoritative label from EBI OLS4 and compares it to the label the graph
 asserts, flagging mismatches.
 
-Scope: OBO ontologies resolvable via OLS4 (MONDO, DOID, HPO, UBERON, GO).
-SNOMED-CT / LOINC / ICD-10 are licence- or service-gated and are listed as
-``skipped`` (verify those against their own authorities separately).
+Scope: ontologies resolvable via OLS4 (MONDO, DOID, HPO, UBERON, GO, SNOMED-CT).
+OLS4 serves SNOMED CT International Edition term-by-term with no API key, so
+SNOMED codes are audited here like any other; only the IRI form differs
+(``http://snomed.info/id/{SCTID}`` rather than an OBO PURL). Note this checks
+identifiers and labels, not content redistribution — no SNOMED term text is
+persisted beyond the local resolution cache.
+
+LOINC / ICD-10 have no OLS4 presence and remain ``skipped`` (verify those
+against their own authorities separately).
 
 CLI::
 
@@ -25,20 +31,23 @@ import argparse
 import json
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-# source_ontology -> (OLS4 ontology slug, OBO IRI prefix)
+# source_ontology -> (OLS4 ontology slug, IRI/obo_id prefix)
 OBO_MAP = {
     "MONDO": ("mondo", "MONDO"),
     "DOID": ("doid", "DOID"),
     "HPO": ("hp", "HP"),
     "UBERON": ("uberon", "UBERON"),
     "GO": ("go", "GO"),
+    "SNOMED-CT": ("snomed", "SNOMED"),
+    "SNOMED": ("snomed", "SNOMED"),
 }
-SKIP = {"SNOMED-CT", "LOINC", "ICD-10", "ICD10"}
+SKIP = {"LOINC", "ICD-10", "ICD10"}
 # Codes whose graph label is an intentional title-case/synonym variant of the OLS4
 # canonical (Table-C in PHASE6_LABEL_AUDIT_2026-06-18.md) — never flag these as wrong.
 WHITELIST_CODES = {"DOID:1307", "DOID:0080832", "MONDO:0004975", "UBERON:0001897"}
@@ -66,8 +75,11 @@ def _labels_match(intended: str, authoritative: str) -> bool:
 
 
 def _obo_iri(prefix: str, code: str) -> str:
-    # code like "MONDO:0004975", "HP:0000726", or bare "0080832"
+    # code like "MONDO:0004975", "HP:0000726", "SNOMED:26929004", or bare "0080832"
     num = code.split(":", 1)[1] if ":" in code else code
+    if prefix == "SNOMED":
+        # SNOMED has no OBO PURL; its canonical IRI is the snomed.info namespace.
+        return f"http://snomed.info/id/{num}"
     return f"http://purl.obolibrary.org/obo/{prefix}_{num}"
 
 
@@ -90,6 +102,15 @@ def _fetch_label(slug: str, prefix: str, code: str, cache: dict, retries: int = 
         try:
             with urllib.request.urlopen(url, timeout=45) as resp:
                 data = json.load(resp)
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return None  # definitive: the code is not in this release — don't retry
+            time.sleep(4)
+            continue
+        except Exception:  # transport error (URLError, timeout, bad JSON) — retry
+            time.sleep(4)
+            continue
+        try:
             terms = data.get("_embedded", {}).get("terms", [])
             label = None
             for t in terms:  # pick the term whose obo_id matches (guard against cross-imports)

@@ -273,7 +273,14 @@ class KnowledgeGraphEDA:
         types = [r["type"] for r in rows]
         counts = [r["cnt"] for r in rows]
         self.stats["relationship_counts"] = dict(zip(types, counts))
-        self.stats["total_relationships"] = sum(r["cnt"] for r in rows)
+        # The bar chart above shows the top-25 types; the headline total must count ALL
+        # relationship types (the query above is LIMIT 25, so summing its rows undercounts
+        # by the tail types). Count every relationship so the summary dashboard matches the
+        # canonical edge total.
+        total_rows = self._query("MATCH ()-[r]->() RETURN count(r) AS cnt")
+        self.stats["total_relationships"] = (
+            total_rows[0]["cnt"] if total_rows else sum(r["cnt"] for r in rows)
+        )
 
         # Colour by category
         def get_rel_color(rtype):

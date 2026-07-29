@@ -177,10 +177,11 @@ class ComprehensiveRelationshipCreator:
         MATCH (d:Diagnosis)
         WHERE d.patient_id IS NOT NULL
         MATCH (p:Patient {ptid: d.patient_id})
-        MERGE (p)-[:HAS_DIAGNOSIS {
+        MERGE (p)-[rel:HAS_DIAGNOSIS]->(d)
+        SET rel += {
             diagnosis_code: d.diagnosis_code,
             confidence: COALESCE(d.confidence, 1.0)
-        }]->(d)
+        }
         RETURN count(*) as count
         """
         result = self.connector.run_query(query)
@@ -192,9 +193,10 @@ class ComprehensiveRelationshipCreator:
         MATCH (d:Diagnosis)
         WHERE d.visit_id IS NOT NULL
         MATCH (v:Visit {visit_id: d.visit_id})
-        MERGE (v)-[:HAS_DIAGNOSIS {
+        MERGE (v)-[rel:HAS_DIAGNOSIS]->(d)
+        SET rel += {
             diagnosis_code: d.diagnosis_code
-        }]->(d)
+        }
         RETURN count(*) as count
         """
         result = self.connector.run_query(query)
@@ -206,10 +208,11 @@ class ComprehensiveRelationshipCreator:
         MATCH (b:Biomarker)
         WHERE b.patient_id IS NOT NULL
         MATCH (p:Patient {ptid: b.patient_id})
-        MERGE (p)-[:HAS_BIOMARKER {
+        MERGE (p)-[rel:HAS_BIOMARKER]->(b)
+        SET rel += {
             analyte: b.analyte,
             abnormal: COALESCE(b.abnormal_flag, false)
-        }]->(b)
+        }
         RETURN count(*) as count
         """
         result = self.connector.run_query(query)
@@ -221,9 +224,10 @@ class ComprehensiveRelationshipCreator:
         MATCH (b:Biomarker)
         WHERE b.visit_id IS NOT NULL
         MATCH (v:Visit {visit_id: b.visit_id})
-        MERGE (v)-[:HAS_BIOMARKER {
+        MERGE (v)-[rel:HAS_BIOMARKER]->(b)
+        SET rel += {
             analyte: b.analyte
-        }]->(b)
+        }
         RETURN count(*) as count
         """
         result = self.connector.run_query(query)
@@ -235,9 +239,10 @@ class ComprehensiveRelationshipCreator:
         MATCH (ca:CognitiveAssessment)
         WHERE ca.patient_id IS NOT NULL
         MATCH (p:Patient {ptid: ca.patient_id})
-        MERGE (p)-[:HAS_COGNITIVE_ASSESSMENT {
+        MERGE (p)-[rel:HAS_COGNITIVE_ASSESSMENT]->(ca)
+        SET rel += {
             test_name: ca.test_name
-        }]->(ca)
+        }
         RETURN count(*) as count
         """
         result = self.connector.run_query(query)
@@ -249,9 +254,10 @@ class ComprehensiveRelationshipCreator:
         MATCH (ca:CognitiveAssessment)
         WHERE ca.visit_id IS NOT NULL
         MATCH (v:Visit {visit_id: ca.visit_id})
-        MERGE (v)-[:HAS_COGNITIVE_ASSESSMENT {
+        MERGE (v)-[rel:HAS_COGNITIVE_ASSESSMENT]->(ca)
+        SET rel += {
             test_name: ca.test_name
-        }]->(ca)
+        }
         RETURN count(*) as count
         """
         result = self.connector.run_query(query)
@@ -298,10 +304,11 @@ class ComprehensiveRelationshipCreator:
             MATCH (p)-[:HAS_DIAGNOSIS]->(d2:Diagnosis)
             WHERE d2.diagnosis_code = $to_dx
             WITH p, d1, d2
-            MERGE (d1)-[r:PROGRESSED_TO {
+            MERGE (d1)-[r:PROGRESSED_TO]->(d2)
+            SET r += {
                 progression_type: $prog_type,
                 patient_id: p.ptid
-            }]->(d2)
+            }
             RETURN count(r) as count
             """
 
@@ -552,12 +559,11 @@ class ComprehensiveRelationshipCreator:
             MATCH (b:Biomarker)
             WHERE b.analyte IN $analytes
             MATCH (p:BiologicalPathway {pathway_id: $pathway_id})
-            MERGE (b)-[r:INDICATES_PATHWAY {
-                indication_strength: CASE 
+            MERGE (b)-[r:INDICATES_PATHWAY]->(p)
+            SET r.indication_strength = CASE
                     WHEN b.abnormal_flag = true THEN 0.9
                     ELSE 0.3
                 END
-            }]->(p)
             RETURN count(r) as count
             """
             result = self.connector.run_query(query, {

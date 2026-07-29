@@ -196,10 +196,11 @@ class ADNIQueryExecutor:
         WITH p, d1, d2, v1, v2
         ORDER BY p.ptid, v1.months_from_baseline, v2.months_from_baseline
         WITH p, d1, d2, min(v2.months_from_baseline - v1.months_from_baseline) as duration
-        MERGE (d1)-[:PROGRESSED_TO {
+        MERGE (d1)-[rel:PROGRESSED_TO]->(d2)
+        SET rel += {
           patient_id: p.ptid,
           duration_months: duration
-        }]->(d2)
+        }
         RETURN count(*) as progressions_created
         """
 
@@ -441,21 +442,23 @@ class ADNIQueryExecutor:
             """
             MATCH (d:Diagnosis)
             MATCH (p:Patient {ptid: d.patient_id})
-            MERGE (p)-[:HAS_DIAGNOSIS {
+            MERGE (p)-[rel:HAS_DIAGNOSIS]->(d)
+            SET rel += {
                 confidence: d.confidence,
-                source: d.source  // Fixed: changed from d.source_table to d.source
-            }]->(d)
+                source: d.source
+            }
             """,
 
             # Create disease progression paths
             """
             MATCH (p:Patient)-[:HAS_DIAGNOSIS]->(d1:Diagnosis)
             MATCH (p)-[:HAS_DIAGNOSIS]->(d2:Diagnosis)
-            WHERE d1.visit_id < d2.visit_id 
+            WHERE d1.visit_id < d2.visit_id
             AND d1.diagnosis_code <> d2.diagnosis_code
-            MERGE (d1)-[:PROGRESSED_TO {
+            MERGE (d1)-[rel:PROGRESSED_TO]->(d2)
+            SET rel += {
                 patient_id: p.ptid
-            }]->(d2)
+            }
             """,
 
             # Link cognitive assessments to diagnoses - Fixed query

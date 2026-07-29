@@ -653,8 +653,9 @@ class KnowledgeGraphEnhancer:
         END
         
         MERGE (p)-[:FOLLOWS_PROGRESSION]->(prog)
-        MERGE (d1)-[:PROGRESSED_TO {patient_id: p.ptid}]->(d2)
-        
+        MERGE (d1)-[pr:PROGRESSED_TO]->(d2)
+        SET pr.patient_id = p.ptid
+
         RETURN count(DISTINCT prog) as count
         """
 

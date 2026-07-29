@@ -81,28 +81,38 @@ class Connector:
         raise NotImplementedError
 
 
-# Each probe is (label, key_expression). The key_expression is a Cypher fragment
-# that yields the uniqueness tuple per node.
-PROBES: tuple[tuple[str, str], ...] = (
-    ("Patient",            "n.ptid"),
-    ("Visit",              "n.visit_id"),
-    ("Diagnosis",          "n.diagnosis_id"),
-    ("CognitiveAssessment","n.visit_id + '|' + coalesce(n.test_name, '')"),
-    ("Biomarker",          "n.biomarker_id"),
-    ("BrainRegion",        "coalesce(n.name, '') + '|' + coalesce(n.hemisphere, '')"),
-    ("ATNProfile",         "coalesce(n.patient_id, '') + '|' + coalesce(n.visit_id, '')"),
-    ("Comorbidity",        "n.comorbidity_id"),
-    ("ClinicalFinding",    "n.finding_id"),
-    ("OntologyConcept",    "n.uri"),
-    ("AlzKBConcept",       "n.alzkb_id"),
-    ("Gene",               "n.symbol"),
-    ("FamilyMember",       "n.member_id"),
+# Each probe is (display_name, node_label, key_expression). The key_expression is
+# a Cypher fragment that yields the uniqueness tuple per node. ``node_label`` is the
+# real Neo4j label matched by the query; ``display_name`` names the probe in the
+# report (so two probes can target the same label on different keys).
+#
+# The FamilyMember label is probed twice on purpose. ``n.member_id`` is a primary
+# key that is unique by construction (each node minted its own id), so it is blind
+# to entity-level duplication. The content-key probe groups on the fields that
+# actually identify a distinct relative, so re-run duplicates cannot pass silently
+# (see FAMILYMEMBER_DUPLICATION_FINDINGS_2026-07-11.md).
+PROBES: tuple[tuple[str, str, str], ...] = (
+    ("Patient",             "Patient",             "n.ptid"),
+    ("Visit",               "Visit",               "n.visit_id"),
+    ("Diagnosis",           "Diagnosis",           "n.diagnosis_id"),
+    ("CognitiveAssessment", "CognitiveAssessment", "n.visit_id + '|' + coalesce(n.test_name, '')"),
+    ("Biomarker",           "Biomarker",           "n.biomarker_id"),
+    ("BrainRegion",         "BrainRegion",         "coalesce(n.name, '') + '|' + coalesce(n.hemisphere, '')"),
+    ("ATNProfile",          "ATNProfile",          "coalesce(n.patient_id, '') + '|' + coalesce(n.visit_id, '')"),
+    ("Comorbidity",         "Comorbidity",         "n.comorbidity_id"),
+    ("ClinicalFinding",     "ClinicalFinding",     "n.finding_id"),
+    ("OntologyConcept",     "OntologyConcept",     "n.uri"),
+    ("AlzKBConcept",        "AlzKBConcept",        "n.alzkb_id"),
+    ("Gene",                "Gene",                "n.symbol"),
+    ("FamilyMember",        "FamilyMember",        "n.member_id"),
+    ("FamilyMember (content-key)", "FamilyMember",
+     "[n.patient_id, n.relationship_type, n.gender, n.age_at_onset, n.source_column]"),
 )
 
 
-def _build_query(label: str, key: str) -> str:
+def _build_query(node_label: str, key: str) -> str:
     return (
-        f"MATCH (n:`{label}`) "
+        f"MATCH (n:`{node_label}`) "
         f"WITH count(n) AS total, count(DISTINCT {key}) AS distinct "
         f"RETURN total, distinct"
     )
@@ -111,9 +121,10 @@ def _build_query(label: str, key: str) -> str:
 def compute(connector: Connector, *, graph_uri: str = "(unknown)") -> DuplicityReport:
     started = time.time()
     probes: list[DuplicityProbe] = []
-    for label, key in PROBES:
+    for display_name, node_label, key in PROBES:
+        label = display_name
         try:
-            rows = connector.run_query(_build_query(label, key))
+            rows = connector.run_query(_build_query(node_label, key))
             if not rows:
                 continue
             row = rows[0]
@@ -124,6 +135,34 @@ def compute(connector: Connector, *, graph_uri: str = "(unknown)") -> DuplicityR
             total = -1
             distinct = -1
         probes.append(DuplicityProbe(label=label, key=key, total=total, distinct=distinct))
+
+    # Edge-parallelism probe. The node probes above key on node composite keys and are
+    # therefore structurally blind to duplicate RELATIONSHIPS (parallel edges between the same
+    # ordered pair with the same type). This probe groups every relationship by
+    # (startId, type, endId); a nonzero gap means parallel/duplicate edges exist. It closes the
+    # false-negative that let 179,343 re-run duplicate edges hide (see the 2026-07-12 edge
+    # de-duplication; same bug class as the FamilyMember node dedup, one layer down).
+    try:
+        rows = connector.run_query(
+            "MATCH (a)-[r]->(b) "
+            "WITH count(r) AS total, "
+            "count(DISTINCT [elementId(a), type(r), elementId(b)]) AS distinct "
+            "RETURN total, distinct"
+        )
+        if rows:
+            row = rows[0]
+            probes.append(DuplicityProbe(
+                label="Relationship parallelism (all types)",
+                key="(startId, type, endId)",
+                total=int(row.get("total") or 0),
+                distinct=int(row.get("distinct") or 0),
+            ))
+    except Exception as exc:
+        logger.warning("Edge-parallelism probe failed: %s", exc)
+        probes.append(DuplicityProbe(
+            label="Relationship parallelism (all types)",
+            key="(startId, type, endId)", total=-1, distinct=-1,
+        ))
     logger.debug("duplicity_check finished in %.2f s", time.time() - started)
     return DuplicityReport(
         schema_version=1,

@@ -1,0 +1,1153 @@
+{
+  "DOID|http://purl.obolibrary.org/obo/DOID_0080832": {
+    "fetched_at": 1784547993.590904,
+    "payload": {
+      "definition": "A cognitive disorder that is characterized by objective impairment in cognition with minimal impairment of their capacity to undertake the instrumental activities of daily living.",
+      "obsolete": false,
+      "pref_label": "mild cognitive impairment",
+      "status": "ok",
+      "synonyms": [],
+      "uri": "http://purl.obolibrary.org/obo/DOID_0080832"
+    }
+  },
+  "DOID|http://purl.obolibrary.org/obo/DOID_10652": {
+    "fetched_at": 1784547985.7461405,
+    "payload": {
+      "definition": "A tauopathy that is characterized by memory lapses, confusion, emotional instability and progressive loss of mental ability and results in progressive memory loss, impaired thinking, disorientation, and changes in personality and mood starting and leads in advanced cases to a profound decline in cognitive and physical functioning and is marked histologically by the degeneration of brain neurons especially in the cerebral cortex and by the presence of neurofibrillary tangles and plaques containing beta-amyloid.",
+      "obsolete": false,
+      "pref_label": "Alzheimer's disease",
+      "status": "ok",
+      "synonyms": [
+        "Alzheimer disease",
+        "Alzheimers dementia"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/DOID_10652"
+    }
+  },
+  "DOID|http://purl.obolibrary.org/obo/DOID_1307": {
+    "fetched_at": 1784547989.6001792,
+    "payload": {
+      "definition": "A cognitive disorder resulting from a loss of brain function affecting memory, thinking, language, judgement and behavior.",
+      "obsolete": false,
+      "pref_label": "dementia",
+      "status": "ok",
+      "synonyms": [],
+      "uri": "http://purl.obolibrary.org/obo/DOID_1307"
+    }
+  },
+  "GO|http://purl.obolibrary.org/obo/GO_0001540": {
+    "fetched_at": 1784548065.8088253,
+    "payload": {
+      "definition": "Binding to an amyloid-beta peptide/protein.",
+      "obsolete": false,
+      "pref_label": "amyloid-beta binding",
+      "status": "ok",
+      "synonyms": [
+        "beta-amyloid binding"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/GO_0001540"
+    }
+  },
+  "GO|http://purl.obolibrary.org/obo/GO_0005509": {
+    "fetched_at": 1784548073.6939142,
+    "payload": {
+      "definition": "Binding to a calcium ion (Ca2+).",
+      "obsolete": false,
+      "pref_label": "calcium ion binding",
+      "status": "ok",
+      "synonyms": [
+        "calcium ion storage activity"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/GO_0005509"
+    }
+  },
+  "GO|http://purl.obolibrary.org/obo/GO_0005576": {
+    "fetched_at": 1784548093.488397,
+    "payload": {
+      "definition": "The space external to the outermost structure of a cell. For cells without external protective or external encapsulating structures this refers to space outside of the plasma membrane. This term covers the host cell environment outside an intracellular parasite.",
+      "obsolete": false,
+      "pref_label": "extracellular region",
+      "status": "ok",
+      "synonyms": [
+        "extracellular"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/GO_0005576"
+    }
+  },
+  "GO|http://purl.obolibrary.org/obo/GO_0006869": {
+    "fetched_at": 1784548081.6584938,
+    "payload": {
+      "definition": "The directed movement of lipids into, out of or within a cell, or between cells, by means of some agent such as a transporter or pore. Lipids are compounds soluble in an organic solvent but not, or sparingly, in an aqueous solvent.",
+      "obsolete": false,
+      "pref_label": "lipid transport",
+      "status": "ok",
+      "synonyms": [],
+      "uri": "http://purl.obolibrary.org/obo/GO_0006869"
+    }
+  },
+  "GO|http://purl.obolibrary.org/obo/GO_0008289": {
+    "fetched_at": 1784548069.6136982,
+    "payload": {
+      "definition": "Binding to a lipid.",
+      "obsolete": false,
+      "pref_label": "lipid binding",
+      "status": "ok",
+      "synonyms": [],
+      "uri": "http://purl.obolibrary.org/obo/GO_0008289"
+    }
+  },
+  "GO|http://purl.obolibrary.org/obo/GO_0034362": {
+    "fetched_at": 1784548101.5053773,
+    "payload": {
+      "definition": "A lipoprotein particle, rich in cholesterol esters and low in triglycerides that is typically composed of APOB100 and APOE and has a density of 1.02-1.06 g/ml and a diameter of between 20-25 nm. LDL particles are formed from VLDL particles (via IDL) by the loss of triglyceride and gain of cholesterol ester. They transport endogenous cholesterol (and to some extent triglycerides) from peripheral tissues back to the liver.",
+      "obsolete": false,
+      "pref_label": "low-density lipoprotein particle",
+      "status": "ok",
+      "synonyms": [
+        "LDL complex",
+        "low-density lipoprotein complex",
+        "LDL particle"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/GO_0034362"
+    }
+  },
+  "GO|http://purl.obolibrary.org/obo/GO_0034364": {
+    "fetched_at": 1784548097.5385168,
+    "payload": {
+      "definition": "A lipoprotein particle with a high density (typically 1.063-1.21 g/ml) and a diameter of 5-10 nm that contains APOAs and may contain APOCs and APOE; found in blood and carries lipids from body tissues to the liver as part of the reverse cholesterol transport process.",
+      "obsolete": false,
+      "pref_label": "high-density lipoprotein particle",
+      "status": "ok",
+      "synonyms": [
+        "HDL complex",
+        "HDL particle",
+        "high-density lipoprotein class complex",
+        "HDL2",
+        "HDL3"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/GO_0034364"
+    }
+  },
+  "GO|http://purl.obolibrary.org/obo/GO_0042157": {
+    "fetched_at": 1784548085.7261062,
+    "payload": {
+      "definition": "The chemical reactions and pathways involving any conjugated, water-soluble protein in which the covalently attached nonprotein group consists of a lipid or lipids.",
+      "obsolete": false,
+      "pref_label": "lipoprotein metabolic process",
+      "status": "ok",
+      "synonyms": [
+        "lipoprotein metabolism"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/GO_0042157"
+    }
+  },
+  "GO|http://purl.obolibrary.org/obo/GO_0042632": {
+    "fetched_at": 1784548077.6722567,
+    "payload": {
+      "definition": "Any process involved in the maintenance of an internal steady state of cholesterol within an organism or cell.",
+      "obsolete": false,
+      "pref_label": "cholesterol homeostasis",
+      "status": "ok",
+      "synonyms": [
+        "regulation of cholesterol homeostasis",
+        "positive regulation of cholesterol homeostasis"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/GO_0042632"
+    }
+  },
+  "GO|http://purl.obolibrary.org/obo/GO_0042982": {
+    "fetched_at": 1784548089.4001064,
+    "payload": {
+      "definition": "The chemical reactions and pathways involving amyloid precursor protein (APP), the precursor of amyloid-beta, a glycoprotein associated with Alzheimer's disease.",
+      "obsolete": false,
+      "pref_label": "amyloid precursor protein metabolic process",
+      "status": "ok",
+      "synonyms": [
+        "APP metabolic process",
+        "APP metabolism",
+        "amyloid precursor protein metabolism"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/GO_0042982"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0000017": {
+    "fetched_at": 1784547857.521368,
+    "payload": {
+      "definition": "Abnormally increased production of urine during the night leading to an unusually frequent need to urinate.",
+      "obsolete": false,
+      "pref_label": "Nocturia",
+      "status": "ok",
+      "synonyms": [
+        "Nycturia"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0000017"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0000217": {
+    "fetched_at": 1784547833.558398,
+    "payload": {
+      "definition": "Dryness of the mouth due to salivary gland dysfunction.",
+      "obsolete": false,
+      "pref_label": "Xerostomia",
+      "status": "ok",
+      "synonyms": [
+        "Dry mouth",
+        "Reduced salivation",
+        "Dry mouth syndrome",
+        "Decreased salivary flow"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0000217"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0000504": {
+    "fetched_at": 1784547825.5220883,
+    "payload": {
+      "definition": "Abnormality of eyesight (visual perception).",
+      "obsolete": false,
+      "pref_label": "Abnormality of vision",
+      "status": "ok",
+      "synonyms": [
+        "Abnormality of sight",
+        "Abnormality of vision",
+        "Vision issue"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0000504"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0000711": {
+    "fetched_at": 1784547889.626949,
+    "payload": {
+      "definition": "A state of unease is characterized by diffuse motor activity or motion, which is subject to limited control, nonproductive, or disorganized behavior.",
+      "obsolete": false,
+      "pref_label": "Restlessness",
+      "status": "ok",
+      "synonyms": [
+        "Fidgetiness",
+        "Restiveness"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0000711"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0000712": {
+    "fetched_at": 1784547885.5518675,
+    "payload": {
+      "definition": "Unstable emotional experiences and frequent mood changes; emotions that are easily aroused, intense, and/or disproportionate to events and circumstances.",
+      "obsolete": false,
+      "pref_label": "Emotional lability",
+      "status": "ok",
+      "synonyms": [
+        "Emotional instability",
+        "Can't control feelings",
+        "Mood lability"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0000712"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0000716": {
+    "fetched_at": 1784547877.5137045,
+    "payload": {
+      "definition": "Frequently experiencing feelings of being down, miserable, and/or hopeless; struggling to recover from these moods; having a pessimistic outlook on the future; feeling a pervasive sense of shame; having a low self-worth; experiencing thoughts of suicide and engaging in suicidal behavior.",
+      "obsolete": false,
+      "pref_label": "Depression",
+      "status": "ok",
+      "synonyms": [
+        "Depression",
+        "Depressive episode",
+        "Depressivity",
+        "Depressive disorder"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0000716"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0000969": {
+    "fetched_at": 1784547861.54594,
+    "payload": {
+      "definition": "An abnormal accumulation of fluid beneath the skin, or in one or more cavities of the body.",
+      "obsolete": false,
+      "pref_label": "Edema",
+      "status": "ok",
+      "synonyms": [
+        "Fluid retention",
+        "Hydrops",
+        "Oedema",
+        "Water retention",
+        "Dropsy",
+        "Soft tissue swelling"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0000969"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0000975": {
+    "fetched_at": 1784547809.5206304,
+    "payload": {
+      "definition": "Abnormal excessive perspiration (sweating) despite the lack of appropriate stimuli like hot and humid weather.",
+      "obsolete": false,
+      "pref_label": "Hyperhidrosis",
+      "status": "ok",
+      "synonyms": [
+        "Diaphoresis",
+        "Sweating, increased",
+        "Profuse sweating",
+        "Excessive sweating",
+        "Sweating",
+        "Sweating profusely",
+        "Increased sweating"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0000975"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0000988": {
+    "fetched_at": 1784547869.5407522,
+    "payload": {
+      "definition": "A red eruption of the skin.",
+      "obsolete": false,
+      "pref_label": "Skin rash",
+      "status": "ok",
+      "synonyms": [
+        "Skin rash",
+        "Rash"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0000988"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0001962": {
+    "fetched_at": 1784547845.5009706,
+    "payload": {
+      "definition": "A sensation that the heart is pounding or racing, which is a non-specific sign but may be a manifestation of arrhythmia.",
+      "obsolete": false,
+      "pref_label": "Palpitations",
+      "status": "ok",
+      "synonyms": [
+        "Skipped heart beat",
+        "Heart palpitations",
+        "Palpitations",
+        "Missed heart beat"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0001962"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0002013": {
+    "fetched_at": 1784547793.6019711,
+    "payload": {
+      "definition": "Forceful ejection of the contents of the stomach through the mouth by means of a series of involuntary spasmic contractions.",
+      "obsolete": false,
+      "pref_label": "Vomiting",
+      "status": "ok",
+      "synonyms": [
+        "Throwing up",
+        "Vomiting",
+        "Emesis"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0002013"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0002014": {
+    "fetched_at": 1784547797.5024016,
+    "payload": {
+      "definition": "Abnormally increased frequency (usually defined as three or more) loose or watery bowel movements a day.",
+      "obsolete": false,
+      "pref_label": "Diarrhea",
+      "status": "ok",
+      "synonyms": [
+        "Diarrhoea",
+        "Diarrhea",
+        "Watery stool"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0002014"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0002018": {
+    "fetched_at": 1784547789.5697443,
+    "payload": {
+      "definition": "A sensation of unease in the stomach together with an urge to vomit.",
+      "obsolete": false,
+      "pref_label": "Nausea",
+      "status": "ok",
+      "synonyms": [
+        "Nausea"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0002018"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0002019": {
+    "fetched_at": 1784547801.5506036,
+    "payload": {
+      "definition": "Infrequent or difficult evacuation of feces.",
+      "obsolete": false,
+      "pref_label": "Constipation",
+      "status": "ok",
+      "synonyms": [
+        "Dyschezia",
+        "Costiveness",
+        "Constipation"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0002019"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0002027": {
+    "fetched_at": 1784547805.6262312,
+    "payload": {
+      "definition": "An unpleasant sensation characterized by physical discomfort (such as pricking, throbbing, or aching) and perceived to originate in the abdomen.",
+      "obsolete": false,
+      "pref_label": "Abdominal pain",
+      "status": "ok",
+      "synonyms": [
+        "Abdominal pain",
+        "Pain in stomach",
+        "Stomach pain",
+        "Upset stomach",
+        "Abdominal discomfort",
+        "Gastro pain",
+        "Gastrointestinal pain"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0002027"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0002098": {
+    "fetched_at": 1784547837.4803903,
+    "payload": {
+      "definition": "Respiratory distress is objectively observable as the physical or emotional consequences from the experience of dyspnea. The physical presentation of respiratory distress is generally referred to as labored breathing, while the sensation of respiratory distress is called shortness of breath or dyspnea.",
+      "obsolete": false,
+      "pref_label": "Respiratory distress",
+      "status": "ok",
+      "synonyms": [
+        "Breathing difficulties",
+        "Labored breathing",
+        "Laboured breathing"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0002098"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0002104": {
+    "fetched_at": 1784547821.5276537,
+    "payload": {
+      "definition": "Lack of breathing with no movement of the respiratory muscles and no exchange of air in the lungs. This term refers to a disposition to have recurrent episodes of apnea rather than to a single event.",
+      "obsolete": false,
+      "pref_label": "Apnea",
+      "status": "ok",
+      "synonyms": [
+        "Apnoea",
+        "Apneic episodes",
+        "Absence of spontaneous respiration"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0002104"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0002315": {
+    "fetched_at": 1784547829.614518,
+    "payload": {
+      "definition": "Cephalgia, or pain sensed in various parts of the head, not confined to the area of distribution of any nerve.",
+      "obsolete": false,
+      "pref_label": "Headache",
+      "status": "ok",
+      "synonyms": [
+        "Headaches",
+        "Headache"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0002315"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0002321": {
+    "fetched_at": 1784547813.5371523,
+    "payload": {
+      "definition": "An abnormal sensation of spinning while the body is actually stationary.",
+      "obsolete": false,
+      "pref_label": "Vertigo",
+      "status": "ok",
+      "synonyms": [
+        "Dizzy spell",
+        "Dizziness"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0002321"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0002527": {
+    "fetched_at": 1784547893.4972045,
+    "payload": {
+      "definition": null,
+      "obsolete": false,
+      "pref_label": "Falls",
+      "status": "ok",
+      "synonyms": [
+        "Falls"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0002527"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0003326": {
+    "fetched_at": 1784547865.511405,
+    "payload": {
+      "definition": "Pain in muscle.",
+      "obsolete": false,
+      "pref_label": "Myalgia",
+      "status": "ok",
+      "synonyms": [
+        "Muscle ache",
+        "Muscle pain",
+        "Myalgias"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0003326"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0008770": {
+    "fetched_at": 1784547881.5535946,
+    "payload": {
+      "definition": "The presence of one or more obsessive-compulsive personality traits. Obsessions refer to persistent intrusive thoughts, and compulsions to intrusive behaviors, which the affected person experiences as involuntary, senseless, or repugnant.",
+      "obsolete": false,
+      "pref_label": "Obsessive-compulsive trait",
+      "status": "ok",
+      "synonyms": [
+        "Obsessive-compulsive traits",
+        "Obsessive-compulsive trait"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0008770"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0012378": {
+    "fetched_at": 1784547817.5292723,
+    "payload": {
+      "definition": "A subjective feeling of tiredness characterized by a lack of energy and motivation.",
+      "obsolete": false,
+      "pref_label": "Fatigue",
+      "status": "ok",
+      "synonyms": [
+        "Fatigue",
+        "Tiredness",
+        "Tired"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0012378"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0012735": {
+    "fetched_at": 1784547841.5767274,
+    "payload": {
+      "definition": "A sudden, audible expulsion of air from the lungs through a partially closed glottis, preceded by inhalation.",
+      "obsolete": false,
+      "pref_label": "Cough",
+      "status": "ok",
+      "synonyms": [
+        "Cough",
+        "Coughing"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0012735"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0100518": {
+    "fetched_at": 1784547853.4979572,
+    "payload": {
+      "definition": "Painful or difficult urination.",
+      "obsolete": false,
+      "pref_label": "Dysuria",
+      "status": "ok",
+      "synonyms": [
+        "Painful or difficult urination",
+        "Dull burning sensation with urination"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0100518"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0100749": {
+    "fetched_at": 1784547849.5199602,
+    "payload": {
+      "definition": "An unpleasant sensation characterized by physical discomfort (such as pricking, throbbing, or aching) localized to the chest.",
+      "obsolete": false,
+      "pref_label": "Chest pain",
+      "status": "ok",
+      "synonyms": [
+        "Chest pain",
+        "Thoracic pain",
+        "Chest discomfort"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0100749"
+    }
+  },
+  "HP|http://purl.obolibrary.org/obo/HP_0100785": {
+    "fetched_at": 1784547873.5083284,
+    "payload": {
+      "definition": "Persistent difficulty in starting or maintaining sleep, or waking up earlier than desired, despite having adequate opportunities and conditions for sleep.",
+      "obsolete": false,
+      "pref_label": "Insomnia",
+      "status": "ok",
+      "synonyms": [
+        "Inability to sleep",
+        "Difficulty staying or falling asleep"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/HP_0100785"
+    }
+  },
+  "ICD10|http://purl.bioontology.org/ontology/ICD10/F03.9": {
+    "fetched_at": 1784548048.9492939,
+    "payload": {
+      "detail": "No such class in this ontology.",
+      "status": "not_found",
+      "uri": "http://purl.bioontology.org/ontology/ICD10/F03.9"
+    }
+  },
+  "ICD10|http://purl.bioontology.org/ontology/ICD10/F06.7": {
+    "fetched_at": 1784548028.9520006,
+    "payload": {
+      "definition": null,
+      "obsolete": false,
+      "pref_label": "Mild cognitive disorder",
+      "status": "ok",
+      "synonyms": [],
+      "uri": "http://purl.bioontology.org/ontology/ICD10/F06.7"
+    }
+  },
+  "ICD10|http://purl.bioontology.org/ontology/ICD10/G30.9": {
+    "fetched_at": 1784548036.9593773,
+    "payload": {
+      "definition": null,
+      "obsolete": false,
+      "pref_label": "Alzheimer's disease, unspecified",
+      "status": "ok",
+      "synonyms": [],
+      "uri": "http://purl.bioontology.org/ontology/ICD10/G30.9"
+    }
+  },
+  "ICD10|http://purl.bioontology.org/ontology/ICD10/R41.3": {
+    "fetched_at": 1784548016.9607759,
+    "payload": {
+      "definition": null,
+      "obsolete": false,
+      "pref_label": "Other amnesia",
+      "status": "ok",
+      "synonyms": [],
+      "uri": "http://purl.bioontology.org/ontology/ICD10/R41.3"
+    }
+  },
+  "ICD10|http://purl.bioontology.org/ontology/ICD10/Z03.89": {
+    "fetched_at": 1784548004.9656415,
+    "payload": {
+      "detail": "No such class in this ontology.",
+      "status": "not_found",
+      "uri": "http://purl.bioontology.org/ontology/ICD10/Z03.89"
+    }
+  },
+  "LNC|http://purl.bioontology.org/ontology/LNC/13967-5": {
+    "fetched_at": 1784547896.9040842,
+    "payload": {
+      "detail": "HTTP 403. For LNC, accept the licence for this ontology while signed in at bioportal.bioontology.org, then re-run.",
+      "status": "unauthorised",
+      "uri": "http://purl.bioontology.org/ontology/LNC/13967-5"
+    }
+  },
+  "LNC|http://purl.bioontology.org/ontology/LNC/15201-7": {
+    "fetched_at": 1784547904.9299726,
+    "payload": {
+      "detail": "HTTP 403. For LNC, accept the licence for this ontology while signed in at bioportal.bioontology.org, then re-run.",
+      "status": "unauthorised",
+      "uri": "http://purl.bioontology.org/ontology/LNC/15201-7"
+    }
+  },
+  "LNC|http://purl.bioontology.org/ontology/LNC/62731-6": {
+    "fetched_at": 1784547908.9499605,
+    "payload": {
+      "detail": "HTTP 403. For LNC, accept the licence for this ontology while signed in at bioportal.bioontology.org, then re-run.",
+      "status": "unauthorised",
+      "uri": "http://purl.bioontology.org/ontology/LNC/62731-6"
+    }
+  },
+  "LNC|http://purl.bioontology.org/ontology/LNC/71130-0": {
+    "fetched_at": 1784547968.8996913,
+    "payload": {
+      "detail": "HTTP 403. For LNC, accept the licence for this ontology while signed in at bioportal.bioontology.org, then re-run.",
+      "status": "unauthorised",
+      "uri": "http://purl.bioontology.org/ontology/LNC/71130-0"
+    }
+  },
+  "LNC|http://purl.bioontology.org/ontology/LNC/72026-8": {
+    "fetched_at": 1784547980.9139466,
+    "payload": {
+      "detail": "HTTP 403. For LNC, accept the licence for this ontology while signed in at bioportal.bioontology.org, then re-run.",
+      "status": "unauthorised",
+      "uri": "http://purl.bioontology.org/ontology/LNC/72026-8"
+    }
+  },
+  "LNC|http://purl.bioontology.org/ontology/LNC/72106-8": {
+    "fetched_at": 1784547960.916893,
+    "payload": {
+      "detail": "HTTP 403. For LNC, accept the licence for this ontology while signed in at bioportal.bioontology.org, then re-run.",
+      "status": "unauthorised",
+      "uri": "http://purl.bioontology.org/ontology/LNC/72106-8"
+    }
+  },
+  "LNC|http://purl.bioontology.org/ontology/LNC/72133-2": {
+    "fetched_at": 1784547976.9043498,
+    "payload": {
+      "detail": "HTTP 403. For LNC, accept the licence for this ontology while signed in at bioportal.bioontology.org, then re-run.",
+      "status": "unauthorised",
+      "uri": "http://purl.bioontology.org/ontology/LNC/72133-2"
+    }
+  },
+  "LNC|http://purl.bioontology.org/ontology/LNC/72172-0": {
+    "fetched_at": 1784547964.9205022,
+    "payload": {
+      "detail": "HTTP 403. For LNC, accept the licence for this ontology while signed in at bioportal.bioontology.org, then re-run.",
+      "status": "unauthorised",
+      "uri": "http://purl.bioontology.org/ontology/LNC/72172-0"
+    }
+  },
+  "LNC|http://purl.bioontology.org/ontology/LNC/72194-4": {
+    "fetched_at": 1784547972.923889,
+    "payload": {
+      "detail": "HTTP 403. For LNC, accept the licence for this ontology while signed in at bioportal.bioontology.org, then re-run.",
+      "status": "unauthorised",
+      "uri": "http://purl.bioontology.org/ontology/LNC/72194-4"
+    }
+  },
+  "LNC|http://purl.bioontology.org/ontology/LNC/83235-5": {
+    "fetched_at": 1784547900.9158936,
+    "payload": {
+      "detail": "HTTP 403. For LNC, accept the licence for this ontology while signed in at bioportal.bioontology.org, then re-run.",
+      "status": "unauthorised",
+      "uri": "http://purl.bioontology.org/ontology/LNC/83235-5"
+    }
+  },
+  "MONDO|http://purl.obolibrary.org/obo/MONDO_0001627": {
+    "fetched_at": 1784548052.999668,
+    "payload": {
+      "definition": "Loss of intellectual abilities interfering with an individual's social and occupational functions. Causes include Alzheimer's disease, brain injuries, brain tumors, and vascular disorders.",
+      "obsolete": false,
+      "pref_label": "dementia",
+      "status": "ok",
+      "synonyms": [
+        "dementia (disease)",
+        "dementia"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/MONDO_0001627"
+    }
+  },
+  "MONDO|http://purl.obolibrary.org/obo/MONDO_0004975": {
+    "fetched_at": 1784547997.0040884,
+    "payload": {
+      "definition": "A progressive, neurodegenerative disease characterized by loss of function and death of nerve cells in several areas of the brain leading to loss of cognitive function such as memory and language.",
+      "obsolete": false,
+      "pref_label": "Alzheimer disease",
+      "status": "ok",
+      "synonyms": [
+        "presenile and senile dementia",
+        "Alzheimer's disease",
+        "Alzheimer dementia",
+        "Alzheimer's dementia",
+        "Alzheimer disease",
+        "Alzheimers disease",
+        "AD",
+        "Alzheimer disease, familial"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/MONDO_0004975"
+    }
+  },
+  "NCIT|http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C100044": {
+    "fetched_at": 1784548267.1692982,
+    "payload": {
+      "definition": "Dilation of the valve between the right ventricle and the pulmonary artery of the heart by inflating a balloon. (ACC)",
+      "obsolete": false,
+      "pref_label": "Pulmonic Valvuloplasty",
+      "status": "ok",
+      "synonyms": [
+        "PULMONIC VALVULOPLASTY",
+        "Pulmonic Valvuloplasty"
+      ],
+      "uri": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C100044"
+    }
+  },
+  "NCIT|http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C176715": {
+    "fetched_at": 1784548263.1464176,
+    "payload": {
+      "definition": "A lung neuroendocrine neoplasm that has spread from its original site of growth to nearby tissues or lymph nodes.",
+      "obsolete": false,
+      "pref_label": "Locally Advanced Lung Neuroendocrine Neoplasm",
+      "status": "ok",
+      "synonyms": [
+        "Locally Advanced Lung Neuroendocrine Neoplasm"
+      ],
+      "uri": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C176715"
+    }
+  },
+  "NCIT|http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2866": {
+    "fetched_at": 1784548258.1685147,
+    "payload": {
+      "definition": "A progressive, neurodegenerative disease characterized by loss of function and death of nerve cells in several areas of the brain leading to loss of cognitive function such as memory and language.",
+      "obsolete": false,
+      "pref_label": "Alzheimer's Disease",
+      "status": "ok",
+      "synonyms": [
+        "Alzheimer's Disease",
+        "Alzheimer's Dementia",
+        "Alzheimer's disease",
+        "Alzheimer dementia",
+        "Alzheimer disease",
+        "Alzheimer's disease, unspecified",
+        "Alzheimer Disease"
+      ],
+      "uri": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C2866"
+    }
+  },
+  "NCIT|http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4786": {
+    "fetched_at": 1784548271.1431096,
+    "payload": {
+      "definition": "Loss of intellectual abilities interfering with an individual's social and occupational functions. Causes include Alzheimer's disease, brain injuries, brain tumors, and vascular disorders.",
+      "obsolete": false,
+      "pref_label": "Dementia",
+      "status": "ok",
+      "synonyms": [
+        "Dementia",
+        "dementia"
+      ],
+      "uri": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4786"
+    }
+  },
+  "NCIT|http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C94342": {
+    "fetched_at": 1784548259.2797277,
+    "payload": {
+      "definition": "A healthy subject that is matched with an affected individual in a trial.",
+      "obsolete": false,
+      "pref_label": "Healthy Control",
+      "status": "ok",
+      "synonyms": [
+        "healthy control",
+        "Healthy Control"
+      ],
+      "uri": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C94342"
+    }
+  },
+  "NCIT|http://purl.obolibrary.org/obo/NCIT_C100044": {
+    "fetched_at": 1784548033.0228937,
+    "payload": {
+      "detail": "No such class in this ontology.",
+      "status": "not_found",
+      "uri": "http://purl.obolibrary.org/obo/NCIT_C100044"
+    }
+  },
+  "NCIT|http://purl.obolibrary.org/obo/NCIT_C176715": {
+    "fetched_at": 1784548021.0237906,
+    "payload": {
+      "detail": "No such class in this ontology.",
+      "status": "not_found",
+      "uri": "http://purl.obolibrary.org/obo/NCIT_C176715"
+    }
+  },
+  "NCIT|http://purl.obolibrary.org/obo/NCIT_C2866": {
+    "fetched_at": 1784548041.0426753,
+    "payload": {
+      "detail": "No such class in this ontology.",
+      "status": "not_found",
+      "uri": "http://purl.obolibrary.org/obo/NCIT_C2866"
+    }
+  },
+  "NCIT|http://purl.obolibrary.org/obo/NCIT_C4786": {
+    "fetched_at": 1784548057.0294435,
+    "payload": {
+      "detail": "No such class in this ontology.",
+      "status": "not_found",
+      "uri": "http://purl.obolibrary.org/obo/NCIT_C4786"
+    }
+  },
+  "NCIT|http://purl.obolibrary.org/obo/NCIT_C94342": {
+    "fetched_at": 1784548009.0243556,
+    "payload": {
+      "detail": "No such class in this ontology.",
+      "status": "not_found",
+      "uri": "http://purl.obolibrary.org/obo/NCIT_C94342"
+    }
+  },
+  "SNOMEDCT|http://purl.bioontology.org/ontology/SNOMEDCT/17621005": {
+    "fetched_at": 1784548000.9576724,
+    "payload": {
+      "definition": null,
+      "obsolete": false,
+      "pref_label": "Normal",
+      "status": "ok",
+      "synonyms": [
+        "Unremarkable",
+        "Normal (qualifier value)"
+      ],
+      "uri": "http://purl.bioontology.org/ontology/SNOMEDCT/17621005"
+    }
+  },
+  "SNOMEDCT|http://purl.bioontology.org/ontology/SNOMEDCT/26929004": {
+    "fetched_at": 1784547765.2139747,
+    "payload": {
+      "definition": null,
+      "obsolete": false,
+      "pref_label": "Alzheimer's disease",
+      "status": "ok",
+      "synonyms": [
+        "Alzheimer's disease (disorder)",
+        "Alzheimer dementia",
+        "Alzheimer disease",
+        "AD - Alzheimer's disease"
+      ],
+      "uri": "http://purl.bioontology.org/ontology/SNOMEDCT/26929004"
+    }
+  },
+  "SNOMEDCT|http://purl.bioontology.org/ontology/SNOMEDCT/386805003": {
+    "fetched_at": 1784548151.7153332,
+    "payload": {
+      "definition": null,
+      "obsolete": false,
+      "pref_label": "Mild neurocognitive disorder",
+      "status": "ok",
+      "synonyms": [
+        "Mild cognitive impairment",
+        "Mild neurocognitive disorder (disorder)",
+        "Mild cognitive disorder"
+      ],
+      "uri": "http://purl.bioontology.org/ontology/SNOMEDCT/386805003"
+    }
+  },
+  "SNOMEDCT|http://purl.bioontology.org/ontology/SNOMEDCT/386806002": {
+    "fetched_at": 1784548024.9422505,
+    "payload": {
+      "definition": null,
+      "obsolete": false,
+      "pref_label": "Impaired cognition",
+      "status": "ok",
+      "synonyms": [
+        "Cognitive dysfunction",
+        "Cognitive deficit",
+        "Impaired cognition (finding)",
+        "Cognitive disturbance",
+        "Cognitive decline",
+        "Cognitive impairment"
+      ],
+      "uri": "http://purl.bioontology.org/ontology/SNOMEDCT/386806002"
+    }
+  },
+  "SNOMEDCT|http://purl.bioontology.org/ontology/SNOMEDCT/386807006": {
+    "fetched_at": 1784548012.9517057,
+    "payload": {
+      "definition": null,
+      "obsolete": false,
+      "pref_label": "Memory impairment",
+      "status": "ok",
+      "synonyms": [
+        "Impaired memory",
+        "Poor memory",
+        "Memory dysfunction",
+        "Dysmnesia",
+        "Memory deficit",
+        "Memory impairment (finding)",
+        "Disturbance of memory",
+        "Bad memory",
+        "Memory problem"
+      ],
+      "uri": "http://purl.bioontology.org/ontology/SNOMEDCT/386807006"
+    }
+  },
+  "SNOMEDCT|http://purl.bioontology.org/ontology/SNOMEDCT/52448006": {
+    "fetched_at": 1784548044.9440155,
+    "payload": {
+      "definition": null,
+      "obsolete": false,
+      "pref_label": "Dementia",
+      "status": "ok",
+      "synonyms": [
+        "Organic dementia",
+        "Dementia (disorder)"
+      ],
+      "uri": "http://purl.bioontology.org/ontology/SNOMEDCT/52448006"
+    }
+  },
+  "UBERON|http://purl.obolibrary.org/obo/UBERON_0000955": {
+    "fetched_at": 1784547957.2005427,
+    "payload": {
+      "definition": "The brain is the center of the nervous system in all vertebrate, and most invertebrate, animals. Some primitive animals such as jellyfish and starfish have a decentralized nervous system without a brain, while sponges lack any nervous system at all. In vertebrates, the brain is located in the head, protected by the skull and close to the primary sensory apparatus of vision, hearing, balance, taste, and smell[WP].",
+      "obsolete": false,
+      "pref_label": "brain",
+      "status": "ok",
+      "synonyms": [
+        "suprasegmental levels of nervous system",
+        "suprasegmental structures",
+        "synganglion",
+        "encephalon",
+        "the brain"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/UBERON_0000955"
+    }
+  },
+  "UBERON|http://purl.obolibrary.org/obo/UBERON_0000956": {
+    "fetched_at": 1784547917.2092364,
+    "payload": {
+      "definition": "The thin layer of gray matter on the surface of the cerebral hemisphere that develops from the telencephalon. It consists of the neocortex (6 layered cortex or isocortex), the hippocampal formation and the olfactory cortex.",
+      "obsolete": false,
+      "pref_label": "cerebral cortex",
+      "status": "ok",
+      "synonyms": [
+        "cortex of cerebral hemisphere",
+        "cortical plate (areas)",
+        "pallium of the brain",
+        "cortical plate (CTXpl)",
+        "cortex cerebri",
+        "brain cortex",
+        "cortex cerebralis"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/UBERON_0000956"
+    }
+  },
+  "UBERON|http://purl.obolibrary.org/obo/UBERON_0001871": {
+    "fetched_at": 1784547933.2257288,
+    "payload": {
+      "definition": "Lower lateral part of the cerebral hemisphere. (MSH).",
+      "obsolete": false,
+      "pref_label": "temporal lobe",
+      "status": "ok",
+      "synonyms": [
+        "lobus temporalis",
+        "temporal cortex"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/UBERON_0001871"
+    }
+  },
+  "UBERON|http://purl.obolibrary.org/obo/UBERON_0001872": {
+    "fetched_at": 1784547937.1834767,
+    "payload": {
+      "definition": "Upper central part of the cerebral hemisphere. (MSH).",
+      "obsolete": false,
+      "pref_label": "parietal lobe",
+      "status": "ok",
+      "synonyms": [
+        "regio parietalis",
+        "lobus parietalis",
+        "parietal region"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/UBERON_0001872"
+    }
+  },
+  "UBERON|http://purl.obolibrary.org/obo/UBERON_0001897": {
+    "fetched_at": 1784547949.220829,
+    "payload": {
+      "definition": "Subcortical brain region consisting of paired gray matter bodies in the dorsal diencephalon and forming part of the lateral wall of the third ventricle of the brain. The thalamus represents the major portion of the diencephalon and is commonly divided into cellular aggregates known as nuclear groups.(MeSH). The dorsal topographic division of the interbrain. The macrodissected adult human thalamus was clearly illustrated by Vesalius in 1543 and the term as defined here was introduced by His in 1893. It includes the traditional epithalamus, dorsal thalamus, and ventral thalamus of Herrick (1910, pp. 494, 498). Also see Kuhlenbeck (1927, Ch. 9) and Jones (1985, p. 87).",
+      "obsolete": false,
+      "pref_label": "dorsal plus ventral thalamus",
+      "status": "ok",
+      "synonyms": [
+        "wider thalamus",
+        "thalamus opticus",
+        "thalamencephalon",
+        "thalami",
+        "Th",
+        "thalamus"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/UBERON_0001897"
+    }
+  },
+  "UBERON|http://purl.obolibrary.org/obo/UBERON_0002021": {
+    "fetched_at": 1784547941.1836832,
+    "payload": {
+      "definition": "Posterior part of the cerebral hemisphere (MSH).",
+      "obsolete": false,
+      "pref_label": "occipital lobe",
+      "status": "ok",
+      "synonyms": [
+        "regio occipitalis",
+        "lobus occipitalis"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/UBERON_0002021"
+    }
+  },
+  "UBERON|http://purl.obolibrary.org/obo/UBERON_0002037": {
+    "fetched_at": 1784547925.155482,
+    "payload": {
+      "definition": "Part of the metencephalon that lies in the posterior cranial fossa behind the brain stem. It is concerned with the coordination of movement[MESH]. A large dorsally projecting part of the brain concerned especially with the coordination of muscles and the maintenance of bodily equilibrium, situated between the brain stem and the back of the cerebrum , and formed in humans of two lateral lobes and a median lobe[BTO]. Brain structure derived from the anterior hindbrain, and perhaps including posterior midbrain. The cerebellum plays a role in somatic motor function, the control of muscle tone, and balance[ZFA].",
+      "obsolete": false,
+      "pref_label": "cerebellum",
+      "status": "ok",
+      "synonyms": [
+        "epencephalon-1",
+        "parencephalon",
+        "corpus cerebelli",
+        "infratentorial region"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/UBERON_0002037"
+    }
+  },
+  "UBERON|http://purl.obolibrary.org/obo/UBERON_0002298": {
+    "fetched_at": 1784547945.293962,
+    "payload": {
+      "definition": "Stalk-like part of the brain that includes amongst its parts the medulla oblongata of the hindbrain and the tegmentum of the midbrain[ZFA,MP,generalized].",
+      "obsolete": false,
+      "pref_label": "brainstem",
+      "status": "ok",
+      "synonyms": [
+        "truncus encephali",
+        "brain stem",
+        "lamina pallidi incompleta",
+        "lamina medullaris accessoria",
+        "lamina medullaris incompleta pallidi",
+        "lamella pallidi incompleta",
+        "truncus encephalicus",
+        "accessory medullary lamina of pallidum"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/UBERON_0002298"
+    }
+  },
+  "UBERON|http://purl.obolibrary.org/obo/UBERON_0002420": {
+    "fetched_at": 1784547953.2224293,
+    "payload": {
+      "definition": "An individual member of a collection of basal ganglia. Basal ganglia are subcortical masses of gray matter in the forebrain and midbrain that are richly interconnected and so viewed as a functional system. The nuclei usually included are the caudate nucleus (caudoputamen in rodents), putamen, globus pallidus, substantia nigra (pars compacta and pars reticulata) and the subthalamic nucleus. Some also include the nucleus accumbens and ventral pallidum[NIF,modified].",
+      "obsolete": false,
+      "pref_label": "basal ganglion",
+      "status": "ok",
+      "synonyms": [
+        "basal ganglion of telencephalon",
+        "basal nucleus",
+        "nuclei basales",
+        "basal ganglia"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/UBERON_0002420"
+    }
+  },
+  "UBERON|http://purl.obolibrary.org/obo/UBERON_0002421": {
+    "fetched_at": 1784547913.193166,
+    "payload": {
+      "definition": "Hippocampus (proper) plus dentate gyrus and subiculum[definition derived from NIF comments and ontology alignment].",
+      "obsolete": false,
+      "pref_label": "hippocampal formation",
+      "status": "ok",
+      "synonyms": [
+        "hippocampus (Crosby)",
+        "major hippocampus",
+        "archipallium",
+        "formatio hippocampi",
+        "primal cortex",
+        "seahorse",
+        "hippocampus"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/UBERON_0002421"
+    }
+  },
+  "UBERON|http://purl.obolibrary.org/obo/UBERON_0004086": {
+    "fetched_at": 1784547921.2201765,
+    "payload": {
+      "definition": "One of the system of communicating cavities in the brain that are continuous with the central canal of the spinal cord, that like it are derived from the medullary canal of the embryo, that are lined with an epithelial ependyma, and that contain a serous fluid.",
+      "obsolete": false,
+      "pref_label": "brain ventricle",
+      "status": "ok",
+      "synonyms": [
+        "cerebral ventricle",
+        "region of ventricular system of brain",
+        "brain ventricles"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/UBERON_0004086"
+    }
+  },
+  "UBERON|http://purl.obolibrary.org/obo/UBERON_0016525": {
+    "fetched_at": 1784547929.1909676,
+    "payload": {
+      "definition": "Frontal lobe is the anterior-most of five lobes of the cerebral hemisphere. It is bounded by the central sulcus on its posterior border and by the longitudinal cerebral fissure on its medial border.",
+      "obsolete": false,
+      "pref_label": "frontal lobe",
+      "status": "ok",
+      "synonyms": [
+        "lobus frontalis",
+        "lobi frontales",
+        "frontal cortex",
+        "frontal region",
+        "regio frontalis"
+      ],
+      "uri": "http://purl.obolibrary.org/obo/UBERON_0016525"
+    }
+  }
+}

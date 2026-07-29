@@ -8,6 +8,20 @@ captured along the way feed ``metrics/step_audit.py`` to assemble a
 per-step delta CSV and ``figures/f4_density.py`` for the F4
 density-progression figure.
 
+Known coverage gap (acknowledged)
+---------------------------------
+
+This audit rolls back and re-snapshots **only Steps 30, 33, and 34**, because
+only those three are strictly MERGE-idempotent and therefore safe to reverse
+on the live canonical graph. Steps **31, 32, and 35** (VITALS->LOINC,
+MEDHIST->SNOMED-CT, Gene Ontology) sit inside the post-Step-34 -> post-Step-36
+replay window and have **no dedicated rollback-and-replay snapshot** here;
+their per-step deltas are read from the step scripts' run logs and the
+canonical-snapshot deltas rather than from an independent audit row. This is a
+known, accepted limitation, not an oversight -- it is flagged the same way in
+the manuscript's per-pass ledger (Table VI footnote / ``tab:phase2_ledger``)
+so no reader mistakes the inferred rows for independently audited ones.
+
 Sequence
 --------
 
