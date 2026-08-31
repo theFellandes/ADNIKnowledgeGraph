@@ -47,7 +47,9 @@ logger = logging.getLogger(__name__)
 CATEGORIES: List[Tuple[str, str, str, str]] = [
     ("psychiatric",      "Mental disorder",              "74732009",  "MHPSYCH"),
     ("neurological",     "Disorder of nervous system",   "118940003", "MH2NEURL"),
-    ("head_injury",      "Head injury",                  "82271004",  "MH3HEAD"),
+    # MH3HEAD is the HEENT review-of-systems category (Head, Eyes, Ears,
+    # Nose and Throat), not head trauma — see ADNIMERGE medhist reference.
+    ("heent",            "Disorder of head",             "118934005", "MH3HEAD"),
     ("cardiovascular",   "Disorder of cardiovascular system", "49601007", "MH4CARD"),
     ("respiratory",      "Disorder of respiratory system", "50043002", "MH5RESP"),
     ("hepatic",          "Disorder of liver",            "235856003", "MH6HEPAT"),

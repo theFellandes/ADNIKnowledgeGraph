@@ -182,13 +182,29 @@ class LoincVitalSignsStep:
                 continue
             self.metrics["rows_processed"] += 1
 
+            # ADNI VITALS records per-row units: VSWTUNIT 1 = pounds, 2 = kilograms;
+            # VSHTUNIT 1 = inches, 2 = centimetres. Normalise to kg / cm before the
+            # plausibility bands so imperial rows are converted rather than stored
+            # mislabelled (weight) or silently dropped (height).
             weight = _safe_float(row.get("VSWEIGHT"))
+            wt_unit = _safe_float(row.get("VSWTUNIT"))
+            if weight is not None and wt_unit == 1:
+                weight = round(weight * 0.453592, 2)
             height = _safe_float(row.get("VSHEIGHT"))
+            ht_unit = _safe_float(row.get("VSHTUNIT"))
+            if height is not None and ht_unit == 1:
+                height = round(height * 2.54, 2)
 
             for biomarker_type, code, _, column, unit, lo, hi in VITAL_SIGNS:
                 if biomarker_type == "BodyMassIndex":
                     value = _bmi(weight, height)
                     source_col = "derived(VSWEIGHT,VSHEIGHT)"
+                elif biomarker_type == "BodyWeight":
+                    value = weight
+                    source_col = column
+                elif biomarker_type == "BodyHeight":
+                    value = height
+                    source_col = column
                 else:
                     value = _safe_float(row.get(column))
                     source_col = column

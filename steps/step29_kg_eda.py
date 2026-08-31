@@ -890,7 +890,12 @@ class KnowledgeGraphEDA:
         n_diagnoses = self.stats.get("node_counts", {}).get("Diagnosis", 0)
         n_ontology = self.stats.get("node_counts", {}).get("OntologyConcept", 0)
         n_labels = len([v for v in self.stats.get("node_counts", {}).values() if v > 0])
+        # relationship_counts holds only the top-N bars from fig02; count the
+        # in-use relationship types directly so the tile reports the real total.
         n_rel_types = len(self.stats.get("relationship_counts", {}))
+        _rt = self._query("MATCH ()-[r]->() RETURN count(DISTINCT type(r)) AS n")
+        if _rt:
+            n_rel_types = int(_rt[0]["n"])
 
         fig, ax = plt.subplots(figsize=(16, 9))
         ax.set_xlim(0, 16)

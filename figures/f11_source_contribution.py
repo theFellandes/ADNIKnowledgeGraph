@@ -2,8 +2,8 @@
 
 Reads ``outputs/metrics/source_ontology_contribution.json`` and renders a
 horizontal bar chart, one bar per URI-namespace source, sorted descending.
-Each bar shows the edge count and its share of the 99.68% aggregate edge
-URI coverage. Same layout family as f6 / f7 / f8 / f9 so the chapter reads
+Each bar shows the edge count and its share of the aggregate edge URI
+coverage over the post-dedup canonical relationship total. Same layout family as f6 / f7 / f8 / f9 so the chapter reads
 visually consistent.
 
 CLI::
@@ -21,6 +21,9 @@ import sys
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+# Post-dedup canonical relationship total (outputs/metrics/canonical_snapshot.json).
+TOTAL_EDGES = 1_558_383
 
 
 def render(rows: list[dict], *, palette_name: str = "thesis", title: str = "Source-ontology contribution to edge URI coverage"):
@@ -55,7 +58,7 @@ def render(rows: list[dict], *, palette_name: str = "thesis", title: str = "Sour
     ax.set_yticks(y)
     ax.set_yticklabels(names)
     ax.invert_yaxis()
-    ax.set_xlabel(f"Edges carrying a predicate URI (total = {total:,} of 2,040,745 = 99.68 %)")
+    ax.set_xlabel(f"Edges carrying a predicate URI (total = {total:,} of {TOTAL_EDGES:,} = {100.0 * total / TOTAL_EDGES:.2f} %)")
     ax.set_title(title)
     ax.set_xlim(0, max_c * 1.35)
     ax.set_xscale("symlog")

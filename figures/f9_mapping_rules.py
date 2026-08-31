@@ -36,7 +36,7 @@ _DOMAIN_BY_FILE = {
     "gene_to_go.csv": "Gene → GO",
     "gene_to_ncbi.csv": "Gene → NCBI",
     "relationship_to_ro_uri.csv": "Relation → RO",
-    "index.csv": "Master index (deduplicated)",
+    "index.csv": "Master index (concatenation)",
 }
 
 

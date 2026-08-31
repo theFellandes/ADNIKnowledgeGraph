@@ -45,6 +45,29 @@ def _ordered_snapshots(payload: dict) -> list[tuple[str, dict]]:
     return out
 
 
+# The intermediate rollback-replay checkpoints (pre_step_30 .. post_step_34)
+# were measured on the PRE-deduplication graph and still include the
+# FamilyMember re-run surplus documented in the JSON's _provenance note
+# (116,425 duplicate nodes; 356,354 duplicate edges). post_step_36 is the
+# post-dedup canonical snapshot. Subtract the surplus from the intermediate
+# rows so the plotted series is comparable end to end and matches the
+# dedup-adjusted tables in the manuscripts.
+DEDUP_NODE_SURPLUS = 116_425
+DEDUP_EDGE_SURPLUS = 356_354
+FINAL_SNAPSHOT = "post_step_36"
+
+
+def _dedup_adjusted(snapshots: list[tuple[str, dict]]) -> list[tuple[str, dict]]:
+    out: list[tuple[str, dict]] = []
+    for k, v in snapshots:
+        if k != FINAL_SNAPSHOT:
+            v = dict(v)
+            v["node_total"] = int(v.get("node_total", 0)) - DEDUP_NODE_SURPLUS
+            v["edge_total"] = int(v.get("edge_total", 0)) - DEDUP_EDGE_SURPLUS
+        out.append((k, v))
+    return out
+
+
 def render(snapshots: list[tuple[str, dict]], *, palette_name: str = "thesis", title: str = "Cumulative deltas across enrichment passes"):
     import matplotlib.pyplot as plt
 
@@ -126,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
 
     with open(inp, "r", encoding="utf-8") as f:
         payload = json.load(f)
-    snapshots = _ordered_snapshots(payload)
+    snapshots = _dedup_adjusted(_ordered_snapshots(payload))
     if not snapshots:
         logger.error("No per-step snapshots in %s", inp)
         return 2

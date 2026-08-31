@@ -1,23 +1,31 @@
 source_csv,source_table,source_column,source_value_pattern,target_ontology,target_uri,target_label,mapping_rule,test_fixture_id,last_verified_date
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000739,Anxiety,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000716,Depression,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000713,Agitation,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000733,Motor stereotypy,NPI-Q symptom → HPO (parent=HP:0000708),,2026-06-18
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0100785,Insomnia,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000738,Hallucinations,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000746,Delusion,NPI-Q symptom → HPO (parent=HP:0000708),,2026-06-18
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000741,Apathy,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000737,Irritability,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0031844,Euphoria,NPI-Q symptom → HPO (parent=HP:0000708),,2026-06-18
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000752,Hyperactivity,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0007086,Social and occupational deterioration,NPI-Q symptom → HPO (parent=HP:0000708),,2026-06-18
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0004323,Abnormality of body weight,NPI-Q symptom → HPO (parent=HP:0000708),,2026-06-18
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0002360,Sleep disturbance,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0010529,Echolalia,NPI-Q symptom → HPO (parent=HP:0000708),,2026-05-16
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0000734,Disinhibition,NPI-Q symptom → HPO (parent=HP:0000708),,2026-06-18
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0011446,Abnormality of mental function,NPI-Q symptom → HPO (parent=HP:0100543),,2026-06-18
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0007185,Loss of consciousness,NPI-Q symptom → HPO (parent=HP:0100543),,2026-06-18
-adsxlist_to_hpo.csv,ADSXLIST,<symptom-flag>,1,HPO,hpo:HP:0010864,Severe intellectual disability,NPI-Q symptom → HPO (parent=HP:0100543),,2026-06-18
+adsxlist_to_hpo.csv,ADSXLIST,AXNAUSEA,2,HPO,hpo:HP:0002018,Nausea,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXVOMIT,2,HPO,hpo:HP:0002013,Vomiting,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXDIARRH,2,HPO,hpo:HP:0002014,Diarrhea,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXCONSTP,2,HPO,hpo:HP:0002019,Constipation,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXABDOMN,2,HPO,hpo:HP:0002027,Abdominal pain,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXSWEATN,2,HPO,hpo:HP:0000975,Hyperhidrosis,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXDIZZY,2,HPO,hpo:HP:0002321,Vertigo,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXENERGY,2,HPO,hpo:HP:0012378,Fatigue,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXDROWSY,2,HPO,hpo:HP:0002329,Drowsiness,exact_match,,2026-08-31
+adsxlist_to_hpo.csv,ADSXLIST,AXVISION,2,HPO,hpo:HP:0000504,Abnormality of vision,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXHDACHE,2,HPO,hpo:HP:0002315,Headache,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXDRYMTH,2,HPO,hpo:HP:0000217,Xerostomia,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXBREATH,2,HPO,hpo:HP:0002098,Respiratory distress,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXCOUGH,2,HPO,hpo:HP:0012735,Cough,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXPALPIT,2,HPO,hpo:HP:0001962,Palpitations,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXCHEST,2,HPO,hpo:HP:0100749,Chest pain,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXURNDIS,2,HPO,hpo:HP:0100518,Dysuria,exact_match,,2026-06-18
+adsxlist_to_hpo.csv,ADSXLIST,AXURNFRQ,2,HPO,hpo:HP:0100515,Pollakisuria,exact_match,,2026-08-31
+adsxlist_to_hpo.csv,ADSXLIST,AXANKLE,2,HPO,hpo:HP:0000969,Edema,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXMUSCLE,2,HPO,hpo:HP:0003326,Myalgia,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXRASH,2,HPO,hpo:HP:0000988,Skin rash,exact_match,,2026-06-18
+adsxlist_to_hpo.csv,ADSXLIST,AXINSOMN,2,HPO,hpo:HP:0100785,Insomnia,exact_match,,2026-05-18
+adsxlist_to_hpo.csv,ADSXLIST,AXDPMOOD,2,HPO,hpo:HP:0000716,Depression,exact_match,,2026-06-18
+adsxlist_to_hpo.csv,ADSXLIST,AXCRYING,2,HPO,hpo:HP:0033705,Tearfulness,exact_match,,2026-08-31
+adsxlist_to_hpo.csv,ADSXLIST,AXELMOOD,2,HPO,hpo:HP:0000712,Emotional lability,exact_match,,2026-06-18
+adsxlist_to_hpo.csv,ADSXLIST,AXWANDER,2,HPO,hpo:HP:0000711,Restlessness,approximate_match,,2026-06-18
+adsxlist_to_hpo.csv,ADSXLIST,AXFALL,2,HPO,hpo:HP:0002527,Falls,exact_match,,2026-05-18
 biolink_categories.csv,_synthetic,_node_label,Patient,Biolink,biolink:Case,Case,step 33 — biolink_category on node label,,2026-05-16
 biolink_categories.csv,_synthetic,_node_label,FamilyMember,Biolink,biolink:Case,Case,step 33 — biolink_category on node label,,2026-05-16
 biolink_categories.csv,_synthetic,_node_label,Sibling,Biolink,biolink:Case,Case,step 33 — biolink_category on node label,,2026-05-16

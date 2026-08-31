@@ -136,10 +136,12 @@ class AdsxlistAboxStep:
         return count
 
     def _is_truthy(self, value: Any) -> bool:
+        # ADSXLIST symptom flags are coded 1 = Absent, 2 = Present
+        # (ADNI diagnostic checklist convention; see ADNIMERGE adsxlist docs).
         if value is None:
             return False
         try:
-            return int(value) == 1
+            return int(value) == 2
         except (TypeError, ValueError):
             return str(value).strip().upper() == "Y"
 
